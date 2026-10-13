@@ -27,7 +27,7 @@ Lee este documento completo antes de modificar cualquier archivo.
 ## 2. Flujo obligatorio de trabajo
 
 1. **Entender la tarea** — Identifica qué funcionalidad toca (auth, mapa,
-   tracking, admin, tema, feedback).
+   tracking, tema, feedback).
 2. **Identificar archivos afectados** — Usa la tabla de sección 7 para
    mapear el cambio a los documentos que debes actualizar.
 3. **Leer la documentación relacionada** — Antes de modificar, lee los
@@ -135,12 +135,15 @@ Ordenadas por prioridad de severidad.
 - Usa `burritoLocationStore.startTracking()` que canaliza los deltas por
   Zustand. Map.tsx usa selectores estrictos.
 
-### 5.3 Secondary Auth
+### 5.3 Gestión de conductores / Secondary Auth (obsoleta en UserApp)
 
-- **No crees** cuentas de conductor con la instancia principal de Auth.
-- El admin perdería su sesión al autenticarse como el nuevo conductor.
-- Usa `AdminService.createChofer()` que maneja la instancia secundaria
-  automáticamente.
+- **Ya no aplica.** La gestión de conductores, buses y asignaciones se
+  movió fuera de UserApp. Esta app es de solo lectura respecto al
+  tracking (auth, mapa y feedback).
+- La creación de cuentas de conductor/admin y la escritura de `/choferes`,
+  `/buses`, `/asignaciones` y `/administradores` se realiza desde
+  **AdminWeb** (y usa su propia instancia secundaria de Auth en
+  `admin_service.ts`). No reintroducir la gestión de conductores aquí.
 
 ### 5.4 Ciclo de tracking
 
@@ -191,8 +194,8 @@ Ordenadas por prioridad de severidad.
 ### 5.10 Comentarios de advertencia
 
 - **No elimines** comentarios con `//!`, `NO TOCAR` o `CAMBIO QUIRÚRGICO`.
-- Son señales de peligro sobre código frágil (error handler silenciado en
-  admin_service.ts, snapToRoute comentado en Map.tsx).
+- Son señales de peligro sobre código frágil (p. ej. `snapToRoute` comentado
+  en Map.tsx).
 - Si entiendes completamente el contexto y la advertencia ya no aplica,
   verifica antes de eliminar.
 
