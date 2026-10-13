@@ -8,10 +8,10 @@ Es una de las aplicaciones del ecosistema con permisos de escritura sobre
 los nodos de tracking. Está diseñada para ejecutarse en dispositivos
 Android dedicados instalados en los buses.
 
-Además del flujo de conductor (captura y envío de GPS), la DriverApp
-incluye un **módulo admin** que permite gestionar conductores, buses y
-asignaciones diarias. El acceso admin está restringido a usuarios cuyo
-UID existe en `/administradores/` (ADR-017).
+**La DriverApp es conductor-only**: su única función es capturar GPS y
+escribirlo en RTDB. No incluye panel administrativo. La gestión de
+conductores, buses y asignaciones se realiza exclusivamente desde
+**AdminWeb**.
 
 ## Stack Principal
 
@@ -71,14 +71,9 @@ src/
 ├── DriverApp.tsx              # Entrypoint, auth gate
 ├── screen/
 │   ├── LoginDriverScreen.tsx  # Login con DNI
-│   ├── SendCoordinates.tsx    # Tracking, permisos, GPS, debug console
-│   └── admin/                 # Módulo admin (CRUD de flota)
-│       ├── ChoferesScreen.tsx
-│       ├── BusesScreen.tsx
-│       └── AsignacionesScreen.tsx
+│   └── SendCoordinates.tsx    # Tracking, permisos, GPS, debug console
 └── services/
-    ├── firebase_service.ts    # Escritura a RTDB (tracking)
-    └── admin_service.ts       # CRUD de conductores, buses, asignaciones
+    └── firebase_service.ts    # Escritura a RTDB (tracking)
 ```
 
 ## Flujo de Tracking
@@ -102,24 +97,6 @@ UserApp (vía listener propio)
 Para el detalle del payload y la estructura del nodo de tracking,
 consultar `FIREBASE_SCHEMA.md`.
 
-## Módulo admin
-
-Además del tracking, la DriverApp incluye un módulo de administración
-accesible para usuarios registrados en `/administradores/`. Funcionalidades
-implementadas:
-
-- **Choferes:** crear, listar, activar/desactivar y eliminar conductores.
-  Cada creación genera una cuenta Firebase Auth (`{dni}@conductor.com`)
-  y el nodo en `/choferes/{dni}`.
-- **Buses:** registrar buses con placa, activar/desactivar y eliminar.
-  Al crear, se inicializa `/ubicacion_buses/{placa}` con `isActive: false`.
-- **Asignaciones diarias:** vincular un conductor con un bus para el día
-  actual. Valida que ni el conductor ni el bus tengan otra asignación
-  activa hoy. Cancelar desactiva sin eliminar el registro histórico.
-
-> El mismo panel está disponible en versión web en `AdminWeb/`. La
-> lógica CRUD es compartida conceptualmente (mismo esquema de RTDB).
-
 ## Estado de Implementación
 
 - Login con DNI + contraseña.
@@ -127,7 +104,6 @@ implementadas:
 - Rastreo GPS continuo con foreground service.
 - Compatibilidad total con Android 14.
 - Transmisión ininterrumpida incluso con la app en segundo plano.
-- Módulo admin: CRUD de choferes, buses y asignaciones (implementado).
 
 **Pendiente**: geofencing, control de turnos.
 
