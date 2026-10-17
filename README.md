@@ -95,8 +95,7 @@ src/
   renderizar la navegación).
 
 > Nota: la gestión de conductores, buses y asignaciones **no** vive en
-> esta app. Se realiza desde el módulo admin de la DriverApp o desde
-> AdminWeb.
+> esta app. Se realiza desde **AdminWeb**.
 
 ## Cómo funciona el Realtime
 
