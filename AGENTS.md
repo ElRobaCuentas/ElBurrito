@@ -152,8 +152,11 @@ fallida. Agregar cola reintroduce el problema de ráfaga.
 
 ### 6.13 No confiar en cierre limpio
 
-No hay `onDisconnect`. DETENER TODO es la única fuente de verdad
-para `isActive: false`.
+No hay `onDisconnect`. DETENER RECORRIDO es la única fuente de verdad
+para `isActive: false`. Limitación conocida: si el proceso muere de forma
+anormal (kill del SO, crash nativo), `isActive` puede quedar en `true`; el
+watchdog reintenta dentro del proceso, pero no cubre la terminación del
+proceso.
 
 ### 6.14 No modificar `stopWithTask`
 
