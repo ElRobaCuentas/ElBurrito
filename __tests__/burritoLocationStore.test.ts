@@ -171,6 +171,72 @@ describe('burritoLocationStore - filtro de aduana', () => {
     expect(useBurritoStore.getState().busMovementStates).toEqual({});
     expect(useBurritoStore.getState().isConnecting).toBe(false);
   });
+
+  test('I05: acepta una detención con el mismo timestamp', () => {
+    const dateSpy = jest.spyOn(Date, 'now').mockReturnValue(5000);
+
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 2000, isActive: true } });
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 2000, isActive: false } });
+
+    const state = useBurritoStore.getState();
+    expect(state.locations['ABC-123'].isActive).toBe(false);
+    expect(state.locations['ABC-123'].timestamp).toBe(2000);
+    expect(state.busMovementStates['ABC-123']).toBe('offline');
+
+    dateSpy.mockRestore();
+  });
+
+  test('I05: rechaza una detención con timestamp anterior', () => {
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 2000, isActive: true } });
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 1500, isActive: false } });
+
+    const state = useBurritoStore.getState();
+    expect(state.locations['ABC-123'].isActive).toBe(true);
+    expect(state.locations['ABC-123'].timestamp).toBe(2000);
+  });
+
+  test('I05: no reactiva el bus con un activo del mismo timestamp que la detención', () => {
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 1000, isActive: true } });
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 1000, isActive: false } });
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 1000, isActive: true } });
+
+    const state = useBurritoStore.getState();
+    expect(state.locations['ABC-123'].isActive).toBe(false);
+    expect(state.locations['ABC-123'].timestamp).toBe(1000);
+  });
+
+  test('I05: acepta un nuevo recorrido con timestamp posterior a la detención', () => {
+    const dateSpy = jest.spyOn(Date, 'now').mockReturnValue(5000);
+
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 1000, isActive: true } });
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 1000, isActive: false } });
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 3000, isActive: true } });
+
+    const state = useBurritoStore.getState();
+    expect(state.locations['ABC-123'].isActive).toBe(true);
+    expect(state.locations['ABC-123'].timestamp).toBe(3000);
+    expect(state.busMovementStates['ABC-123']).not.toBe('offline');
+
+    dateSpy.mockRestore();
+  });
+
+  test('I05: rechaza una repetición activa con el mismo timestamp', () => {
+    onUpdate({ 'ABC-123': { ...baseLocation, latitude: -12.05, timestamp: 2000 } });
+    onUpdate({ 'ABC-123': { ...baseLocation, latitude: -12.06, timestamp: 2000 } });
+
+    expect(useBurritoStore.getState().locations['ABC-123'].latitude).toBe(-12.05);
+  });
+
+  test('I05: acepta una detención sin coordenadas con el mismo timestamp', () => {
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 2000, isActive: true } });
+    onUpdate({ 'ABC-123': {
+      latitude: 0, longitude: 0, heading: 0, timestamp: 2000, isActive: false,
+    } });
+
+    const state = useBurritoStore.getState();
+    expect(state.locations['ABC-123'].isActive).toBe(false);
+    expect(state.busMovementStates['ABC-123']).toBe('offline');
+  });
 });
 
 describe('burritoLocationStore - estados de conexión (C4.5)', () => {

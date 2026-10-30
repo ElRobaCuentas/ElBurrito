@@ -61,6 +61,25 @@ describe('MapService.subscribeToBusLocations', () => {
     });
   });
 
+  test('un snapshot solo con isActive:false conserva los valores por defecto actuales', () => {
+    const now = 1234567890;
+    const dateSpy = jest.spyOn(Date, 'now').mockReturnValue(now);
+    const onUpdate = jest.fn();
+    MapService.subscribeToBusLocations(onUpdate);
+
+    const ref = getRef();
+    const valueHandler = ref.on.mock.calls[0][1];
+    valueHandler({ val: () => ({ 'ABC-123': { isActive: false } }) });
+
+    expect(onUpdate).toHaveBeenCalledWith({
+      'ABC-123': {
+        latitude: 0, longitude: 0, heading: 0, isActive: false, timestamp: now, speed: 0,
+      },
+    });
+
+    dateSpy.mockRestore();
+  });
+
   test('preserva el speed publicado por la DriverApp (C4.6)', () => {
     const onUpdate = jest.fn();
     MapService.subscribeToBusLocations(onUpdate);

@@ -172,12 +172,27 @@ export const useBurritoStore = create<BurritoStoreState>((set) => {
 
             Object.entries(newLocations).forEach(([placa, loc]) => {
               const newTs = loc.timestamp || 0;
-              const prevTs = state.locations[placa]?.timestamp || 0;
-
-              // FILTRO DE ADUANA: solo actualiza si el timestamp es más nuevo
-              if (newTs > 0 && prevTs > 0 && newTs <= prevTs) return;
-
               const prevLoc = state.locations[placa];
+              const prevTs = prevLoc?.timestamp || 0;
+
+              // Una detención puede conservar el timestamp de la última
+              // ubicación. Se acepta solo esa transición activo → inactivo;
+              // los datos viejos y las reactivaciones con timestamp igual
+              // siguen rechazándose.
+              const isStopWithSameTimestamp =
+                prevLoc !== undefined
+                && newTs === prevTs
+                && prevLoc.isActive !== false
+                && loc.isActive === false;
+
+              // FILTRO DE ADUANA: actualiza si el timestamp es más nuevo o si
+              // es una detención válida con el mismo timestamp.
+              if (
+                newTs > 0
+                && prevTs > 0
+                && newTs <= prevTs
+                && !isStopWithSameTimestamp
+              ) return;
               // C4.6: desplazamiento entre la posición previa aceptada y la
               // nueva. undefined en el primer snapshot (no hay posición previa).
               const displacementMeters = prevLoc
