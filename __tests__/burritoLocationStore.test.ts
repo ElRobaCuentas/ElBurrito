@@ -237,6 +237,40 @@ describe('burritoLocationStore - filtro de aduana', () => {
     expect(state.locations['ABC-123'].isActive).toBe(false);
     expect(state.busMovementStates['ABC-123']).toBe('offline');
   });
+
+  test('I06: un snapshot vacío conserva la última posición válida y su timestamp', () => {
+    const dateSpy = jest.spyOn(Date, 'now').mockReturnValue(5000);
+
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 2000, isActive: true } });
+    onUpdate({});
+
+    const state = useBurritoStore.getState();
+    expect(state.locations['ABC-123'].latitude).toBe(baseLocation.latitude);
+    expect(state.locations['ABC-123'].timestamp).toBe(2000);
+
+    dateSpy.mockRestore();
+  });
+
+  test('I06: una detención con timestamp igual y datos auxiliares inválidos queda offline', () => {
+    const dateSpy = jest.spyOn(Date, 'now').mockReturnValue(5000);
+
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 2000, isActive: true } });
+    onUpdate({
+      'ABC-123': {
+        ...baseLocation,
+        heading: -1,
+        speed: -1,
+        timestamp: 2000,
+        isActive: false,
+      },
+    });
+
+    const state = useBurritoStore.getState();
+    expect(state.locations['ABC-123'].isActive).toBe(false);
+    expect(state.busMovementStates['ABC-123']).toBe('offline');
+
+    dateSpy.mockRestore();
+  });
 });
 
 describe('burritoLocationStore - estados de conexión (C4.5)', () => {

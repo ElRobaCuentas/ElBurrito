@@ -80,6 +80,275 @@ describe('MapService.subscribeToBusLocations', () => {
     dateSpy.mockRestore();
   });
 
+  test('I06: descarta una latitud explícita fuera de rango', () => {
+    const onUpdate = jest.fn();
+    MapService.subscribeToBusLocations(onUpdate);
+
+    const ref = getRef();
+    const valueHandler = ref.on.mock.calls[0][1];
+    valueHandler({
+      val: () => ({
+        'ABC-123': { latitude: 91, longitude: -77.08, timestamp: 1000, isActive: true },
+      }),
+    });
+
+    expect(onUpdate).toHaveBeenCalledWith({});
+  });
+
+  test('I06: descarta una longitud explícita fuera de rango', () => {
+    const onUpdate = jest.fn();
+    MapService.subscribeToBusLocations(onUpdate);
+
+    const ref = getRef();
+    const valueHandler = ref.on.mock.calls[0][1];
+    valueHandler({
+      val: () => ({
+        'ABC-123': { latitude: -12.05, longitude: 181, timestamp: 1000, isActive: true },
+      }),
+    });
+
+    expect(onUpdate).toHaveBeenCalledWith({});
+  });
+
+  test('I06: descarta una latitud no numérica', () => {
+    const onUpdate = jest.fn();
+    MapService.subscribeToBusLocations(onUpdate);
+
+    const ref = getRef();
+    const valueHandler = ref.on.mock.calls[0][1];
+    valueHandler({
+      val: () => ({
+        'ABC-123': { latitude: 'hola', longitude: -77.08, timestamp: 1000, isActive: true },
+      }),
+    });
+
+    expect(onUpdate).toHaveBeenCalledWith({});
+  });
+
+  test('I06: descarta una longitud no finita', () => {
+    const onUpdate = jest.fn();
+    MapService.subscribeToBusLocations(onUpdate);
+
+    const ref = getRef();
+    const valueHandler = ref.on.mock.calls[0][1];
+    valueHandler({
+      val: () => ({
+        'ABC-123': { latitude: -12.05, longitude: Infinity, timestamp: 1000, isActive: true },
+      }),
+    });
+
+    expect(onUpdate).toHaveBeenCalledWith({});
+  });
+
+  test.each([0, -1000, 1.5, NaN, '1000', Infinity])(
+    'I06: descarta un timestamp explícitamente inválido (%p)',
+    (timestamp) => {
+      const onUpdate = jest.fn();
+      MapService.subscribeToBusLocations(onUpdate);
+
+      const ref = getRef();
+      const valueHandler = ref.on.mock.calls[0][1];
+      valueHandler({
+        val: () => ({
+          'ABC-123': { latitude: -12.05, longitude: -77.08, timestamp, isActive: true },
+        }),
+      });
+
+      expect(onUpdate).toHaveBeenCalledWith({});
+    },
+  );
+
+  test('I06: descarta una entrada con isActive no booleano', () => {
+    const onUpdate = jest.fn();
+    MapService.subscribeToBusLocations(onUpdate);
+
+    const ref = getRef();
+    const valueHandler = ref.on.mock.calls[0][1];
+    valueHandler({
+      val: () => ({
+        'ABC-123': { latitude: -12.05, longitude: -77.08, timestamp: 1000, isActive: 'false' },
+      }),
+    });
+
+    expect(onUpdate).toHaveBeenCalledWith({});
+  });
+
+  test.each(['no-es-ubicacion', [], 42])(
+    'I06: descarta una entrada estructuralmente inválida (%p)',
+    (entry) => {
+      const onUpdate = jest.fn();
+      MapService.subscribeToBusLocations(onUpdate);
+
+      const ref = getRef();
+      const valueHandler = ref.on.mock.calls[0][1];
+      valueHandler({ val: () => ({ 'ABC-123': entry }) });
+
+      expect(onUpdate).toHaveBeenCalledWith({});
+    },
+  );
+
+  test('I06: procesa una detención con dirección y velocidad inválidas', () => {
+    const onUpdate = jest.fn();
+    MapService.subscribeToBusLocations(onUpdate);
+
+    const ref = getRef();
+    const valueHandler = ref.on.mock.calls[0][1];
+    valueHandler({
+      val: () => ({
+        'ABC-123': {
+          latitude: -12.05,
+          longitude: -77.08,
+          heading: -1,
+          speed: -1,
+          timestamp: 1000,
+          isActive: false,
+        },
+      }),
+    });
+
+    expect(onUpdate).toHaveBeenCalledWith({
+      'ABC-123': {
+        latitude: -12.05,
+        longitude: -77.08,
+        heading: -1,
+        speed: -1,
+        timestamp: 1000,
+        isActive: false,
+      },
+    });
+  });
+
+  test('I06: procesa una detención con coordenadas inválidas usando los defaults', () => {
+    const onUpdate = jest.fn();
+    MapService.subscribeToBusLocations(onUpdate);
+
+    const ref = getRef();
+    const valueHandler = ref.on.mock.calls[0][1];
+    valueHandler({
+      val: () => ({
+        'ABC-123': {
+          latitude: 999,
+          longitude: 250,
+          heading: 0,
+          speed: 0,
+          timestamp: 1000,
+          isActive: false,
+        },
+      }),
+    });
+
+    expect(onUpdate).toHaveBeenCalledWith({
+      'ABC-123': {
+        latitude: 0,
+        longitude: 0,
+        heading: 0,
+        speed: 0,
+        timestamp: 1000,
+        isActive: false,
+      },
+    });
+  });
+
+  test('I06: descarta una detención con timestamp explícitamente inválido', () => {
+    const onUpdate = jest.fn();
+    MapService.subscribeToBusLocations(onUpdate);
+
+    const ref = getRef();
+    const valueHandler = ref.on.mock.calls[0][1];
+    valueHandler({
+      val: () => ({
+        'ABC-123': {
+          latitude: -12.05,
+          longitude: -77.08,
+          timestamp: -1000,
+          isActive: false,
+        },
+      }),
+    });
+
+    expect(onUpdate).toHaveBeenCalledWith({});
+  });
+
+  test('I06: acepta una ubicación activa con dirección y velocidad desconocidas', () => {
+    const onUpdate = jest.fn();
+    MapService.subscribeToBusLocations(onUpdate);
+
+    const ref = getRef();
+    const valueHandler = ref.on.mock.calls[0][1];
+    valueHandler({
+      val: () => ({
+        'ABC-123': {
+          latitude: -12.05,
+          longitude: -77.08,
+          heading: null,
+          speed: null,
+          timestamp: 1000,
+          isActive: true,
+        },
+      }),
+    });
+
+    expect(onUpdate).toHaveBeenCalledWith({
+      'ABC-123': {
+        latitude: -12.05,
+        longitude: -77.08,
+        heading: 0,
+        speed: 0,
+        timestamp: 1000,
+        isActive: true,
+      },
+    });
+  });
+
+  test('I06: conserva los defaults de coordenadas ausentes en una ubicación activa', () => {
+    const onUpdate = jest.fn();
+    MapService.subscribeToBusLocations(onUpdate);
+
+    const ref = getRef();
+    const valueHandler = ref.on.mock.calls[0][1];
+    valueHandler({
+      val: () => ({
+        'ABC-123': { timestamp: 1000, isActive: true },
+      }),
+    });
+
+    expect(onUpdate).toHaveBeenCalledWith({
+      'ABC-123': {
+        latitude: 0,
+        longitude: 0,
+        heading: 0,
+        speed: 0,
+        timestamp: 1000,
+        isActive: true,
+      },
+    });
+  });
+
+  test('I06: conserva una entrada válida cuando otra es inválida', () => {
+    const onUpdate = jest.fn();
+    MapService.subscribeToBusLocations(onUpdate);
+
+    const ref = getRef();
+    const valueHandler = ref.on.mock.calls[0][1];
+    valueHandler({
+      val: () => ({
+        'ABC-123': { latitude: -12.05, longitude: -77.08, timestamp: 1000, isActive: true },
+        'XYZ-789': { latitude: 999, longitude: -77.08, timestamp: 1000, isActive: true },
+      }),
+    });
+
+    expect(onUpdate).toHaveBeenCalledWith({
+      'ABC-123': {
+        latitude: -12.05,
+        longitude: -77.08,
+        heading: 0,
+        speed: 0,
+        timestamp: 1000,
+        isActive: true,
+      },
+    });
+  });
+
   test('preserva el speed publicado por la DriverApp (C4.6)', () => {
     const onUpdate = jest.fn();
     MapService.subscribeToBusLocations(onUpdate);
