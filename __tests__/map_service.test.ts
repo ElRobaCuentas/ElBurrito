@@ -73,7 +73,13 @@ describe('MapService.subscribeToBusLocations', () => {
 
     expect(onUpdate).toHaveBeenCalledWith({
       'ABC-123': {
-        latitude: 0, longitude: 0, heading: 0, isActive: false, timestamp: now, speed: 0,
+        latitude: 0,
+        longitude: 0,
+        heading: 0,
+        isActive: false,
+        timestamp: now,
+        speed: 0,
+        coordinatesValid: false,
       },
     });
 
@@ -228,7 +234,7 @@ describe('MapService.subscribeToBusLocations', () => {
       val: () => ({
         'ABC-123': {
           latitude: 999,
-          longitude: 250,
+          longitude: -77.0845,
           heading: 0,
           speed: 0,
           timestamp: 1000,
@@ -240,11 +246,12 @@ describe('MapService.subscribeToBusLocations', () => {
     expect(onUpdate).toHaveBeenCalledWith({
       'ABC-123': {
         latitude: 0,
-        longitude: 0,
+        longitude: -77.0845,
         heading: 0,
         speed: 0,
         timestamp: 1000,
         isActive: false,
+        coordinatesValid: false,
       },
     });
   });

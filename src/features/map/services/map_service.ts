@@ -49,6 +49,14 @@ const isLocationEntry = (entry: unknown): entry is Record<string, unknown> => {
 const normalizeCoordinate = (value: unknown, min: number, max: number): number =>
     isFiniteNumber(value) && value >= min && value <= max ? value : 0;
 
+const hasValidCoordinates = (entry: Record<string, unknown>): boolean =>
+    isFiniteNumber(entry.latitude)
+    && entry.latitude >= -90
+    && entry.latitude <= 90
+    && isFiniteNumber(entry.longitude)
+    && entry.longitude >= -180
+    && entry.longitude <= 180;
+
 const normalizeTimestamp = (value: unknown): number =>
     isFiniteNumber(value) ? value : Date.now();
 
@@ -67,7 +75,8 @@ export const MapService = {
             Object.keys(data).forEach((placa) => {
                 const entry = data[placa];
                 if (!isLocationEntry(entry)) return;
-                locations[placa] = {
+                const isStop = entry.isActive === false;
+                const location: BurritoLocation = {
                     latitude: normalizeCoordinate(entry.latitude, -90, 90),
                     longitude: normalizeCoordinate(entry.longitude, -180, 180),
                     heading: (entry.heading ?? 0) as number,
@@ -75,6 +84,10 @@ export const MapService = {
                     timestamp: normalizeTimestamp(entry.timestamp),
                     speed: (entry.speed ?? 0) as number,
                 };
+                if (isStop && !hasValidCoordinates(entry)) {
+                    location.coordinatesValid = false;
+                }
+                locations[placa] = location;
             });
 
             onUpdate(locations);

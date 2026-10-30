@@ -271,6 +271,67 @@ describe('burritoLocationStore - filtro de aduana', () => {
 
     dateSpy.mockRestore();
   });
+
+  test('I06: una detención con coordenadas inválidas conserva la última posición y el historial', () => {
+    const dateSpy = jest.spyOn(Date, 'now').mockReturnValue(5000);
+
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 1000, isActive: true } });
+    onUpdate({
+      'ABC-123': {
+        ...baseLocation,
+        latitude: -12.0,
+        longitude: -77.0,
+        timestamp: 2000,
+        isActive: true,
+      },
+    });
+
+    const beforeStop = useBurritoStore.getState();
+    const previousDisplacement = beforeStop.movementDisplacements['ABC-123'];
+    const previousMemory = beforeStop.movementMemory['ABC-123'];
+
+    onUpdate({
+      'ABC-123': {
+        ...baseLocation,
+        latitude: 0,
+        longitude: -77.0845,
+        timestamp: 2000,
+        isActive: false,
+        coordinatesValid: false,
+      },
+    });
+
+    const state = useBurritoStore.getState();
+    expect(state.locations['ABC-123'].isActive).toBe(false);
+    expect(state.busMovementStates['ABC-123']).toBe('offline');
+    expect(state.locations['ABC-123'].latitude).toBe(-12.0);
+    expect(state.locations['ABC-123'].longitude).toBe(-77.0);
+    expect(state.movementDisplacements['ABC-123']).toBe(previousDisplacement);
+    expect(state.movementMemory['ABC-123']).toEqual(previousMemory);
+
+    dateSpy.mockRestore();
+  });
+
+  test('I06: una publicación inválida no renueva la caducidad de la última posición válida', () => {
+    const dateSpy = jest.spyOn(Date, 'now').mockReturnValue(5000);
+
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 1000, isActive: true } });
+    expect(useBurritoStore.getState().busMovementStates['ABC-123']).toBe('moving');
+
+    dateSpy.mockReturnValue(20000);
+    onUpdate({});
+
+    const afterInvalid = useBurritoStore.getState();
+    expect(afterInvalid.locations['ABC-123'].timestamp).toBe(1000);
+    expect(afterInvalid.busMovementStates['ABC-123']).toBe('moving');
+
+    dateSpy.mockReturnValue(31000);
+    jest.advanceTimersByTime(2000);
+
+    expect(useBurritoStore.getState().busMovementStates['ABC-123']).toBe('offline');
+
+    dateSpy.mockRestore();
+  });
 });
 
 describe('burritoLocationStore - estados de conexión (C4.5)', () => {

@@ -193,6 +193,20 @@ export const useBurritoStore = create<BurritoStoreState>((set) => {
                 && newTs <= prevTs
                 && !isStopWithSameTimestamp
               ) return;
+
+              const isStopWithoutValidCoordinates =
+                loc.isActive === false && loc.coordinatesValid === false;
+
+              if (isStopWithoutValidCoordinates && prevLoc !== undefined) {
+                mergedLocations[placa] = {
+                  ...loc,
+                  latitude: prevLoc.latitude,
+                  longitude: prevLoc.longitude,
+                };
+                mergedStates[placa] = 'offline';
+                return;
+              }
+
               // C4.6: desplazamiento entre la posición previa aceptada y la
               // nueva. undefined en el primer snapshot (no hay posición previa).
               const displacementMeters = prevLoc
