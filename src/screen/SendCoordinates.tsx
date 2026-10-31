@@ -68,10 +68,14 @@ const locationTask = async (taskDataArguments: any) => {
                 // se descartaba → patrón real escribir → saltar → escribir (≈16 s).
                 lastWriteAt = Date.now();
                 // T11: Usamos updateBusLocation con la placa dinámica
-                await updateBusLocation(busId, {
+                const ok = await updateBusLocation(busId, {
                     ...coords,
                     timestamp: Date.now(),
                 });
+                if (!ok) {
+                    sendLog("❌ FALLO FIREBASE: no se pudo actualizar la ubicación", "error");
+                    return false;
+                }
                 return true;
             } catch (err: any) {
                 // T4.1: El intento fallido no cuenta como escritura reciente:
