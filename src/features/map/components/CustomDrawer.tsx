@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, Text, StyleSheet, TouchableOpacity, Image, 
   Switch, Dimensions, TouchableWithoutFeedback, TextInput, 
@@ -18,9 +18,8 @@ import Animated, {
 import { TYPOGRAPHY } from '../../../shared/theme/typography';
 import { MapService } from '../services/map_service';
 import DeviceInfo from 'react-native-device-info';
-import { firebaseAuth } from '../../../shared/config/firebase';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import analytics from '@react-native-firebase/analytics'; 
+import analytics from '@react-native-firebase/analytics';
+import { logoutStudent } from '../../auth/services/studentLogout';
 import { useNavigation } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
@@ -53,6 +52,7 @@ export const CustomDrawer = () => {
   const [isSending,     setIsSending]     = useState(false);
   const [appVersion,    setAppVersion]    = useState('');
 
+  const logoutInFlight = useRef(false);
   const translateX      = useSharedValue(-DRAWER_WIDTH - 50); 
   const backdropOpacity = useSharedValue(0);
 
@@ -122,19 +122,28 @@ export const CustomDrawer = () => {
   };
 
   const handleLogout = async () => {
+    if (logoutInFlight.current) return;
+
+    logoutInFlight.current = true;
     closeDrawer();
     setTimeout(async () => {
       try {
-        await analytics().logEvent('sesion_cerrada'); 
-        await firebaseAuth.signOut();
-        const currentGoogleUser = GoogleSignin.getCurrentUser();
-        if (currentGoogleUser) {
-          await GoogleSignin.signOut();
+        const result = await logoutStudent(logout);
+        if (!result.success) {
+          console.warn('Error en signOut:', result.error);
+          Alert.alert(
+            'No se pudo cerrar sesión',
+            'Firebase no confirmó el cierre. Inténtalo de nuevo.',
+          );
         }
       } catch (error) {
         console.warn('Error en signOut:', error);
+        Alert.alert(
+          'No se pudo cerrar sesión',
+          'Firebase no confirmó el cierre. Inténtalo de nuevo.',
+        );
       } finally {
-        logout();
+        logoutInFlight.current = false;
       }
     }, 200);
   };

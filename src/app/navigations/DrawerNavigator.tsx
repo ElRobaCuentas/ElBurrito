@@ -1,12 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   createDrawerNavigator,
   DrawerContentScrollView,
   DrawerItemList,
   DrawerItem,
 } from '@react-navigation/drawer';
-import { firebaseAuth } from '../../shared/config/firebase';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import {
   View,
   Text,
@@ -15,7 +13,9 @@ import {
   useColorScheme,
   Image,
   ImageBackground,
+  Alert,
 } from 'react-native';
+import { logoutStudent } from '../../features/auth/services/studentLogout';
 import { MapScreen } from '../../features/map/screen/MapScreen';
 import { COLORS } from '../../shared/theme/colors';
 import { useThemeStore } from '../../store/themeStore';
@@ -32,9 +32,34 @@ const AVATAR_IMAGES: Record<AvatarId, any> = {
   salud: require('../../assets/SALUD.png'),
 };
 
-const CustomDrawerContent = (props: any) => {
+export const CustomDrawerContent = (props: any) => {
   const { isDarkMode, toggleTheme } = useThemeStore();
   const { username, avatar, logout } = useUserStore();
+  const logoutInFlight = useRef(false);
+
+  const handleLogout = async () => {
+    if (logoutInFlight.current) return;
+
+    logoutInFlight.current = true;
+    try {
+      const result = await logoutStudent(logout);
+      if (!result.success) {
+        console.warn('Error en signOut:', result.error);
+        Alert.alert(
+          'No se pudo cerrar sesión',
+          'Firebase no confirmó el cierre. Inténtalo de nuevo.',
+        );
+      }
+    } catch (error) {
+      console.warn('Error en signOut:', error);
+      Alert.alert(
+        'No se pudo cerrar sesión',
+        'Firebase no confirmó el cierre. Inténtalo de nuevo.',
+      );
+    } finally {
+      logoutInFlight.current = false;
+    }
+  };
 
   const textColor = isDarkMode ? '#FFF' : '#1A1A1A';
   const iconColor = isDarkMode ? COLORS.primary : '#555555';
@@ -104,14 +129,7 @@ const CustomDrawerContent = (props: any) => {
             )}
             label="Cerrar Sesión"
             labelStyle={{ color: '#FF453A', fontWeight: '800', fontSize: 16 }}
-            onPress={async () => {
-  try {
-    await firebaseAuth.signOut();
-    const currentGoogleUser = GoogleSignin.getCurrentUser();
-    if (currentGoogleUser) await GoogleSignin.signOut();
-  } catch {}
-  logout();
-}}
+            onPress={handleLogout}
             style={{ borderRadius: 15, backgroundColor: isDarkMode ? '#301010' : '#FFF5F5' }}
           />
         </View>
