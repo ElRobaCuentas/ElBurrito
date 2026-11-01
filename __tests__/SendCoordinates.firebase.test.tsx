@@ -48,7 +48,6 @@ const epoch = new Date(2026, 9, 30, 9).getTime();
 
 describe('I01: tarea real GPS → servicio Firebase → diagnóstico', () => {
   let renderer: ReturnType<typeof TestRenderer.create>;
-  let task: Promise<void> | undefined;
   let onPosition: PositionCallback;
   let emit: jest.SpyInstance;
   let consoleError: jest.SpyInstance;
@@ -65,7 +64,6 @@ describe('I01: tarea real GPS → servicio Firebase → diagnóstico', () => {
     jest.useFakeTimers();
     jest.setSystemTime(epoch);
     attempts = [];
-    task = undefined;
     mockUpdate.mockReset().mockImplementation(() => {
       attempts.push(Date.now() - epoch);
       return Promise.resolve();
@@ -89,7 +87,12 @@ describe('I01: tarea real GPS → servicio Firebase → diagnóstico', () => {
     jest.mocked(BackgroundJob.isRunning).mockReturnValue(false);
     jest.mocked(BackgroundJob.start).mockReset().mockImplementation(async () => {});
     jest.mocked(Geolocation.watchPosition).mockReset().mockReturnValue(7);
-    emit = jest.spyOn(DeviceEventEmitter, 'emit').mockImplementation(() => {});
+    const emitState = DeviceEventEmitter.emit.bind(DeviceEventEmitter);
+    emit = jest.spyOn(DeviceEventEmitter, 'emit').mockImplementation((event, ...args) => {
+      // El diagnóstico se observa sin renderizarlo, pero el estado compartido
+      // debe llegar a la pantalla como en producción.
+      if (event === 'PRO_TRACKING_STATE') emitState(event, ...args);
+    });
     consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(PermissionsAndroid, 'request').mockResolvedValue(PermissionsAndroid.RESULTS.GRANTED);
 
@@ -106,14 +109,20 @@ describe('I01: tarea real GPS → servicio Firebase → diagnóstico', () => {
     });
     const [locationTask, options] = jest.mocked(BackgroundJob.start).mock.calls[0];
     jest.mocked(BackgroundJob.isRunning).mockReturnValue(true);
-    task = locationTask(options.parameters) as Promise<void>;
+    locationTask(options.parameters);
     onPosition = jest.mocked(Geolocation.watchPosition).mock.calls[0][0] as unknown as PositionCallback;
   });
 
   afterEach(async () => {
+    let stop = renderer.root.findByProps({children: 'DETENER RECORRIDO'});
+    while (typeof stop.props.onPress !== 'function') {
+      if (!stop.parent) throw new Error('Botón DETENER RECORRIDO no encontrado');
+      stop = stop.parent;
+    }
+    await act(async () => { await stop.props.onPress(); });
     jest.mocked(BackgroundJob.isRunning).mockReturnValue(false);
     await jest.advanceTimersByTimeAsync(1000);
-    await task;
+    // Cierre por la API de la pantalla: también libera el estado compartido.
     await act(async () => renderer.unmount());
     jest.clearAllTimers();
     jest.useRealTimers();

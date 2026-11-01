@@ -44,12 +44,63 @@ const ASSIGNMENT_TIMEOUT_MS = 10000;
 const ASSIGNMENT_RETRIES = 2;
 const ASSIGNMENT_RETRY_PAUSE_MS = 1500;
 
+// I07: autoridad del recorrido compartida entre montajes, no recursos del GPS.
+const trackingIntent = {
+    generation: 0,
+    shouldRun: false,
+    starting: null as number | null,
+    restarting: null as number | null,
+    stopping: null as number | null,
+    stopFailed: false,
+    sending: false,
+    recoveryFailed: false,
+};
+// Notifica solo a las pantallas montadas; las operaciones no retienen sus setters.
+const publishTrackingState = () => DeviceEventEmitter.emit('PRO_TRACKING_STATE');
+const isCurrentRun = (generation: number) =>
+    trackingIntent.shouldRun && trackingIntent.generation === generation;
+
+interface LocationExecution {
+    id: number;
+    generation: number;
+    cancelled: boolean;
+    started: boolean;
+    dispose?: () => void;
+}
+let nextLocationExecution = 0;
+let currentLocationExecution: LocationExecution | null = null;
+const disposeLocationExecution = (execution = currentLocationExecution) => {
+    if (!execution) return;
+    execution.cancelled = true;
+    execution.dispose?.();
+    if (currentLocationExecution === execution) currentLocationExecution = null;
+};
+
+// Solo serializa llamadas al servicio; nunca espera escrituras Firebase.
+let backgroundTransition: Promise<void> = Promise.resolve();
+const runBackgroundTransition = <T,>(operation: () => Promise<T>): Promise<T> => {
+    const result = backgroundTransition.then(operation);
+    backgroundTransition = result.then(() => undefined, () => undefined);
+    return result;
+};
+
 const locationTask = async (taskDataArguments: any) => {
     // T11: Rescatamos también el busId inyectado
-    const { uidChofer, busId } = taskDataArguments; 
-    sendLog(`🚀 MOTOR: ¡VIVO CON CHOFER ${uidChofer.substring(0,6)}...!`, "success");
+    const { uidChofer, busId, executionId } = taskDataArguments;
 
-    return new Promise<void>((resolve) => {
+    // El wrapper termina su envoltura con BackgroundJob.stop(). Resolver aquí
+    // al limpiar dispararía otro stop global que podría alcanzar al sucesor.
+    return new Promise<void>(() => {
+        const execution = currentLocationExecution;
+        if (!execution || execution.id !== executionId || execution.cancelled ||
+            execution.dispose || !isCurrentRun(execution.generation)) return;
+        const isActive = () => !execution.cancelled &&
+            currentLocationExecution === execution && isCurrentRun(execution.generation);
+        let watchId: number | undefined;
+        let heartbeat: ReturnType<typeof setInterval> | undefined;
+        let keepAlive: ReturnType<typeof setInterval> | undefined;
+        let disposed = false;
+
         // T4.1: Última posición conocida y último intento de escritura a RTDB.
         // lastWriteAt se fija al INTENTAR escribir (antes del await) y se
         // resetea en fallo, para que el heartbeat no descarte fuegos ni
@@ -57,10 +108,32 @@ const locationTask = async (taskDataArguments: any) => {
         let lastLocation: { latitude: number; longitude: number; heading: number; speed: number } | null = null;
         let lastWriteAt = 0;
 
+        execution.dispose = () => {
+            if (disposed) return;
+            disposed = true;
+            execution.cancelled = true;
+            if (heartbeat !== undefined) clearInterval(heartbeat);
+            if (keepAlive !== undefined) clearInterval(keepAlive);
+            lastLocation = null;
+            if (currentLocationExecution === execution) currentLocationExecution = null;
+            if (watchId !== undefined) {
+                const id = watchId;
+                watchId = undefined;
+                try {
+                    Geolocation.clearWatch(id);
+                } catch (err: any) {
+                    sendLog(`❌ Error liberando observador GPS: ${err.message}`, "error");
+                }
+            }
+            sendLog("🛑 MOTOR APAGADO", "error");
+        };
+        sendLog(`🚀 MOTOR: ¡VIVO CON CHOFER ${uidChofer.substring(0,6)}...!`, "success");
+
         // T4.1: Única ruta de escritura a RTDB. Tanto el callback del GPS como
         // el heartbeat pasan por aquí para no divergir (una sola
         // responsabilidad de escribir en Firebase).
         const writeLocation = async (coords: { latitude: number; longitude: number; heading: number; speed: number }) => {
+            if (!isActive()) return false;
             try {
                 // T4.1: lastWriteAt se fija ANTES del await (instante del intento).
                 // Antes se fijaba tras el éxito: el siguiente fuego del heartbeat
@@ -72,12 +145,14 @@ const locationTask = async (taskDataArguments: any) => {
                     ...coords,
                     timestamp: Date.now(),
                 });
+                if (!isActive()) return false;
                 if (!ok) {
                     sendLog("❌ FALLO FIREBASE: no se pudo actualizar la ubicación", "error");
                     return false;
                 }
                 return true;
             } catch (err: any) {
+                if (!isActive()) return false;
                 // T4.1: El intento fallido no cuenta como escritura reciente:
                 // se resetea para que el próximo fuego del heartbeat reintente
                 // (≈8 s), sin cola ni escrituras duplicadas.
@@ -87,8 +162,9 @@ const locationTask = async (taskDataArguments: any) => {
             }
         };
 
-        const watchId = Geolocation.watchPosition(
+        watchId = Geolocation.watchPosition(
             async (position) => {
+                if (!isActive()) return;
                 const { latitude, longitude, heading, speed } = position.coords;
                 const coords = {
                     latitude,
@@ -103,11 +179,12 @@ const locationTask = async (taskDataArguments: any) => {
 
                 sendLog("☁️ Subiendo a Firebase...");
                 const ok = await writeLocation(coords);
-                if (ok) {
+                if (ok && isActive()) {
                     sendLog("✅ FIREBASE ACTUALIZADO", "success");
                 }
             },
             (err) => {
+                if (!isActive()) return;
                 sendLog(`❌ FALLO GPS: ${err.message}`, "error");
             },
             {
@@ -122,7 +199,8 @@ const locationTask = async (taskDataArguments: any) => {
         // cuando el GPS no emite (bus quieto, sin superar distanceFilter).
         // Escribe la última posición conocida solo si no hubo otra escritura
         // reciente, para no duplicar el trabajo del GPS.
-        const heartbeat = setInterval(() => {
+        heartbeat = setInterval(() => {
+            if (!isActive()) return;
             if (!lastLocation) {
                 return;
             }
@@ -136,26 +214,23 @@ const locationTask = async (taskDataArguments: any) => {
             writeLocation(lastLocation);
         }, HEARTBEAT_INTERVAL_MS);
 
-        const keepAlive = setInterval(() => {
-            if (!BackgroundJob.isRunning()) {
-                Geolocation.clearWatch(watchId);
-                clearInterval(keepAlive);
-                clearInterval(heartbeat);
-                sendLog("🛑 MOTOR APAGADO", "error");
-                resolve();
+        keepAlive = setInterval(() => {
+            // El wrapper no fija isRunning hasta confirmar el inicio nativo.
+            if (!isActive() || (execution.started && !BackgroundJob.isRunning())) {
+                execution.dispose?.();
             }
         }, 1000);
     });
 };
 
 // T11: Agregamos busId a las opciones
-const getBackgroundOptions = (uid: string, busId: string) => ({
+const getBackgroundOptions = (uid: string, busId: string, executionId: number) => ({
     taskName: 'BurritoTracker',
     taskTitle: `El Bus ${busId} está en ruta`,
     taskDesc: 'Transmitiendo ubicación...',
     taskIcon: { name: 'ic_launcher', type: 'mipmap' },
     color: '#2060cd',
-    parameters: { uidChofer: uid, busId },
+    parameters: { uidChofer: uid, busId, executionId },
     ongoing: true,
     foregroundServiceType: ['location' as const],
 });
@@ -187,16 +262,15 @@ const requestAllPermissions = async (): Promise<boolean> => {
 };
 
 export const SendCoordinates = ({ driverDni }: Props) => {
-    const [isSending, setIsSending] = useState(false);
+    const [isSending, setIsSending] = useState(trackingIntent.sending);
+    const [isStarting, setIsStarting] = useState(trackingIntent.starting !== null || trackingIntent.restarting !== null);
+    const [isStopping, setIsStopping] = useState(trackingIntent.stopping !== null);
+    const [stopFailed, setStopFailed] = useState(trackingIntent.stopFailed);
     const [logs, setLogs] = useState<any[]>([]);
     
     // C3: Estado del watchdog de reinicio automático
     const lastPulseRef = useRef(0);
-    const isRestartingRef = useRef(false);
-    const [recoveryFailed, setRecoveryFailed] = useState(false);
-
-    // C4.2: Evita que stopProcess se ejecute en paralelo (doble toque o watchdog)
-    const isStoppingRef = useRef(false);
+    const [recoveryFailed, setRecoveryFailed] = useState(trackingIntent.recoveryFailed);
     
     // T11: Nuevos estados para la auto-asignación
     const [busId, setBusId] = useState<string | null>(null);
@@ -319,6 +393,18 @@ export const SendCoordinates = ({ driverDni }: Props) => {
         const pulseSubscription = DeviceEventEmitter.addListener('PRO_LOCATION_PULSE', (payload: { ts: number }) => {
             lastPulseRef.current = payload.ts;
         });
+        const syncTrackingState = () => {
+            setIsSending(trackingIntent.sending);
+            setIsStarting(trackingIntent.starting !== null || trackingIntent.restarting !== null);
+            setIsStopping(trackingIntent.stopping !== null);
+            setStopFailed(trackingIntent.stopFailed);
+            setRecoveryFailed(trackingIntent.recoveryFailed);
+            // Un inicio que termina tras remontar también inicializa el reloj
+            // del watchdog de la pantalla nueva, no el ref del componente viejo.
+            if (trackingIntent.sending && trackingIntent.shouldRun) lastPulseRef.current = Date.now();
+        };
+        const trackingSubscription = DeviceEventEmitter.addListener('PRO_TRACKING_STATE', syncTrackingState);
+        syncTrackingState();
 
         const appStateSub = AppState.addEventListener('change', (state) => {
             sendLog(`📱 APP STATE: ${state.toUpperCase()}`);
@@ -329,11 +415,10 @@ export const SendCoordinates = ({ driverDni }: Props) => {
         // loadAssignment() porque únicamente restaura el estado del motor: no depende
         // de Firebase ni modifica la asignación. isRunning() conserva true cuando el
         // proceso y el singleton JS sobrevivieron al cierre de la app.
-        if (BackgroundJob.isRunning()) {
+        if (trackingIntent.shouldRun && trackingIntent.sending &&
+            trackingIntent.starting === null && trackingIntent.restarting === null && BackgroundJob.isRunning()) {
             setLogs([]);
             lastPulseRef.current = Date.now();
-            setRecoveryFailed(false);
-            setIsSending(true);
             sendLog("ℹ️ Recorrido restaurado: el servicio seguía activo en segundo plano", "success");
         }
 
@@ -343,56 +428,97 @@ export const SendCoordinates = ({ driverDni }: Props) => {
         return () => {
             logSubscription.remove();
             pulseSubscription.remove();
+            trackingSubscription.remove();
             appStateSub.remove();
         };
     }, [driverDni, loadAssignment]);
 
     // C3: Arranca el BackgroundJob (usado por INICIAR y por el reinicio automático)
-    const startBackgroundJob = useCallback(async () => {
-        if (!busId) return;
-        lastPulseRef.current = Date.now();
-        // T11: Inyectamos el driverDni y el busId al servicio
-        const options = getBackgroundOptions(driverDni, busId);
-        await BackgroundJob.start(locationTask, options);
-        setIsSending(true);
-        setRecoveryFailed(false);
-        sendLog(`✅ MOTOR ACTIVO — Transmitiendo para ${busId}`, "success");
+    const startBackgroundJob = useCallback(async (generation: number) => {
+        if (!busId || !isCurrentRun(generation)) return false;
+        return runBackgroundTransition(async () => {
+            if (!isCurrentRun(generation)) return false;
+            disposeLocationExecution();
+            const execution: LocationExecution = {
+                id: ++nextLocationExecution, generation, cancelled: false, started: false,
+            };
+            currentLocationExecution = execution;
+            lastPulseRef.current = Date.now();
+            // T11: Inyectamos el driverDni y el busId al servicio
+            const options = getBackgroundOptions(driverDni, busId, execution.id);
+            try {
+                await BackgroundJob.start(locationTask, options);
+            } catch (error) {
+                disposeLocationExecution(execution);
+                throw error;
+            }
+            // DETENER ya dejó su stop detrás de este start en la misma exclusión.
+            if (!isCurrentRun(generation)) {
+                disposeLocationExecution(execution);
+                return false;
+            }
+            execution.started = true;
+            trackingIntent.sending = true;
+            trackingIntent.recoveryFailed = false;
+            publishTrackingState();
+            sendLog(`✅ MOTOR ACTIVO — Transmitiendo para ${busId}`, "success");
+            return true;
+        });
     }, [busId, driverDni]);
 
     // C3: Detecta que el motor se detuvo en silencio y lo reinicia
-    const restartBackgroundJob = useCallback(async () => {
-        if (isRestartingRef.current) return;
-        isRestartingRef.current = true;
+    const restartBackgroundJob = useCallback(async (generation: number) => {
+        if (!isCurrentRun(generation) || trackingIntent.starting !== null ||
+            trackingIntent.restarting !== null || trackingIntent.stopping !== null) return;
+        trackingIntent.restarting = generation;
+        publishTrackingState();
         sendLog("⚠️ Motor sin pulsos: intentando reiniciar el servicio...", "error");
         try {
-            await BackgroundJob.stop();
+            await runBackgroundTransition(async () => {
+                if (!isCurrentRun(generation)) return;
+                disposeLocationExecution();
+                try {
+                    await BackgroundJob.stop();
+                } catch (e: any) {
+                    if (isCurrentRun(generation)) {
+                        sendLog(`❌ Error deteniendo servicio previo: ${e.message}`, "error");
+                    }
+                }
+            });
+            if (!isCurrentRun(generation)) return;
+            const started = await startBackgroundJob(generation);
+            if (started && isCurrentRun(generation)) {
+                sendLog("🔄 SERVICIO REINICIADO", "success");
+            }
         } catch (e: any) {
-            sendLog(`❌ Error deteniendo servicio previo: ${e.message}`, "error");
-        }
-        try {
-            await startBackgroundJob();
-            sendLog("🔄 SERVICIO REINICIADO", "success");
-        } catch (e: any) {
+            if (!isCurrentRun(generation)) return;
+            trackingIntent.shouldRun = false;
+            trackingIntent.sending = false;
+            trackingIntent.recoveryFailed = true;
+            publishTrackingState();
             sendLog(`❌ NO SE PUDO REINICIAR: ${e.message}`, "error");
             crashlytics().recordError(e, 'restartBackgroundJob');
-            setIsSending(false);
-            setRecoveryFailed(true);
             Alert.alert(
                 "Tracking detenido",
                 "El envío de ubicación se detuvo y no pudo recuperarse automáticamente. Presiona INICIAR para reintentar."
             );
         } finally {
-            isRestartingRef.current = false;
+            if (trackingIntent.restarting === generation) {
+                trackingIntent.restarting = null;
+                publishTrackingState();
+            }
         }
     }, [startBackgroundJob]);
 
     // C3: Watchdog que vigila los pulsos del motor mientras el recorrido está activo
     useEffect(() => {
         if (!isSending) return;
+        const generation = trackingIntent.generation;
         const watchdog = setInterval(() => {
-            if (isRestartingRef.current) return;
+            if (!isCurrentRun(generation) || trackingIntent.starting !== null ||
+                trackingIntent.restarting !== null || trackingIntent.stopping !== null) return;
             if (Date.now() - lastPulseRef.current > PULSE_TIMEOUT_MS) {
-                restartBackgroundJob();
+                restartBackgroundJob(generation);
             }
         }, WATCHDOG_INTERVAL_MS);
         return () => clearInterval(watchdog);
@@ -404,20 +530,37 @@ export const SendCoordinates = ({ driverDni }: Props) => {
             return;
         }
 
-        if (BackgroundJob.isRunning()) return;
+        if (trackingIntent.starting !== null || trackingIntent.restarting !== null ||
+            trackingIntent.stopping !== null || trackingIntent.stopFailed || BackgroundJob.isRunning()) return;
+
+        const generation = ++trackingIntent.generation;
+        trackingIntent.shouldRun = true;
+        trackingIntent.starting = generation;
+        publishTrackingState();
 
         setLogs([]);
         sendLog("▶️ Botón presionado: Iniciando...", "info");
 
         try {
             const permisosOk = await requestAllPermissions();
-            if (!permisosOk) return;
+            if (!isCurrentRun(generation)) return;
+            if (!permisosOk) {
+                trackingIntent.shouldRun = false;
+                return;
+            }
 
             sendLog("⚙️ Arrancando Background Service...");
-            await startBackgroundJob();
+            await startBackgroundJob(generation);
         } catch (e: any) {
+            if (!isCurrentRun(generation)) return;
+            trackingIntent.shouldRun = false;
             sendLog(`❌ CRASH UI: ${e.message}`, "error");
             crashlytics().recordError(e, 'startProcess');
+        } finally {
+            if (trackingIntent.starting === generation) {
+                trackingIntent.starting = null;
+                publishTrackingState();
+            }
         }
     };
 
@@ -433,25 +576,57 @@ export const SendCoordinates = ({ driverDni }: Props) => {
     };
 
     const stopProcess = async () => {
-        if (isStoppingRef.current) return;
-        isStoppingRef.current = true;
+        if (trackingIntent.stopping !== null) return;
+        // Una pulsación ya atendida no vuelve a emitir la parada remota pendiente.
+        if (!trackingIntent.shouldRun && !trackingIntent.stopFailed && !BackgroundJob.isRunning()) return;
+        // Prioridad de DETENER: invalida antes del primer await, incluso permisos.
+        const generation = ++trackingIntent.generation;
+        trackingIntent.shouldRun = false;
+        trackingIntent.starting = null;
+        trackingIntent.restarting = null;
+        trackingIntent.stopping = generation;
+        publishTrackingState();
         sendLog("⏹️ Deteniendo proceso...");
+        disposeLocationExecution();
         try {
             try {
-                await BackgroundJob.stop();
+                await runBackgroundTransition(() => BackgroundJob.stop());
             } catch (e: any) {
-                sendLog(`⚠️ Error deteniendo servicio: ${e.message}`, "error");
+                trackingIntent.stopFailed = true;
+                publishTrackingState();
+                sendLog(`❌ PARADA LOCAL NO CONFIRMADA: ${e.message}. Reintenta DETENER.`, "error");
+                return;
             }
             if (busId) {
-                const ok = await stopBusService(busId);
-                if (!ok) {
-                    sendLog("❌ No se pudo marcar isActive:false en RTDB", "error");
+                const label = `operación ${generation}, bus ${busId}`;
+                const reportRemote = (ok: boolean, error?: unknown) => {
+                    const previous = trackingIntent.generation !== generation ? ' — operación anterior' : '';
+                    sendLog(
+                        `${ok ? '✅ PARADA REMOTA CONFIRMADA' : '❌ PARADA REMOTA FALLIDA'} (${label})${previous}${error ? `: ${String(error)}` : ''}`,
+                        ok ? 'success' : 'error'
+                    );
+                };
+                sendLog(`☁️ PARADA REMOTA PENDIENTE (${label}): solicitando isActive:false`);
+                try {
+                    // Se invoca antes de liberar INICIAR. La confirmación no
+                    // participa del cierre local ni vuelve a escribir al terminar.
+                    stopBusService(busId).then(
+                        ok => reportRemote(ok),
+                        error => reportRemote(false, error)
+                    );
+                } catch (error) {
+                    reportRemote(false, error);
                 }
             }
-            sendLog("🛑 Proceso detenido", "success");
+            trackingIntent.stopFailed = false;
+            trackingIntent.sending = false;
+            publishTrackingState();
+            sendLog("🛑 PARADA LOCAL COMPLETADA", "success");
         } finally {
-            setIsSending(false);
-            isStoppingRef.current = false;
+            if (trackingIntent.stopping === generation) {
+                trackingIntent.stopping = null;
+                publishTrackingState();
+            }
         }
     };
 
@@ -492,9 +667,9 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                 ) : (
                     <>
                         <View style={styles.statusSection}>
-                            <View style={[styles.statusDot, isSending ? styles.statusDotActive : styles.statusDotInactive]} />
-                            <Text style={[styles.statusText, isSending ? styles.statusTextActive : styles.statusTextInactive]}>
-                                {isSending ? 'Compartiendo ubicación' : 'Detenido'}
+                            <View style={[styles.statusDot, isSending && !isStarting && !isStopping && !stopFailed ? styles.statusDotActive : styles.statusDotInactive]} />
+                            <Text style={[styles.statusText, isSending && !isStarting && !isStopping && !stopFailed ? styles.statusTextActive : styles.statusTextInactive]}>
+                                {isStopping ? 'Deteniendo…' : stopFailed ? 'No se pudo completar la detención' : isStarting ? 'Iniciando…' : isSending ? 'Compartiendo ubicación' : 'Detenido'}
                             </Text>
                         </View>
 
@@ -527,7 +702,7 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                             </Text>
                         )}
 
-                        {isSending ? (
+                        {isSending || isStarting || isStopping || stopFailed ? (
                             <Pressable
                                 onPress={stopProcess}
                                 style={styles.btnStop}
