@@ -243,7 +243,7 @@ describe('I07 Paso 3: cierre local, servicio Firebase real y orden de escrituras
         else { remoteA.resolve(); }
         await flushMicrotasks();
       });
-      expect(hasText('Compartiendo ubicación')).toBe(true);
+      expect(hasText('Servicio de ubicación activo')).toBe(true);
       expect(hasText('INICIAR RECORRIDO')).toBe(false);
       expect(BackgroundJob.isRunning()).toBe(true);
       expect(mockNative.stop).toHaveBeenCalledTimes(1);
@@ -328,14 +328,14 @@ describe('I07 Paso 3: cierre local, servicio Firebase real y orden de escrituras
     expect(mockNative.stop).not.toHaveBeenCalled();
     expect(Geolocation.clearWatch).not.toHaveBeenCalled();
     expect(mockUpdate).toHaveBeenCalledTimes(2);
-    expect(hasText('Compartiendo ubicación')).toBe(true);
+    expect(hasText('Servicio de ubicación activo')).toBe(true);
   });
 
   it('integración: remontar un recorrido activo no duplica GPS y conserva su heartbeat', async () => {
     await active();
     await remount();
     await act(async () => { await jest.advanceTimersByTimeAsync(8000); });
-    expect(hasText('Compartiendo ubicación')).toBe(true);
+    expect(hasText('Servicio de ubicación activo')).toBe(true);
     expect(mockNative.start).toHaveBeenCalledTimes(1);
     expect(mockNative.stop).not.toHaveBeenCalled();
     expect(Geolocation.watchPosition).toHaveBeenCalledTimes(1);
@@ -393,7 +393,7 @@ describe('I07 Paso 3: cierre local, servicio Firebase real y orden de escrituras
     expect(hasText('Iniciando…')).toBe(true);
     expect(hasText('Detenido')).toBe(false);
     await act(async () => { nativeStart.resolve(); await starting.operation; });
-    expect(hasText('Compartiendo ubicación')).toBe(true);
+    expect(hasText('Servicio de ubicación activo')).toBe(true);
     await act(async () => { await jest.advanceTimersByTimeAsync(10000); });
     expect(mockNative.start).toHaveBeenCalledTimes(1);
     expect(mockNative.stop).not.toHaveBeenCalled();
@@ -407,7 +407,7 @@ describe('I07 Paso 3: cierre local, servicio Firebase real y orden de escrituras
     await remount();
     expect(hasText('Iniciando…')).toBe(true);
     await act(async () => { recoveryStop.resolve(); await flushMicrotasks(); });
-    expect(hasText('Compartiendo ubicación')).toBe(true);
+    expect(hasText('Servicio de ubicación activo')).toBe(true);
     expect(mockNative.start).toHaveBeenCalledTimes(2);
     expect(mockNative.stop).toHaveBeenCalledTimes(1);
     expect(Geolocation.clearWatch).toHaveBeenCalledWith(1);
@@ -426,7 +426,7 @@ describe('I07 Paso 3: cierre local, servicio Firebase real y orden de escrituras
     await act(async () => { await jest.advanceTimersByTimeAsync(40000); });
     await remount();
     await act(async () => { recoveryStop.resolve(); await flushMicrotasks(); });
-    expect(hasText('Compartiendo ubicación')).toBe(false);
+    expect(hasText('Servicio de ubicación activo')).toBe(false);
     expect(hasText('Detenido')).toBe(true);
     expect(hasText('El envío de ubicación se detuvo y no pudo recuperarse automáticamente. Presiona INICIAR para reintentar.')).toBe(true);
     await active();
@@ -448,7 +448,7 @@ describe('I07 Paso 3: cierre local, servicio Firebase real y orden de escrituras
       await oldPosition(position);
       await flushMicrotasks();
     });
-    expect(hasText('Compartiendo ubicación')).toBe(true);
+    expect(hasText('Servicio de ubicación activo')).toBe(true);
     expect(mockUpdate.mock.calls.map(([, value]) => value.isActive)).toEqual([true, false, true]);
     expect(mockNative.start).toHaveBeenCalledTimes(2);
     expect(mockNative.stop).toHaveBeenCalledTimes(1);
@@ -486,7 +486,7 @@ describe('I07 Paso 3: cierre local, servicio Firebase real y orden de escrituras
     expect(hasText('INICIAR RECORRIDO')).toBe(false);
     expect(mockNative.start).not.toHaveBeenCalled();
     await act(async () => { permissionsB.resolve(); await startingB.operation; });
-    expect(hasText('Compartiendo ubicación')).toBe(true);
+    expect(hasText('Servicio de ubicación activo')).toBe(true);
     expect(mockNative.start).toHaveBeenCalledTimes(1);
   });
 });

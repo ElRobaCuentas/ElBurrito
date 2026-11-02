@@ -44,6 +44,60 @@ const ASSIGNMENT_TIMEOUT_MS = 10000;
 const ASSIGNMENT_RETRIES = 2;
 const ASSIGNMENT_RETRY_PAUSE_MS = 1500;
 
+// I08: solo selección diaria; no controla la continuidad del recorrido activo.
+const getLimaDate = () => {
+    const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Lima', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).formatToParts(new Date());
+    const part = (type: string) => parts.find(value => value.type === type)!.value;
+    return `${part('year')}-${part('month')}-${part('day')}`;
+};
+
+interface DailyAssignment {
+    driverDni: string;
+    date: string;
+    busId: string;
+    assignmentId: string;
+}
+
+const queryDailyAssignment = async (driverDni: string) => {
+    const snapshot = await database().ref('/asignaciones')
+        .orderByChild('choferId').equalTo(driverDni).once('value');
+    // La respuesta puede atravesar medianoche: seleccionar con la fecha al resolver.
+    const date = getLimaDate();
+    const candidates: DailyAssignment[] = [];
+    let invalid = false;
+    if (snapshot.exists()) {
+        snapshot.forEach(child => {
+            const value = child.val();
+            if (!value || typeof value.fecha !== 'string') {
+                invalid = true;
+                return undefined;
+            }
+            if (value.fecha !== date) return undefined;
+            // equalTo limita el conductor; tampoco aceptar una contradicción explícita.
+            if ((value.choferId !== undefined && value.choferId !== driverDni) ||
+                typeof value.activo !== 'boolean') {
+                invalid = true;
+                return undefined;
+            }
+            if (!value.activo) return undefined;
+            if (!child.key || typeof value.busId !== 'string' || !value.busId.trim() ||
+                [...value.busId as string].some(character =>
+                    '.#$[]/'.includes(character) || character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127)) {
+                invalid = true;
+                return undefined;
+            }
+            candidates.push({driverDni, date, busId: value.busId, assignmentId: child.key});
+            return undefined;
+        });
+    }
+    const problem = invalid ? 'La asignación contiene datos inválidos. Contacta a la oficina.' :
+        candidates.length > 1 ? 'Hay asignaciones contradictorias para hoy. Contacta a la oficina.' :
+        candidates.length === 0 ? 'No tienes un bus asignado para hoy. Contacta a la oficina.' : null;
+    return {assignment: problem ? null : candidates[0], problem};
+};
+
 // I07: autoridad del recorrido compartida entre montajes, no recursos del GPS.
 const trackingIntent = {
     generation: 0,
@@ -54,6 +108,8 @@ const trackingIntent = {
     stopFailed: false,
     sending: false,
     recoveryFailed: false,
+    // I08: identidad fijada al validar INICIAR; independiente de la próxima asignación.
+    run: null as Pick<DailyAssignment, 'driverDni' | 'busId'> | null,
 };
 // Notifica solo a las pantallas montadas; las operaciones no retienen sus setters.
 const publishTrackingState = () => DeviceEventEmitter.emit('PRO_TRACKING_STATE');
@@ -283,6 +339,10 @@ export const SendCoordinates = ({ driverDni }: Props) => {
     const [retrying, setRetrying] = useState(false);
     const fetchGenRef = useRef(0);
     const isLoadingAssignmentRef = useRef(false);
+    // Respaldo B, solo en memoria de esta pantalla y para el mismo conductor/día.
+    const validatedAssignmentRef = useRef<DailyAssignment | null>(null);
+    const assignmentDriverRef = useRef(driverDni);
+    assignmentDriverRef.current = driverDni;
 
     const [showDebug, setShowDebug] = useState(true);
 
@@ -309,12 +369,6 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                 }
                 try {
                     const r = await withTimeout((async () => {
-                        const d = new Date();
-                        const year = d.getFullYear();
-                        const month = String(d.getMonth() + 1).padStart(2, '0');
-                        const day = String(d.getDate()).padStart(2, '0');
-                        const today = `${year}-${month}-${day}`;
-
                         let name: string | null = null;
                         try {
                             const choferSnapshot = await database().ref(`/choferes/${driverDni}`).once('value');
@@ -330,27 +384,11 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                             }
                         }
 
-                        const snapshot = await database().ref('/asignaciones')
-                            .orderByChild('choferId')
-                            .equalTo(driverDni)
-                            .once('value');
-
-                        let foundBusId: string | null = null;
-                        let foundAsignacionId: string | null = null;
-                        if (snapshot.exists()) {
-                            snapshot.forEach((child) => {
-                                const val = child.val();
-                                if (val.fecha === today && val.activo === true) {
-                                    foundBusId = val.busId;
-                                    foundAsignacionId = child.key;
-                                }
-                                return undefined;
-                            });
-                        }
-                        return { name, foundBusId, foundAsignacionId };
+                        const result = await queryDailyAssignment(driverDni);
+                        return { name, ...result };
                     })(), ASSIGNMENT_TIMEOUT_MS);
 
-                    if (gen !== fetchGenRef.current) return;
+                    if (gen !== fetchGenRef.current || assignmentDriverRef.current !== driverDni) return;
                     // Resultado aplicado solo si seguimos siendo la generación actual
                     setDriverName(r.name);
                     if (r.name) {
@@ -358,13 +396,14 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                     } else {
                         sendLog(`⚠️ Sin registro en choferes, se usará el DNI (${driverDni})`, "error");
                     }
-                    setBusId(r.foundBusId);
-                    setAsignacionId(r.foundAsignacionId);
-                    if (r.foundBusId) {
-                        sendLog(`🚌 Bus asignado: ${r.foundBusId}`, "success");
+                    validatedAssignmentRef.current = r.assignment;
+                    setBusId(r.assignment?.busId ?? null);
+                    setAsignacionId(r.assignment?.assignmentId ?? null);
+                    if (r.assignment) {
+                        sendLog(`🚌 Bus asignado: ${r.assignment.busId} (datos disponibles del SDK; no certifica actualización remota)`, "success");
                     } else {
                         // Resultado válido: Firebase respondió y no hay asignación. No se reintenta.
-                        sendLog(`❌ No hay asignación para hoy.`, "error");
+                        sendLog(`❌ ${r.problem}`, "error");
                     }
                     setLoadingAssignment(false);
                     return;
@@ -435,7 +474,8 @@ export const SendCoordinates = ({ driverDni }: Props) => {
 
     // C3: Arranca el BackgroundJob (usado por INICIAR y por el reinicio automático)
     const startBackgroundJob = useCallback(async (generation: number) => {
-        if (!busId || !isCurrentRun(generation)) return false;
+        const run = trackingIntent.run;
+        if (!run || !isCurrentRun(generation)) return false;
         return runBackgroundTransition(async () => {
             if (!isCurrentRun(generation)) return false;
             disposeLocationExecution();
@@ -445,7 +485,7 @@ export const SendCoordinates = ({ driverDni }: Props) => {
             currentLocationExecution = execution;
             lastPulseRef.current = Date.now();
             // T11: Inyectamos el driverDni y el busId al servicio
-            const options = getBackgroundOptions(driverDni, busId, execution.id);
+            const options = getBackgroundOptions(run.driverDni, run.busId, execution.id);
             try {
                 await BackgroundJob.start(locationTask, options);
             } catch (error) {
@@ -461,10 +501,10 @@ export const SendCoordinates = ({ driverDni }: Props) => {
             trackingIntent.sending = true;
             trackingIntent.recoveryFailed = false;
             publishTrackingState();
-            sendLog(`✅ MOTOR ACTIVO — Transmitiendo para ${busId}`, "success");
+            sendLog(`✅ MOTOR ACTIVO — Transmitiendo para ${run.busId}`, "success");
             return true;
         });
-    }, [busId, driverDni]);
+    }, []);
 
     // C3: Detecta que el motor se detuvo en silencio y lo reinicia
     const restartBackgroundJob = useCallback(async (generation: number) => {
@@ -525,11 +565,6 @@ export const SendCoordinates = ({ driverDni }: Props) => {
     }, [isSending, restartBackgroundJob]);
 
     const startProcess = async () => {
-        if (!busId) {
-            Alert.alert("Bloqueo", "No tienes un bus asignado para hoy. Contacta a la oficina.");
-            return;
-        }
-
         if (trackingIntent.starting !== null || trackingIntent.restarting !== null ||
             trackingIntent.stopping !== null || trackingIntent.stopFailed || BackgroundJob.isRunning()) return;
 
@@ -549,6 +584,54 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                 return;
             }
 
+            let assignment: DailyAssignment | null = null;
+            try {
+                const result = await withTimeout(queryDailyAssignment(driverDni), ASSIGNMENT_TIMEOUT_MS);
+                if (!isCurrentRun(generation) || assignmentDriverRef.current !== driverDni) return;
+                // Una cancelación, ausencia, conflicto o dato inválido conocido revoca el respaldo.
+                validatedAssignmentRef.current = result.assignment;
+                assignment = result.assignment;
+                setBusId(assignment?.busId ?? null);
+                setAsignacionId(assignment?.assignmentId ?? null);
+                if (!assignment) {
+                    trackingIntent.shouldRun = false;
+                    Alert.alert('Bloqueo', result.problem!);
+                    return;
+                }
+                sendLog('ℹ️ Asignación comprobada con datos disponibles del SDK; no garantiza confirmación remota reciente.');
+            } catch (error: any) {
+                if (!isCurrentRun(generation) || assignmentDriverRef.current !== driverDni) return;
+                const denied = /permission[-_]denied|unauth/i.test(`${error.code ?? ''} ${error.message ?? ''}`);
+                if (denied) validatedAssignmentRef.current = null;
+                // Un timeout solo NO habilita el inicio: exigir desconexión conocida y respaldo vigente.
+                let offline = false;
+                if (!denied) {
+                    try {
+                        const connection = await withTimeout(
+                            database().ref('.info/connected').once('value'), ASSIGNMENT_TIMEOUT_MS,
+                        );
+                        offline = connection.val() === false;
+                    } catch { /* Estado desconocido: no autoriza respaldo. */ }
+                }
+                if (!isCurrentRun(generation) || assignmentDriverRef.current !== driverDni) return;
+                const saved = validatedAssignmentRef.current;
+                if (offline && saved?.driverDni === driverDni && saved.date === getLimaDate()) {
+                    assignment = saved;
+                    sendLog('⚠️ Inicio sin conexión: asignación conservada del mismo conductor y día. Puede haber cancelaciones remotas aún no recibidas.', 'error');
+                } else {
+                    trackingIntent.shouldRun = false;
+                    Alert.alert('No se pudo validar la asignación', 'No hay una asignación válida disponible para iniciar. Conéctate y vuelve a intentarlo.');
+                    return;
+                }
+            }
+            if (!isCurrentRun(generation)) return;
+            if (assignment.date !== getLimaDate()) {
+                validatedAssignmentRef.current = null;
+                trackingIntent.shouldRun = false;
+                Alert.alert('Cambió el día', 'Vuelve a presionar INICIAR para validar la asignación del nuevo día.');
+                return;
+            }
+            trackingIntent.run = {driverDni: assignment.driverDni, busId: assignment.busId};
             sendLog("⚙️ Arrancando Background Service...");
             await startBackgroundJob(generation);
         } catch (e: any) {
@@ -579,6 +662,8 @@ export const SendCoordinates = ({ driverDni }: Props) => {
         if (trackingIntent.stopping !== null) return;
         // Una pulsación ya atendida no vuelve a emitir la parada remota pendiente.
         if (!trackingIntent.shouldRun && !trackingIntent.stopFailed && !BackgroundJob.isRunning()) return;
+        // Capturar antes del primer await; el estado de la pantalla no decide qué bus detener.
+        const run = trackingIntent.run;
         // Prioridad de DETENER: invalida antes del primer await, incluso permisos.
         const generation = ++trackingIntent.generation;
         trackingIntent.shouldRun = false;
@@ -597,8 +682,8 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                 sendLog(`❌ PARADA LOCAL NO CONFIRMADA: ${e.message}. Reintenta DETENER.`, "error");
                 return;
             }
-            if (busId) {
-                const label = `operación ${generation}, bus ${busId}`;
+            if (run) {
+                const label = `operación ${generation}, bus ${run.busId}`;
                 const reportRemote = (ok: boolean, error?: unknown) => {
                     const previous = trackingIntent.generation !== generation ? ' — operación anterior' : '';
                     sendLog(
@@ -610,7 +695,7 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                 try {
                     // Se invoca antes de liberar INICIAR. La confirmación no
                     // participa del cierre local ni vuelve a escribir al terminar.
-                    stopBusService(busId).then(
+                    stopBusService(run.busId).then(
                         ok => reportRemote(ok),
                         error => reportRemote(false, error)
                     );
@@ -618,6 +703,8 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                     reportRemote(false, error);
                 }
             }
+            // Solo la parada local confirmada libera la identidad; el ACK remoto no la modifica.
+            trackingIntent.run = null;
             trackingIntent.stopFailed = false;
             trackingIntent.sending = false;
             publishTrackingState();
@@ -630,20 +717,23 @@ export const SendCoordinates = ({ driverDni }: Props) => {
         }
     };
 
+    const hasTrackingControls = isSending || isStarting || isStopping || stopFailed;
+    const displayedBusId = hasTrackingControls && trackingIntent.run ? trackingIntent.run.busId : busId;
+
     return (
         <View style={styles.container}>
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
                 keyboardShouldPersistTaps="handled"
             >
-                {loadingAssignment ? (
+                {loadingAssignment && !hasTrackingControls ? (
                     <View style={styles.loadingContainer}>
                         <ActivityIndicator size="large" color={COLORS.primary} />
                         <Text style={styles.loadingText}>
                             {retrying ? 'Problemas de conexión. Reintentando…' : 'Cargando asignación...'}
                         </Text>
                     </View>
-                ) : assignmentError ? (
+                ) : assignmentError && !hasTrackingControls ? (
                     // C4.3: Se agotaron los reintentos — tarjeta visible, nunca atrapar al conductor.
                     // CERRAR SESIÓN siempre accesible. REINTENTAR dispara un nuevo ciclo de 2 intentos.
                     <View style={styles.errorCard}>
@@ -669,7 +759,7 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                         <View style={styles.statusSection}>
                             <View style={[styles.statusDot, isSending && !isStarting && !isStopping && !stopFailed ? styles.statusDotActive : styles.statusDotInactive]} />
                             <Text style={[styles.statusText, isSending && !isStarting && !isStopping && !stopFailed ? styles.statusTextActive : styles.statusTextInactive]}>
-                                {isStopping ? 'Deteniendo…' : stopFailed ? 'No se pudo completar la detención' : isStarting ? 'Iniciando…' : isSending ? 'Compartiendo ubicación' : 'Detenido'}
+                                {isStopping ? 'Deteniendo…' : stopFailed ? 'No se pudo completar la detención' : isStarting ? 'Iniciando…' : isSending ? 'Servicio de ubicación activo' : 'Detenido'}
                             </Text>
                         </View>
 
@@ -684,13 +774,13 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                             <View style={styles.divider} />
                             <View style={styles.infoRow}>
                                 <Text style={styles.infoLabel}>Vehículo asignado</Text>
-                                <Text style={[styles.infoValue, !busId && styles.infoValueMuted]}>
-                                    {busId || 'Sin asignación'}
+                                <Text style={[styles.infoValue, !displayedBusId && styles.infoValueMuted]}>
+                                    {displayedBusId || 'Sin asignación'}
                                 </Text>
                             </View>
                         </View>
 
-                        {!busId && !isSending && (
+                        {!displayedBusId && !isSending && (
                             <Text style={styles.errorText}>
                                 No tienes un bus asignado para hoy. Contacta a la oficina.
                             </Text>
@@ -702,7 +792,7 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                             </Text>
                         )}
 
-                        {isSending || isStarting || isStopping || stopFailed ? (
+                        {hasTrackingControls ? (
                             <Pressable
                                 onPress={stopProcess}
                                 style={styles.btnStop}
@@ -713,8 +803,7 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                             <>
                                 <Pressable
                                     onPress={startProcess}
-                                    style={[styles.btnStart, !busId && styles.btnDisabled]}
-                                    disabled={!busId}
+                                    style={styles.btnStart}
                                 >
                                     <Text style={styles.btnText}>INICIAR RECORRIDO</Text>
                                 </Pressable>
