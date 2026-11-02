@@ -142,7 +142,7 @@ const runBackgroundTransition = <T,>(operation: () => Promise<T>): Promise<T> =>
 
 const locationTask = async (taskDataArguments: any) => {
     // T11: Rescatamos también el busId inyectado
-    const { uidChofer, busId, executionId } = taskDataArguments;
+    const { busId, executionId } = taskDataArguments;
 
     // El wrapper termina su envoltura con BackgroundJob.stop(). Resolver aquí
     // al limpiar dispararía otro stop global que podría alcanzar al sucesor.
@@ -183,7 +183,7 @@ const locationTask = async (taskDataArguments: any) => {
             }
             sendLog("🛑 MOTOR APAGADO", "error");
         };
-        sendLog(`🚀 MOTOR: ¡VIVO CON CHOFER ${uidChofer.substring(0,6)}...!`, "success");
+        sendLog("Motor iniciado", "success");
 
         // T4.1: Única ruta de escritura a RTDB. Tanto el callback del GPS como
         // el heartbeat pasan por aquí para no divergir (una sola
@@ -392,9 +392,9 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                     // Resultado aplicado solo si seguimos siendo la generación actual
                     setDriverName(r.name);
                     if (r.name) {
-                        sendLog(`👤 Conductor identificado: ${r.name}`, "success");
+                        sendLog("Conductor identificado", "success");
                     } else {
-                        sendLog(`⚠️ Sin registro en choferes, se usará el DNI (${driverDni})`, "error");
+                        sendLog("Perfil del conductor no disponible", "error");
                     }
                     validatedAssignmentRef.current = r.assignment;
                     setBusId(r.assignment?.busId ?? null);

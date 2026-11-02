@@ -12,6 +12,14 @@ import { LoginDriverScreen } from './screen/LoginDriverScreen';
 import { COLORS } from './shared/theme/colors';
 import crashlytics from '@react-native-firebase/crashlytics';
 
+const syncCrashlyticsUser = (uid: string | null) => {
+  try {
+    crashlytics().setUserId(uid ?? '').catch(() => undefined);
+  } catch {
+    // Un fallo de Crashlytics no debe bloquear autenticación ni navegación.
+  }
+};
+
 export const DriverApp = () => {
   const [initializing, setInitializing] = useState(true);
   const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
@@ -20,9 +28,7 @@ export const DriverApp = () => {
     const subscriber = auth().onAuthStateChanged((currentUser) => {
       setUser(currentUser);
       setInitializing(false);
-      if (currentUser) {
-        crashlytics().setUserId(currentUser.uid);
-      }
+      syncCrashlyticsUser(currentUser?.uid ?? null);
     });
     return subscriber;
   }, []);
