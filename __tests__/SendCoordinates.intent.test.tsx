@@ -167,13 +167,14 @@ describe('I07 Paso 1: intención compartida y vigencia de operaciones', () => {
     mockNative.stop.mockReturnValueOnce(recoveryStop.promise);
     await act(async () => { await jest.advanceTimersByTimeAsync(40000); });
     expect(messages().some(text => text.includes('Motor sin pulsos'))).toBe(true);
+    expect(emit.mock.calls).toContainEqual(['PRO_DEBUG_LOG', expect.objectContaining({type: 'warning', t: expect.stringContaining('Motor sin pulsos')})]);
     const stopping = await stop();
     expect(mockNative.stop).toHaveBeenCalledTimes(1);
 
     await act(async () => { recoveryStop.resolve(); await stopping.operation; });
     expect(mockNative.start).toHaveBeenCalledTimes(1);
     expect(mockNative.stop).toHaveBeenCalledTimes(2);
-    expect(messages().some(text => text.includes('SERVICIO REINICIADO'))).toBe(false);
+    expect(messages().some(text => text.includes('Servicio Android reiniciado'))).toBe(false);
   });
 
   it('DETENER durante permisos impide el arranque cuando se conceden después', async () => {
@@ -247,7 +248,7 @@ describe('I07 Paso 1: intención compartida y vigencia de operaciones', () => {
     await act(async () => { await jest.advanceTimersByTimeAsync(40000); });
     expect(mockNative.stop).toHaveBeenCalledTimes(1);
     expect(mockNative.start).toHaveBeenCalledTimes(2);
-    expect(messages().some(text => text.includes('SERVICIO REINICIADO'))).toBe(true);
+    expect(messages().some(text => text.includes('Servicio Android reiniciado'))).toBe(true);
     expect(BackgroundJob.isRunning()).toBe(true);
   });
 
@@ -264,7 +265,7 @@ describe('I07 Paso 1: intención compartida y vigencia de operaciones', () => {
 
     expect(mockNative.stop).toHaveBeenCalledTimes(1);
     expect(BackgroundJob.isRunning()).toBe(false);
-    expect(messages().some(text => text.includes('MOTOR ACTIVO'))).toBe(false);
+    expect(messages().some(text => text.includes('Servicio Android iniciado'))).toBe(false);
     await start();
     expect(mockNative.start).toHaveBeenCalledTimes(2);
   });

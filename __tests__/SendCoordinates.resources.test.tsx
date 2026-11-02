@@ -206,6 +206,8 @@ describe('I07 Paso 2: recursos reales de locationTask con wrapper JS real', () =
     const stopping = await stop();
 
     expect(Geolocation.clearWatch).toHaveBeenCalledWith(id);
+    expect(emit.mock.calls).toContainEqual(['PRO_DEBUG_LOG', expect.objectContaining({type: 'info', t: expect.stringContaining('Limpieza local de recursos GPS procesada')})]);
+    expect(emit.mock.calls).toContainEqual(['PRO_DEBUG_LOG', expect.objectContaining({type: 'success', t: expect.stringContaining('Servicio Android iniciado · bus AHK-459')})]);
     expect(activeWatches.size).toBe(0);
     timers.forEach(timer => expect(clearIntervalSpy).toHaveBeenCalledWith(timer.handle));
     expect(entries[0].finished).toHaveBeenCalledTimes(1);
@@ -229,6 +231,18 @@ describe('I07 Paso 2: recursos reales de locationTask con wrapper JS real', () =
     expect(jest.mocked(Geolocation.clearWatch).mock.calls).toEqual([[id]]);
     expect(activeWatches.size).toBe(0);
     expect(activeOwnTimers.size).toBe(0);
+  });
+
+  it('distingue la limpieza local del fallo al liberar el observador', async () => {
+    await start();
+    jest.mocked(Geolocation.clearWatch).mockImplementationOnce(() => {
+      throw new Error('liberación sintética');
+    });
+    await (await stop()).operation;
+    const logs = emit.mock.calls.filter(([event]) => event === 'PRO_DEBUG_LOG').map(([, payload]) => payload);
+    expect(logs).toContainEqual(expect.objectContaining({type: 'error', t: expect.stringContaining('Error liberando observador GPS: liberación sintética')}));
+    expect(logs).toContainEqual(expect.objectContaining({type: 'info', t: expect.stringContaining('Limpieza local de recursos GPS procesada')}));
+    expect(logs.find(log => log.t.includes('Limpieza local')).t).not.toContain('PARADA REMOTA');
   });
 
   it('callbacks GPS y de error tardíos no publican, no pulsan ni emiten diagnósticos viejos', async () => {
@@ -335,7 +349,7 @@ describe('I07 Paso 2: recursos reales de locationTask con wrapper JS real', () =
     expect(activeWatches).toEqual(new Set([idB]));
     expect(updateBusLocation).not.toHaveBeenCalled();
     expect(mockNative.stop).toHaveBeenCalledTimes(1);
-    expect(messages().some(text => text.includes('SERVICIO REINICIADO'))).toBe(true);
+    expect(messages().some(text => text.includes('Servicio Android reiniciado'))).toBe(true);
   });
 
   it('keepAlive conserva la limpieza de respaldo sin disparar otra parada global', async () => {

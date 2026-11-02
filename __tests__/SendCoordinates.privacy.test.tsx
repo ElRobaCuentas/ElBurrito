@@ -136,11 +136,11 @@ describe('I11: privacidad del panel sin alterar los diagnósticos operativos', (
   it('inicia sin imprimir el prefijo del DNI y conserva la identidad interna del servicio', async () => {
     await mount();
     await start();
-    expect(messages()).toContainEqual(expect.stringMatching(/\] Motor iniciado$/));
+    expect(messages()).toContainEqual(expect.stringMatching(/\] Preparando seguimiento GPS$/));
     expect(jest.mocked(BackgroundJob.start).mock.calls[0][1].parameters).toEqual(
       expect.objectContaining({uidChofer: driverDni, busId: 'AHK-459'}),
     );
-    expect(messages()).toContainEqual(expect.stringContaining('MOTOR ACTIVO — Transmitiendo para AHK-459'));
+    expect(messages()).toContainEqual(expect.stringContaining('Servicio Android iniciado · bus AHK-459'));
     assertNoPersonalData();
   });
 
@@ -148,9 +148,9 @@ describe('I11: privacidad del panel sin alterar los diagnósticos operativos', (
     await mount();
     const onPosition = await start();
     await act(async () => { await onPosition(position); });
-    expect(messages()).toContainEqual(expect.stringContaining('POSICIÓN: -12.05800, -77.08400'));
-    expect(messages()).toContainEqual(expect.stringContaining('Subiendo a Firebase'));
-    expect(messages()).toContainEqual(expect.stringContaining('FIREBASE ACTUALIZADO'));
+    expect(messages()).toContainEqual(expect.stringContaining('GPS recibido: -12.05800, -77.08400'));
+    expect(messages()).toContainEqual(expect.stringContaining('Publicación de ubicación solicitada'));
+    expect(messages()).toContainEqual(expect.stringContaining('Publicación de ubicación confirmada'));
     await act(async () => { await jest.advanceTimersByTimeAsync(8000); });
     expect(messages()).toContainEqual(expect.stringContaining('HEARTBEAT: -12.05800, -77.08400'));
     expect(mockUpdate).toHaveBeenCalledTimes(2);

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     AppState, PermissionsAndroid, Platform,
     Pressable, StyleSheet, Text, View, ScrollView,
-    DeviceEventEmitter, Alert, Linking, ActivityIndicator
+    DeviceEventEmitter, Alert, Linking, ActivityIndicator, useWindowDimensions
 } from 'react-native';
 // T11: Importamos las nuevas funciones dinámicas y la base de datos
 import { updateBusLocation, stopBusService } from '../services/firebase_service';
@@ -10,6 +10,7 @@ import database from '@react-native-firebase/database';
 import auth from '@react-native-firebase/auth';
 import BackgroundJob from 'react-native-background-actions';
 import Geolocation from '@react-native-community/geolocation';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { COLORS } from '../shared/theme/colors';
 import { TYPOGRAPHY } from '../shared/theme/typography';
 import { pause, withTimeout } from '../shared/utils/timeout';
@@ -19,7 +20,7 @@ interface Props {
     driverDni: string;
 }
 
-const sendLog = (text: string, type: 'info' | 'error' | 'success' = 'info') => {
+const sendLog = (text: string, type: 'info' | 'error' | 'success' | 'warning' = 'info') => {
     const timestamp = new Date().toLocaleTimeString();
     DeviceEventEmitter.emit('PRO_DEBUG_LOG', {
         id: Math.random(),
@@ -181,9 +182,9 @@ const locationTask = async (taskDataArguments: any) => {
                     sendLog(`❌ Error liberando observador GPS: ${err.message}`, "error");
                 }
             }
-            sendLog("🛑 MOTOR APAGADO", "error");
+            sendLog("Limpieza local de recursos GPS procesada", "info");
         };
-        sendLog("Motor iniciado", "success");
+        sendLog("Preparando seguimiento GPS", "info");
 
         // T4.1: Única ruta de escritura a RTDB. Tanto el callback del GPS como
         // el heartbeat pasan por aquí para no divergir (una sola
@@ -231,12 +232,12 @@ const locationTask = async (taskDataArguments: any) => {
                 lastLocation = coords;
                 // C3: Pulso de vida hacia la UI (mismo canal que el debug panel)
                 DeviceEventEmitter.emit('PRO_LOCATION_PULSE', { ts: Date.now() });
-                sendLog(`✅ POSICIÓN: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`, "success");
+                sendLog(`GPS recibido: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`, "info");
 
-                sendLog("☁️ Subiendo a Firebase...");
+                sendLog("Publicación de ubicación solicitada");
                 const ok = await writeLocation(coords);
                 if (ok && isActive()) {
-                    sendLog("✅ FIREBASE ACTUALIZADO", "success");
+                    sendLog("Publicación de ubicación confirmada", "success");
                 }
             },
             (err) => {
@@ -266,7 +267,7 @@ const locationTask = async (taskDataArguments: any) => {
             // C3: El pulso también vale como señal de vida hacia la UI,
             // aunque la escritura falle (sin red, por ejemplo).
             DeviceEventEmitter.emit('PRO_LOCATION_PULSE', { ts: Date.now() });
-            sendLog(`💓 HEARTBEAT: ${lastLocation.latitude.toFixed(5)}, ${lastLocation.longitude.toFixed(5)}`, "info");
+            sendLog(`HEARTBEAT: ${lastLocation.latitude.toFixed(5)}, ${lastLocation.longitude.toFixed(5)}`, "info");
             writeLocation(lastLocation);
         }, HEARTBEAT_INTERVAL_MS);
 
@@ -293,7 +294,7 @@ const getBackgroundOptions = (uid: string, busId: string, executionId: number) =
 
 const requestAllPermissions = async (): Promise<boolean> => {
     if (Platform.OS === 'android' && Platform.Version >= 33) {
-        sendLog("🛡️ Paso 1/3: Pidiendo permiso de notificaciones...");
+        sendLog("Solicitando permiso de notificaciones");
         const notifGranted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
         if (notifGranted !== PermissionsAndroid.RESULTS.GRANTED) {
             sendLog("❌ NOTIFICACIONES DENEGADAS", "error");
@@ -323,6 +324,7 @@ export const SendCoordinates = ({ driverDni }: Props) => {
     const [isStopping, setIsStopping] = useState(trackingIntent.stopping !== null);
     const [stopFailed, setStopFailed] = useState(trackingIntent.stopFailed);
     const [logs, setLogs] = useState<any[]>([]);
+    const [pausedLogs, setPausedLogs] = useState<any[] | null>(null);
     
     // C3: Estado del watchdog de reinicio automático
     const lastPulseRef = useRef(0);
@@ -344,7 +346,9 @@ export const SendCoordinates = ({ driverDni }: Props) => {
     const assignmentDriverRef = useRef(driverDni);
     assignmentDriverRef.current = driverDni;
 
-    const [showDebug, setShowDebug] = useState(true);
+    const [showDebug, setShowDebug] = useState(false);
+    const { width: viewportWidth, fontScale } = useWindowDimensions();
+    const stackInfoRows = viewportWidth < 360 || fontScale > 1.25;
 
     // C4.3: Carga de la asignación con timeout por intento completo y reintento acotado.
     // Cada i ntento corre dentro de ASSIGNMENT_TIMEOUT_MS y cubre ambas lecturas de Firebase
@@ -363,7 +367,7 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                 if (gen !== fetchGenRef.current) return;
                 if (intento > 1) {
                     setRetrying(true);
-                    sendLog(`⚠️ Problemas de conexión, reintentando (${intento}/${ASSIGNMENT_RETRIES})...`, "error");
+                    sendLog(`⚠️ Reintentando la carga de asignación (${intento}/${ASSIGNMENT_RETRIES})...`, "warning");
                     await pause(ASSIGNMENT_RETRY_PAUSE_MS);
                     if (gen !== fetchGenRef.current) return;
                 }
@@ -400,7 +404,7 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                     setBusId(r.assignment?.busId ?? null);
                     setAsignacionId(r.assignment?.assignmentId ?? null);
                     if (r.assignment) {
-                        sendLog(`🚌 Bus asignado: ${r.assignment.busId} (datos disponibles del SDK; no certifica actualización remota)`, "success");
+                        sendLog(`Bus asignado: ${r.assignment.busId} (datos disponibles del SDK; no certifica actualización remota)`, "success");
                     } else {
                         // Resultado válido: Firebase respondió y no hay asignación. No se reintenta.
                         sendLog(`❌ ${r.problem}`, "error");
@@ -446,7 +450,9 @@ export const SendCoordinates = ({ driverDni }: Props) => {
         syncTrackingState();
 
         const appStateSub = AppState.addEventListener('change', (state) => {
-            sendLog(`📱 APP STATE: ${state.toUpperCase()}`);
+            sendLog(state === 'active' ? 'App en primer plano' :
+                state === 'background' ? 'App en segundo plano' :
+                state === 'inactive' ? 'App inactiva' : `Estado de la app: ${state}`);
         });
 
         // C4.7: Al re-montar, si el servicio sigue activo se restaura el estado visual.
@@ -458,7 +464,7 @@ export const SendCoordinates = ({ driverDni }: Props) => {
             trackingIntent.starting === null && trackingIntent.restarting === null && BackgroundJob.isRunning()) {
             setLogs([]);
             lastPulseRef.current = Date.now();
-            sendLog("ℹ️ Recorrido restaurado: el servicio seguía activo en segundo plano", "success");
+            sendLog("Recorrido restaurado: el servicio seguía activo en segundo plano", "success");
         }
 
         // C4.3: Carga de la asignación con timeout y reintento acotado (ver loadAssignment)
@@ -501,7 +507,7 @@ export const SendCoordinates = ({ driverDni }: Props) => {
             trackingIntent.sending = true;
             trackingIntent.recoveryFailed = false;
             publishTrackingState();
-            sendLog(`✅ MOTOR ACTIVO — Transmitiendo para ${run.busId}`, "success");
+            sendLog(`Servicio Android iniciado · bus ${run.busId}`, "success");
             return true;
         });
     }, []);
@@ -512,7 +518,7 @@ export const SendCoordinates = ({ driverDni }: Props) => {
             trackingIntent.restarting !== null || trackingIntent.stopping !== null) return;
         trackingIntent.restarting = generation;
         publishTrackingState();
-        sendLog("⚠️ Motor sin pulsos: intentando reiniciar el servicio...", "error");
+        sendLog("⚠️ Motor sin pulsos: intentando reiniciar el servicio...", "warning");
         try {
             await runBackgroundTransition(async () => {
                 if (!isCurrentRun(generation)) return;
@@ -528,7 +534,7 @@ export const SendCoordinates = ({ driverDni }: Props) => {
             if (!isCurrentRun(generation)) return;
             const started = await startBackgroundJob(generation);
             if (started && isCurrentRun(generation)) {
-                sendLog("🔄 SERVICIO REINICIADO", "success");
+                sendLog("Servicio Android reiniciado", "success");
             }
         } catch (e: any) {
             if (!isCurrentRun(generation)) return;
@@ -574,7 +580,7 @@ export const SendCoordinates = ({ driverDni }: Props) => {
         publishTrackingState();
 
         setLogs([]);
-        sendLog("▶️ Botón presionado: Iniciando...", "info");
+        sendLog("Inicio solicitado", "info");
 
         try {
             const permisosOk = await requestAllPermissions();
@@ -598,7 +604,7 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                     Alert.alert('Bloqueo', result.problem!);
                     return;
                 }
-                sendLog('ℹ️ Asignación comprobada con datos disponibles del SDK; no garantiza confirmación remota reciente.');
+                sendLog('Asignación comprobada con datos disponibles del SDK; no garantiza confirmación remota reciente.');
             } catch (error: any) {
                 if (!isCurrentRun(generation) || assignmentDriverRef.current !== driverDni) return;
                 const denied = /permission[-_]denied|unauth/i.test(`${error.code ?? ''} ${error.message ?? ''}`);
@@ -617,7 +623,7 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                 const saved = validatedAssignmentRef.current;
                 if (offline && saved?.driverDni === driverDni && saved.date === getLimaDate()) {
                     assignment = saved;
-                    sendLog('⚠️ Inicio sin conexión: asignación conservada del mismo conductor y día. Puede haber cancelaciones remotas aún no recibidas.', 'error');
+                    sendLog('⚠️ Inicio sin conexión: asignación conservada del mismo conductor y día. Puede haber cancelaciones remotas aún no recibidas.', 'warning');
                 } else {
                     trackingIntent.shouldRun = false;
                     Alert.alert('No se pudo validar la asignación', 'No hay una asignación válida disponible para iniciar. Conéctate y vuelve a intentarlo.');
@@ -632,12 +638,12 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                 return;
             }
             trackingIntent.run = {driverDni: assignment.driverDni, busId: assignment.busId};
-            sendLog("⚙️ Arrancando Background Service...");
+            sendLog("Iniciando servicio Android");
             await startBackgroundJob(generation);
         } catch (e: any) {
             if (!isCurrentRun(generation)) return;
             trackingIntent.shouldRun = false;
-            sendLog(`❌ CRASH UI: ${e.message}`, "error");
+            sendLog(`❌ Error al iniciar: ${e.message}`, "error");
             crashlytics().recordError(e, 'startProcess');
         } finally {
             if (trackingIntent.starting === generation) {
@@ -671,7 +677,7 @@ export const SendCoordinates = ({ driverDni }: Props) => {
         trackingIntent.restarting = null;
         trackingIntent.stopping = generation;
         publishTrackingState();
-        sendLog("⏹️ Deteniendo proceso...");
+        sendLog("Deteniendo proceso...");
         disposeLocationExecution();
         try {
             try {
@@ -691,7 +697,7 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                         ok ? 'success' : 'error'
                     );
                 };
-                sendLog(`☁️ PARADA REMOTA PENDIENTE (${label}): solicitando isActive:false`);
+                sendLog(`PARADA REMOTA PENDIENTE (${label}): solicitando isActive:false`);
                 try {
                     // Se invoca antes de liberar INICIAR. La confirmación no
                     // participa del cierre local ni vuelve a escribir al terminar.
@@ -708,7 +714,7 @@ export const SendCoordinates = ({ driverDni }: Props) => {
             trackingIntent.stopFailed = false;
             trackingIntent.sending = false;
             publishTrackingState();
-            sendLog("🛑 PARADA LOCAL COMPLETADA", "success");
+            sendLog("PARADA LOCAL COMPLETADA", "success");
         } finally {
             if (trackingIntent.stopping === generation) {
                 trackingIntent.stopping = null;
@@ -718,6 +724,8 @@ export const SendCoordinates = ({ driverDni }: Props) => {
     };
 
     const hasTrackingControls = isSending || isStarting || isStopping || stopFailed;
+    const trackingActive = isSending && !isStarting && !isStopping && !stopFailed;
+    const showStopFailure = stopFailed && !isStopping;
     const displayedBusId = hasTrackingControls && trackingIntent.run ? trackingIntent.run.busId : busId;
 
     return (
@@ -745,20 +753,22 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                             onPress={loadAssignment}
                             style={styles.btnStart}
                         >
-                            <Text style={styles.btnText}>REINTENTAR</Text>
+                            <Text style={[styles.btnText, styles.btnTextStart]}>REINTENTAR</Text>
                         </Pressable>
                         <Pressable
                             onPress={handleLogout}
                             style={styles.btnLogout}
+                            accessibilityLabel="CERRAR SESIÓN"
                         >
-                            <Text style={styles.btnText}>CERRAR SESIÓN</Text>
+                            <MaterialCommunityIcons name="logout" size={20} color="#4A5568" style={styles.btnIcon} accessible={false} />
+                            <Text style={styles.btnLogoutText}>CERRAR SESIÓN</Text>
                         </Pressable>
                     </View>
                 ) : (
                     <>
-                        <View style={styles.statusSection}>
-                            <View style={[styles.statusDot, isSending && !isStarting && !isStopping && !stopFailed ? styles.statusDotActive : styles.statusDotInactive]} />
-                            <Text style={[styles.statusText, isSending && !isStarting && !isStopping && !stopFailed ? styles.statusTextActive : styles.statusTextInactive]}>
+                        <View style={[styles.statusSection, showStopFailure && styles.statusSectionError]}>
+                            <View style={[styles.statusDot, showStopFailure ? styles.statusDotError : trackingActive ? styles.statusDotActive : styles.statusDotInactive]} />
+                            <Text style={[styles.statusText, showStopFailure ? styles.statusTextError : trackingActive ? styles.statusTextActive : styles.statusTextInactive]}>
                                 {isStopping ? 'Deteniendo…' : stopFailed ? 'No se pudo completar la detención' : isStarting ? 'Iniciando…' : isSending ? 'Servicio de ubicación activo' : 'Detenido'}
                             </Text>
                         </View>
@@ -767,14 +777,14 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                             <View style={styles.cardHeader}>
                                 <Text style={styles.cardTitle}>Información del viaje</Text>
                             </View>
-                            <View style={styles.infoRow}>
-                                <Text style={styles.infoLabel}>Conductor asignado</Text>
-                                <Text style={styles.infoValue}>{driverName || driverDni}</Text>
+                            <View style={[styles.infoRow, stackInfoRows && styles.infoRowStacked]}>
+                                <Text style={[styles.infoLabel, stackInfoRows && styles.infoLabelStacked]}>Conductor asignado</Text>
+                                <Text style={[styles.infoValue, stackInfoRows && styles.infoValueStacked]}>{driverName || driverDni}</Text>
                             </View>
                             <View style={styles.divider} />
-                            <View style={styles.infoRow}>
-                                <Text style={styles.infoLabel}>Vehículo asignado</Text>
-                                <Text style={[styles.infoValue, !displayedBusId && styles.infoValueMuted]}>
+                            <View style={[styles.infoRow, stackInfoRows && styles.infoRowStacked]}>
+                                <Text style={[styles.infoLabel, stackInfoRows && styles.infoLabelStacked]}>Vehículo asignado</Text>
+                                <Text style={[styles.infoValue, stackInfoRows && styles.infoValueStacked, !displayedBusId && styles.infoValueMuted]}>
                                     {displayedBusId || 'Sin asignación'}
                                 </Text>
                             </View>
@@ -796,7 +806,9 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                             <Pressable
                                 onPress={stopProcess}
                                 style={styles.btnStop}
+                                accessibilityLabel="DETENER RECORRIDO"
                             >
+                                <MaterialCommunityIcons name="stop" size={20} color={COLORS.white} style={styles.btnIcon} accessible={false} />
                                 <Text style={styles.btnText}>DETENER RECORRIDO</Text>
                             </Pressable>
                         ) : (
@@ -804,15 +816,19 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                                 <Pressable
                                     onPress={startProcess}
                                     style={styles.btnStart}
+                                    accessibilityLabel="INICIAR RECORRIDO"
                                 >
-                                    <Text style={styles.btnText}>INICIAR RECORRIDO</Text>
+                                    <MaterialCommunityIcons name="play" size={20} color="#06283D" style={styles.btnIcon} accessible={false} />
+                                    <Text style={[styles.btnText, styles.btnTextStart]}>INICIAR RECORRIDO</Text>
                                 </Pressable>
 
                                 <Pressable
                                     onPress={handleLogout}
                                     style={styles.btnLogout}
+                                    accessibilityLabel="CERRAR SESIÓN"
                                 >
-                                    <Text style={styles.btnText}>CERRAR SESIÓN</Text>
+                                    <MaterialCommunityIcons name="logout" size={20} color="#4A5568" style={styles.btnIcon} accessible={false} />
+                                    <Text style={styles.btnLogoutText}>CERRAR SESIÓN</Text>
                                 </Pressable>
                             </>
                         )}
@@ -820,40 +836,75 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                         <View style={styles.debugSection}>
                             <View style={styles.debugCard}>
                                 <View style={styles.debugCardHeader}>
-                                    <Text style={styles.debugTitle}>Diagnóstico técnico</Text>
+                                    <View style={styles.debugTitleRow}>
+                                        <MaterialCommunityIcons name="clipboard-text-outline" size={18} color="#4A5568" style={styles.btnIcon} accessible={false} />
+                                        <Text style={styles.debugTitle}>Diagnóstico técnico</Text>
+                                    </View>
                                     <Text style={styles.debugSubtitle}>
                                         Información utilizada durante la fase de validación del sistema.
                                     </Text>
                                 </View>
 
                                 <Pressable
-                                    onPress={() => setShowDebug(!showDebug)}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={showDebug ? 'Ocultar diagnóstico técnico' : 'Mostrar diagnóstico técnico'}
+                                    accessibilityState={{expanded: showDebug}}
+                                    onPress={() => {
+                                        if (showDebug) setPausedLogs(null);
+                                        setShowDebug(!showDebug);
+                                    }}
                                     style={styles.debugToggle}
                                 >
                                     <Text style={styles.debugToggleText}>
-                                        {showDebug ? '▲ Ocultar diagnóstico' : '▼ Mostrar diagnóstico'}
+                                        {showDebug ? 'Ocultar diagnóstico técnico' : 'Mostrar diagnóstico técnico'}
                                     </Text>
+                                    <MaterialCommunityIcons name={showDebug ? 'chevron-up' : 'chevron-down'} size={20} color="#4A5568" style={styles.debugChevron} accessible={false} />
                                 </Pressable>
 
                                 {showDebug && (
                                     <View style={styles.debugContainer}>
-                                        {logs.map(log => (
-                                            <View key={log.id} style={[
-                                                styles.logEntry,
-                                                log.type === 'error'   ? styles.logEntryError :
-                                                log.type === 'success' ? styles.logEntrySuccess :
-                                                                         styles.logEntryInfo
-                                            ]}>
-                                                <Text style={[
-                                                    styles.logText,
-                                                    log.type === 'error'   ? styles.logTextError :
-                                                    log.type === 'success' ? styles.logTextSuccess :
-                                                                             styles.logTextInfo
+                                        <Text style={styles.debugHistoryNote}>
+                                            Últimos 30 eventos · Historial temporal
+                                        </Text>
+                                        <Pressable
+                                            accessibilityRole="button"
+                                            onPress={() => setPausedLogs(pausedLogs === null ? [...logs] : null)}
+                                            style={styles.debugReadingToggle}
+                                        >
+                                            <Text style={styles.debugToggleText}>
+                                                {pausedLogs === null ? 'Pausar para leer' : 'Ver mensajes recientes'}
+                                            </Text>
+                                        </Pressable>
+                                        {pausedLogs !== null && (
+                                            <Text style={styles.debugHistoryNote}>
+                                                Vista pausada; los eventos siguen llegando.
+                                            </Text>
+                                        )}
+                                        {(pausedLogs ?? logs).length === 0 ? (
+                                            <Text style={styles.debugEmptyText}>
+                                                Todavía no hay eventos registrados.
+                                            </Text>
+                                        ) : (
+                                            [...(pausedLogs ?? logs)].reverse().map(log => (
+                                                <View key={log.id} style={[
+                                                    styles.logEntry,
+                                                    log.type === 'error'   ? styles.logEntryError :
+                                                    log.type === 'warning' ? styles.logEntryWarning :
+                                                    log.type === 'success' ? styles.logEntrySuccess :
+                                                                             styles.logEntryInfo
                                                 ]}>
-                                                    {log.t}
-                                                </Text>
-                                            </View>
-                                        ))}
+                                                    <Text style={[
+                                                        styles.logText,
+                                                        log.type === 'error'   ? styles.logTextError :
+                                                        log.type === 'warning' ? styles.logTextWarning :
+                                                        log.type === 'success' ? styles.logTextSuccess :
+                                                                                 styles.logTextInfo
+                                                    ]}>
+                                                        {log.t}
+                                                    </Text>
+                                                </View>
+                                            ))
+                                        )}
                                     </View>
                                 )}
                             </View>
@@ -873,7 +924,7 @@ const styles = StyleSheet.create({
     scrollContent: {
         flexGrow: 1,
         paddingHorizontal: 24,
-        paddingVertical: 32,
+        paddingVertical: 24,
     },
     loadingContainer: {
         flex: 1,
@@ -890,35 +941,56 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 28,
+        alignSelf: 'center',
+        maxWidth: '100%',
+        paddingHorizontal: 8,
+        marginBottom: 20,
+    },
+    statusSectionError: {
+        backgroundColor: '#FFF5F5',
+        borderWidth: 1,
+        borderColor: '#F5C2C0',
+        borderRadius: 10,
+        paddingVertical: 10,
+        paddingHorizontal: 14,
     },
     statusDot: {
         width: 10,
         height: 10,
         borderRadius: 5,
         marginRight: 8,
+        flexShrink: 0,
     },
     statusDotActive: {
         backgroundColor: '#2E7D32',
     },
     statusDotInactive: {
-        backgroundColor: '#999',
+        backgroundColor: '#757575',
+    },
+    statusDotError: {
+        backgroundColor: '#B3261E',
     },
     statusText: {
         fontFamily: TYPOGRAPHY.primary.semiBold,
         fontSize: 18,
+        lineHeight: 24,
+        textAlign: 'center',
+        flexShrink: 1,
     },
     statusTextActive: {
         color: '#2E7D32',
     },
     statusTextInactive: {
-        color: '#999',
+        color: '#5F6368',
+    },
+    statusTextError: {
+        color: '#B3261E',
     },
     infoCard: {
         backgroundColor: COLORS.background,
         borderRadius: 14,
         padding: 18,
-        marginBottom: 20,
+        marginBottom: 16,
         borderWidth: 1,
         borderColor: '#E8E8E8',
         elevation: 1,
@@ -941,21 +1013,38 @@ const styles = StyleSheet.create({
     infoRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingVertical: 8,
+        alignItems: 'flex-start',
+        paddingVertical: 10,
+    },
+    infoRowStacked: {
+        flexDirection: 'column',
+        alignItems: 'stretch',
     },
     infoLabel: {
+        flexShrink: 0,
+        marginRight: 12,
         fontFamily: TYPOGRAPHY.primary.medium,
         fontSize: 13,
-        color: '#999',
+        lineHeight: 18,
+        color: '#5F6368',
+    },
+    infoLabelStacked: {
+        marginRight: 0,
+        marginBottom: 4,
     },
     infoValue: {
+        flexShrink: 1,
+        textAlign: 'right',
         fontFamily: TYPOGRAPHY.primary.semiBold,
         fontSize: 15,
+        lineHeight: 21,
         color: COLORS.textTitle,
     },
+    infoValueStacked: {
+        textAlign: 'left',
+    },
     infoValueMuted: {
-        color: '#999',
+        color: '#5F6368',
         fontFamily: TYPOGRAPHY.primary.regular,
     },
     divider: {
@@ -998,6 +1087,8 @@ const styles = StyleSheet.create({
     },
     btnStart: {
         backgroundColor: COLORS.primary,
+        flexDirection: 'row',
+        justifyContent: 'center',
         borderRadius: 12,
         paddingVertical: 16,
         alignItems: 'center',
@@ -1010,6 +1101,8 @@ const styles = StyleSheet.create({
     },
     btnStop: {
         backgroundColor: '#d32f2f',
+        flexDirection: 'row',
+        justifyContent: 'center',
         borderRadius: 12,
         paddingVertical: 16,
         alignItems: 'center',
@@ -1021,7 +1114,11 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
     },
     btnLogout: {
-        backgroundColor: '#d32f2f',
+        backgroundColor: 'transparent',
+        borderWidth: 1,
+        borderColor: '#E8E8E8',
+        flexDirection: 'row',
+        justifyContent: 'center',
         borderRadius: 12,
         paddingVertical: 14,
         alignItems: 'center',
@@ -1035,8 +1132,19 @@ const styles = StyleSheet.create({
         fontFamily: TYPOGRAPHY.primary.bold,
         fontSize: 16,
     },
+    btnTextStart: {
+        color: '#06283D',
+    },
+    btnIcon: {
+        marginRight: 8,
+    },
+    btnLogoutText: {
+        color: '#4A5568',
+        fontFamily: TYPOGRAPHY.primary.bold,
+        fontSize: 16,
+    },
     debugSection: {
-        marginTop: 12,
+        marginTop: 16,
     },
     debugCard: {
         backgroundColor: COLORS.background,
@@ -1056,37 +1164,67 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: '#F5F5F5',
     },
+    debugTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 4,
+    },
     debugTitle: {
         fontFamily: TYPOGRAPHY.primary.semiBold,
         fontSize: 14,
         color: COLORS.textTitle,
-        marginBottom: 4,
     },
     debugSubtitle: {
         fontFamily: TYPOGRAPHY.primary.regular,
-        fontSize: 11,
-        color: '#999',
-        lineHeight: 16,
+        fontSize: 12,
+        color: '#5F6368',
+        lineHeight: 18,
     },
     debugToggle: {
-        paddingVertical: 10,
+        minHeight: 48,
+        justifyContent: 'center',
+        flexDirection: 'row',
+        paddingVertical: 12,
         paddingHorizontal: 16,
         alignItems: 'center',
     },
     debugToggleText: {
         fontFamily: TYPOGRAPHY.primary.medium,
-        fontSize: 12,
-        color: '#888',
+        fontSize: 14,
+        color: '#4A5568',
+    },
+    debugChevron: {
+        marginLeft: 6,
     },
     debugContainer: {
         paddingHorizontal: 12,
         paddingBottom: 12,
     },
+    debugHistoryNote: {
+        fontFamily: TYPOGRAPHY.primary.regular,
+        fontSize: 12,
+        lineHeight: 18,
+        color: '#5F6368',
+        marginBottom: 8,
+    },
+    debugReadingToggle: {
+        minHeight: 48,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    debugEmptyText: {
+        paddingVertical: 8,
+        fontFamily: TYPOGRAPHY.primary.medium,
+        fontSize: 13,
+        lineHeight: 18,
+        color: '#5F6368',
+        textAlign: 'center',
+    },
     logEntry: {
-        paddingVertical: 4,
-        paddingHorizontal: 10,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
         borderRadius: 6,
-        marginBottom: 3,
+        marginBottom: 6,
     },
     logEntryInfo: {
         backgroundColor: '#F8F9FA',
@@ -1097,9 +1235,14 @@ const styles = StyleSheet.create({
     logEntryError: {
         backgroundColor: '#FFF5F5',
     },
+    logEntryWarning: {
+        backgroundColor: '#FFF8E1',
+    },
     logText: {
+        flexShrink: 1,
         fontFamily: 'monospace',
-        fontSize: 11,
+        fontSize: 13,
+        lineHeight: 18,
     },
     logTextInfo: {
         color: '#555',
@@ -1109,5 +1252,8 @@ const styles = StyleSheet.create({
     },
     logTextError: {
         color: '#C62828',
+    },
+    logTextWarning: {
+        color: '#795400',
     },
 });

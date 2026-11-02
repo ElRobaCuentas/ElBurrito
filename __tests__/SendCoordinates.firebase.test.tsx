@@ -57,7 +57,7 @@ describe('I01: tarea real GPS → servicio Firebase → diagnóstico', () => {
     emit.mock.calls
       .filter(([event]) => event === 'PRO_DEBUG_LOG')
       .map(([, payload]) => payload.t as string);
-  const successes = () => messages().filter(text => text.includes('FIREBASE ACTUALIZADO'));
+  const successes = () => messages().filter(text => text.includes('Publicación de ubicación confirmada'));
   const failures = () => messages().filter(text => text.includes('FALLO FIREBASE'));
 
   beforeEach(async () => {
@@ -161,6 +161,8 @@ describe('I01: tarea real GPS → servicio Firebase → diagnóstico', () => {
     mockUpdate.mockImplementationOnce(() => new Promise<void>(done => { resolve = done; }));
     const pending = onPosition(position);
     await Promise.resolve();
+    expect(messages()).toContainEqual(expect.stringContaining('GPS recibido: -12.05800, -77.08400'));
+    expect(messages()).toContainEqual(expect.stringContaining('Publicación de ubicación solicitada'));
     expect(successes()).toHaveLength(0);
     expect(failures()).toHaveLength(0);
     resolve();

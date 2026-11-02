@@ -559,6 +559,14 @@ describe('I08 Pasos 1 y 2: asignación diaria, respaldo B e identidad del recorr
     await (await start()).operation;
     expect(startedTitles()).toEqual(['El Bus AHK-459 está en ruta']);
     expect(messages().some(text => text.includes('Puede haber cancelaciones remotas aún no recibidas'))).toBe(true);
+    expect(emit.mock.calls).toContainEqual(['PRO_DEBUG_LOG', expect.objectContaining({type: 'warning', t: expect.stringContaining('Inicio sin conexión')})]);
+  });
+
+  it('describe el reintento de asignación como advertencia sin atribuirlo a la conexión', async () => {
+    readError = new Error('PERMISSION_DENIED');
+    await mount();
+    expect(emit.mock.calls).toContainEqual(['PRO_DEBUG_LOG', expect.objectContaining({type: 'warning', t: expect.stringContaining('Reintentando la carga de asignación (2/2)')})]);
+    expect(messages().some(text => text.includes('Problemas de conexión, reintentando'))).toBe(false);
   });
 
   it('ACEPTACIÓN: offline sin asignación previa no inicia', async () => {
