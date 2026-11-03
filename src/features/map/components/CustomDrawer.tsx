@@ -17,6 +17,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { TYPOGRAPHY } from '../../../shared/theme/typography';
 import { MapService } from '../services/map_service';
+import { firebaseAuth } from '../../../shared/config/firebase';
 import DeviceInfo from 'react-native-device-info';
 import analytics from '@react-native-firebase/analytics';
 import { logoutStudent } from '../../auth/services/studentLogout';
@@ -42,7 +43,7 @@ const AVATAR_LIST: { id: AvatarId; label: string }[] = [
 export const CustomDrawer = () => {
   const navigation = useNavigation<any>();
   const { isOpen, closeDrawer } = useDrawerStore() as any;
-  const { username, avatar, uuid, email, setAvatar, logout, nickname } = useUserStore();
+  const { username, avatar, email, setAvatar, logout, nickname } = useUserStore();
   const { isDarkMode, toggleTheme } = useThemeStore() as any; 
 
   const [isExpanding,   setIsExpanding]   = useState(false);
@@ -101,13 +102,21 @@ export const CustomDrawer = () => {
       Alert.alert('Atención', 'Por favor, selecciona una calificación con estrellas.');
       return;
     }
+    const currentUser = firebaseAuth.currentUser;
+    if (!currentUser?.uid) {
+      Alert.alert(
+        'Sesión no disponible',
+        'No se pudo verificar tu sesión. Inicia sesión nuevamente para enviar tu opinión.',
+      );
+      return;
+    }
     setIsSending(true);
     const success = await MapService.sendFeedback({
       username: username || 'Anónimo',
       avatar:   avatar   || 'Estudiante',
       rating,
       mensaje:  feedback,
-      uid:      uuid    || 'desconocido', 
+      uid:      currentUser.uid,
       email:    email   || 'sin correo',  
     });
     if (success) {

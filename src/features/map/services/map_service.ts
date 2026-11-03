@@ -1,4 +1,4 @@
-import { firebaseDatabase } from "../../../shared/config/firebase";
+import { firebaseAuth, firebaseDatabase } from "../../../shared/config/firebase";
 import { BurritoLocation } from "../types";
 import database from '@react-native-firebase/database';
 
@@ -97,11 +97,17 @@ export const MapService = {
     },
 
     sendFeedback: async (data: FeedbackData) => {
+        const currentUser = firebaseAuth.currentUser;
+        if (!currentUser?.uid || currentUser.uid !== data.uid) {
+            return false;
+        }
+
         try {
             const feedbackRef = firebaseDatabase.ref(FEEDBACK_PATH).push();
             
             await feedbackRef.set({
                 ...data,
+                uid: currentUser.uid,
                 timestamp: database.ServerValue.TIMESTAMP, 
             });
             
