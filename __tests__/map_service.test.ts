@@ -13,7 +13,7 @@ jest.mock('@react-native-firebase/database', () => ({
   default: { ServerValue: { TIMESTAMP: 0 } },
 }));
 
-import { MapService } from '../src/features/map/services/map_service';
+import { MapService, MAX_FUTURE_TIMESTAMP_SKEW_MS } from '../src/features/map/services/map_service';
 import { firebaseDatabase } from '../src/shared/config/firebase';
 
 const getRef = () => (firebaseDatabase.ref as jest.Mock).mock.results[0].value;
@@ -21,6 +21,68 @@ const getRef = () => (firebaseDatabase.ref as jest.Mock).mock.results[0].value;
 describe('MapService.subscribeToBusLocations', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe('I06-B: límite de timestamp futuro', () => {
+    const now = 1_800_000_000_000;
+    const validEntry = { latitude: -12.05, longitude: -77.08, isActive: true, timestamp: now };
+
+    beforeEach(() => {
+      jest.spyOn(Date, 'now').mockReturnValue(now);
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    test.each([
+      [true, 300_001],
+      [true, 86_400_000],
+      [false, 300_001],
+      [false, 86_400_000],
+    ])('rechaza isActive=%p con adelanto de %p ms', (isActive, aheadMs) => {
+      const onUpdate = jest.fn();
+      MapService.subscribeToBusLocations(onUpdate);
+      getRef().on.mock.calls[0][1]({
+        val: () => ({ 'ABC-123': { ...validEntry, isActive, timestamp: now + Number(aheadMs) } }),
+      });
+      expect(onUpdate).toHaveBeenCalledWith({});
+    });
+
+    test.each([-1_000, 0, 300_000])('acepta un timestamp legítimo con diferencia de %p ms', aheadMs => {
+      expect(MAX_FUTURE_TIMESTAMP_SKEW_MS).toBe(300_000);
+      const onUpdate = jest.fn();
+      MapService.subscribeToBusLocations(onUpdate);
+      getRef().on.mock.calls[0][1]({
+        val: () => ({ 'ABC-123': { ...validEntry, timestamp: now + aheadMs } }),
+      });
+      expect(onUpdate).toHaveBeenCalledWith({
+        'ABC-123': expect.objectContaining({ timestamp: now + aheadMs, isActive: true }),
+      });
+    });
+
+    test('descartar una fecha futura no descarta otra placa válida del snapshot', () => {
+      const onUpdate = jest.fn();
+      MapService.subscribeToBusLocations(onUpdate);
+      getRef().on.mock.calls[0][1]({
+        val: () => ({
+          'ABC-123': { ...validEntry, timestamp: now + 86_400_000 },
+          'XYZ-789': validEntry,
+        }),
+      });
+      expect(onUpdate).toHaveBeenCalledWith({
+        'XYZ-789': expect.objectContaining({ timestamp: now }),
+      });
+    });
+
+    test('I06-A conserva el respaldo actual cuando falta el timestamp activo', () => {
+      const onUpdate = jest.fn();
+      MapService.subscribeToBusLocations(onUpdate);
+      getRef().on.mock.calls[0][1]({ val: () => ({ 'ABC-123': { isActive: true } }) });
+      expect(onUpdate).toHaveBeenCalledWith({
+        'ABC-123': expect.objectContaining({ latitude: 0, longitude: 0, timestamp: now }),
+      });
+    });
   });
 
   test('debería registrar el listener con callback de error', () => {

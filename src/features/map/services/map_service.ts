@@ -14,6 +14,10 @@ interface FeedbackData {
 const BUSES_LOCATION_PATH = '/ubicacion_buses';
 const FEEDBACK_PATH = '/comentarios';
 
+// I06-B: margen de reloj autorizado para el MVP. La latencia de red envejece
+// la publicación; no justifica fechas adelantadas más de cinco minutos.
+export const MAX_FUTURE_TIMESTAMP_SKEW_MS = 300_000;
+
 const isAbsent = (value: unknown): boolean =>
     value === undefined || value === null;
 
@@ -23,20 +27,21 @@ const isFiniteNumber = (value: unknown): value is number =>
 const isCoordinateInRange = (value: unknown, min: number, max: number): boolean =>
     isAbsent(value) || (isFiniteNumber(value) && value >= min && value <= max);
 
-const isValidTimestamp = (value: unknown): boolean =>
+const isValidTimestamp = (value: unknown, receivedAt: number): boolean =>
     isAbsent(value)
-    || (isFiniteNumber(value) && Number.isInteger(value) && value > 0);
+    || (isFiniteNumber(value) && Number.isInteger(value) && value > 0
+        && value <= receivedAt + MAX_FUTURE_TIMESTAMP_SKEW_MS);
 
 const isValidIsActive = (value: unknown): boolean =>
     isAbsent(value) || typeof value === 'boolean';
 
-const isLocationEntry = (entry: unknown): entry is Record<string, unknown> => {
+const isLocationEntry = (entry: unknown, receivedAt: number): entry is Record<string, unknown> => {
     if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
         return false;
     }
 
     const candidate = entry as Record<string, unknown>;
-    if (!isValidIsActive(candidate.isActive) || !isValidTimestamp(candidate.timestamp)) {
+    if (!isValidIsActive(candidate.isActive) || !isValidTimestamp(candidate.timestamp, receivedAt)) {
         return false;
     }
 
@@ -70,11 +75,12 @@ export const MapService = {
 
         const onValueChange = ref.on('value', (snapshot) => {
             const data = snapshot.val() ?? {};
+            const receivedAt = Date.now();
 
             const locations: Record<string, BurritoLocation> = {};
             Object.keys(data).forEach((placa) => {
                 const entry = data[placa];
-                if (!isLocationEntry(entry)) return;
+                if (!isLocationEntry(entry, receivedAt)) return;
                 const isStop = entry.isActive === false;
                 const location: BurritoLocation = {
                     latitude: normalizeCoordinate(entry.latitude, -90, 90),
