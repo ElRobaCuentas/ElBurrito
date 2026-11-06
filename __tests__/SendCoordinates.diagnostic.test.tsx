@@ -131,8 +131,8 @@ describe('ETAPA 3: diagnóstico técnico contraído y accesible', () => {
   it('inicia contraído y no muestra los eventos existentes', async () => {
     await mount();
 
-    expect(hasText('Mostrar diagnóstico técnico')).toBe(true);
-    expect(hasText('Ocultar diagnóstico técnico')).toBe(false);
+    expect(hasText('Mostrar registros')).toBe(true);
+    expect(hasText('Ocultar registros')).toBe(false);
     expect(renderer.root.findAllByProps({name: 'chevron-down'}).length).toBeGreaterThan(0);
     expect(countContaining('Conductor identificado')).toBe(0);
   });
@@ -141,9 +141,9 @@ describe('ETAPA 3: diagnóstico técnico contraído y accesible', () => {
     await mount();
     expect(countContaining('Conductor identificado')).toBe(0);
 
-    await press('Mostrar diagnóstico técnico');
+    await press('Mostrar registros');
 
-    expect(hasText('Ocultar diagnóstico técnico')).toBe(true);
+    expect(hasText('Ocultar registros')).toBe(true);
     expect(renderer.root.findAllByProps({name: 'chevron-up'}).length).toBeGreaterThan(0);
     expect(countContaining('Conductor identificado')).toBeGreaterThan(0);
     expect(countContaining('Bus asignado: AHK-459')).toBeGreaterThan(0);
@@ -151,27 +151,27 @@ describe('ETAPA 3: diagnóstico técnico contraído y accesible', () => {
 
   it('contrae el panel visualmente sin eliminar el historial almacenado', async () => {
     await mount();
-    await press('Mostrar diagnóstico técnico');
+    await press('Mostrar registros');
     await emitDebug('EVENTO_PERSISTENTE', 1);
     expect(countContaining('EVENTO_PERSISTENTE')).toBeGreaterThan(0);
 
-    await press('Ocultar diagnóstico técnico');
+    await press('Ocultar registros');
     expect(countContaining('EVENTO_PERSISTENTE')).toBe(0);
 
-    await press('Mostrar diagnóstico técnico');
+    await press('Mostrar registros');
     expect(countContaining('EVENTO_PERSISTENTE')).toBeGreaterThan(0);
   });
 
   it('recibe eventos mientras el panel está oculto y los muestra al expandir', async () => {
     await mount();
-    expect(hasText('Mostrar diagnóstico técnico')).toBe(true);
+    expect(hasText('Mostrar registros')).toBe(true);
 
     await emitDebug('EVENTO_RECIBIDO_OCULTO', 2);
 
     expect(countContaining('EVENTO_RECIBIDO_OCULTO')).toBe(0);
-    expect(hasText('Mostrar diagnóstico técnico')).toBe(true);
+    expect(hasText('Mostrar registros')).toBe(true);
 
-    await press('Mostrar diagnóstico técnico');
+    await press('Mostrar registros');
     expect(countContaining('EVENTO_RECIBIDO_OCULTO')).toBeGreaterThan(0);
   });
 
@@ -188,9 +188,9 @@ describe('ETAPA 3: diagnóstico técnico contraído y accesible', () => {
       });
 
     await mount();
-    await press('Mostrar diagnóstico técnico');
+    await press('Mostrar registros');
 
-    expect(hasText('Últimos 30 eventos · Historial temporal')).toBe(true);
+    expect(hasText('Últimos 30 eventos · Historial temporal')).toBe(false);
     expect(hasText('Todavía no hay eventos registrados.')).toBe(true);
 
     suppressDebugLogs = false;
@@ -200,10 +200,10 @@ describe('ETAPA 3: diagnóstico técnico contraído y accesible', () => {
     expect(countContaining('EVENTO_DESPUES_DEL_VACIO')).toBeGreaterThan(0);
   });
 
-  it('conserva solo los últimos 30 eventos y comunica el límite', async () => {
+  it('conserva solo los últimos 30 eventos', async () => {
     await mount();
-    await press('Mostrar diagnóstico técnico');
-    expect(hasText('Últimos 30 eventos · Historial temporal')).toBe(true);
+    await press('Mostrar registros');
+    expect(hasText('Últimos 30 eventos · Historial temporal')).toBe(false);
 
     await act(async () => {
       for (let index = 0; index < 35; index += 1) {
@@ -228,17 +228,17 @@ describe('ETAPA 3: diagnóstico técnico contraído y accesible', () => {
       DeviceEventEmitter.emit('PRO_DEBUG_LOG', {id: 101, t: '[23:59:59] PRIMERO', type: 'info'});
       DeviceEventEmitter.emit('PRO_DEBUG_LOG', {id: 102, t: '[00:00:01] SEGUNDO', type: 'info'});
     });
-    await press('Mostrar diagnóstico técnico');
+    await press('Mostrar registros');
     const events = renderedTexts().filter(text => text.includes('PRIMERO') || text.includes('SEGUNDO'));
     expect(events).toEqual(['[00:00:01] SEGUNDO', '[23:59:59] PRIMERO']);
-    await press('Ocultar diagnóstico técnico');
-    await press('Mostrar diagnóstico técnico');
+    await press('Ocultar registros');
+    await press('Mostrar registros');
     expect(renderedTexts().filter(text => text.includes('PRIMERO') || text.includes('SEGUNDO'))).toEqual(events);
   });
 
   it('pausa la vista mientras llegan eventos y vuelve a los 30 vigentes al reanudar', async () => {
     await mount();
-    await press('Mostrar diagnóstico técnico');
+    await press('Mostrar registros');
     await emitDebug('LECTURA_ANTERIOR', 100);
     await press('Pausar para leer');
     expect(hasText('Vista pausada; los eventos siguen llegando.')).toBe(true);
@@ -259,12 +259,12 @@ describe('ETAPA 3: diagnóstico técnico contraído y accesible', () => {
 
   it('reanuda la vista actual al cerrar y volver a abrir el panel pausado', async () => {
     await mount();
-    await press('Mostrar diagnóstico técnico');
+    await press('Mostrar registros');
     await press('Pausar para leer');
     await emitDebug('MIENTRAS_PAUSADO', 400);
-    await press('Ocultar diagnóstico técnico');
+    await press('Ocultar registros');
     await emitDebug('MIENTRAS_OCULTO', 401);
-    await press('Mostrar diagnóstico técnico');
+    await press('Mostrar registros');
     const events = renderedTexts().filter(text => text.includes('MIENTRAS_'));
     expect(events).toEqual(['[12:00:00] MIENTRAS_OCULTO', '[12:00:00] MIENTRAS_PAUSADO']);
     expect(hasText('Pausar para leer')).toBe(true);
@@ -272,7 +272,7 @@ describe('ETAPA 3: diagnóstico técnico contraído y accesible', () => {
 
   it('presenta advertencias con estilo distinto al error conservando el texto', async () => {
     await mount();
-    await press('Mostrar diagnóstico técnico');
+    await press('Mostrar registros');
     await act(async () => {
       DeviceEventEmitter.emit('PRO_DEBUG_LOG', {id: 91, t: '⚠️ Reintento pendiente', type: 'warning'});
       DeviceEventEmitter.emit('PRO_DEBUG_LOG', {id: 92, t: '❌ Fallo definitivo', type: 'error'});
@@ -293,7 +293,7 @@ describe('ETAPA 3: diagnóstico técnico contraído y accesible', () => {
           node.props?.accessibilityRole === 'button',
       );
 
-    let toggles = findToggle('Mostrar diagnóstico técnico');
+    let toggles = findToggle('Mostrar registros');
     expect(toggles.length).toBeGreaterThan(0);
     expect(toggles[0].props.accessibilityState).toEqual({ expanded: false });
     const toggleStyles = toggles
@@ -301,13 +301,13 @@ describe('ETAPA 3: diagnóstico técnico contraído y accesible', () => {
       .filter(Boolean);
     expect(toggleStyles.some(style => style?.minHeight === 48)).toBe(true);
 
-    await press('Mostrar diagnóstico técnico');
-    toggles = findToggle('Ocultar diagnóstico técnico');
+    await press('Mostrar registros');
+    toggles = findToggle('Ocultar registros');
     expect(toggles.length).toBeGreaterThan(0);
     expect(toggles[0].props.accessibilityState).toEqual({ expanded: true });
 
-    await press('Ocultar diagnóstico técnico');
-    toggles = findToggle('Mostrar diagnóstico técnico');
+    await press('Ocultar registros');
+    toggles = findToggle('Mostrar registros');
     expect(toggles.length).toBeGreaterThan(0);
     expect(toggles[0].props.accessibilityState).toEqual({ expanded: false });
   });

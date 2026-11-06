@@ -65,7 +65,7 @@ export const LoginDriverScreen = () => {
             <TextInput
               style={styles.input}
               placeholder="Ej. 12345678"
-              placeholderTextColor="#999"
+              placeholderTextColor={COLORS.textMuted}
               keyboardType="numeric"
               maxLength={12}
               value={dni}
@@ -79,7 +79,7 @@ export const LoginDriverScreen = () => {
             <TextInput
               style={styles.input}
               placeholder="Ingresa tu contraseña"
-              placeholderTextColor="#999"
+              placeholderTextColor={COLORS.textMuted}
               secureTextEntry
               value={password}
               onChangeText={setPassword}
@@ -93,7 +93,7 @@ export const LoginDriverScreen = () => {
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color={COLORS.white} />
+              <ActivityIndicator color={COLORS.textTitle} />
             ) : (
               <Text style={styles.buttonText}>Entrar</Text>
             )}
@@ -107,7 +107,7 @@ export const LoginDriverScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.surface,
   },
   scrollContent: {
     flexGrow: 1,
@@ -117,19 +117,29 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: TYPOGRAPHY.primary.semiBold,
-    fontSize: 36,
+    fontSize: 30,
+    lineHeight: 40,
     color: COLORS.textTitle,
-    textAlign: 'center',
-    marginBottom: 40,
+    textAlign: 'left',
+    borderLeftWidth: 5,
+    borderLeftColor: COLORS.primary,
+    paddingLeft: 16,
+    marginBottom: 28,
   },
-  formSection: {},
+  formSection: {
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 14,
+    padding: 20,
+  },
   inputGroup: {
     marginBottom: 18,
   },
   label: {
     fontFamily: TYPOGRAPHY.primary.medium,
     fontSize: 13,
-    color: '#666',
+    color: COLORS.textMuted,
     marginBottom: 8,
   },
   input: {
@@ -140,7 +150,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.textTitle,
     borderWidth: 1,
-    borderColor: '#E5E5E5',
+    borderColor: COLORS.border,
     fontFamily: TYPOGRAPHY.primary.regular,
   },
   button: {
@@ -159,7 +169,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    color: COLORS.white,
+    color: COLORS.textTitle,
     fontFamily: TYPOGRAPHY.primary.bold,
     fontSize: 16,
   },

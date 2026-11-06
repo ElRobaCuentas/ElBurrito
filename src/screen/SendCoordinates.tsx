@@ -760,7 +760,7 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                             style={styles.btnLogout}
                             accessibilityLabel="CERRAR SESIÓN"
                         >
-                            <MaterialCommunityIcons name="logout" size={20} color="#4A5568" style={styles.btnIcon} accessible={false} />
+                            <MaterialCommunityIcons name="logout" size={20} color={COLORS.textMuted} style={styles.btnIcon} accessible={false} />
                             <Text style={styles.btnLogoutText}>CERRAR SESIÓN</Text>
                         </Pressable>
                     </View>
@@ -827,7 +827,7 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                                     style={styles.btnLogout}
                                     accessibilityLabel="CERRAR SESIÓN"
                                 >
-                                    <MaterialCommunityIcons name="logout" size={20} color="#4A5568" style={styles.btnIcon} accessible={false} />
+                                    <MaterialCommunityIcons name="logout" size={20} color={COLORS.textMuted} style={styles.btnIcon} accessible={false} />
                                     <Text style={styles.btnLogoutText}>CERRAR SESIÓN</Text>
                                 </Pressable>
                             </>
@@ -835,19 +835,9 @@ export const SendCoordinates = ({ driverDni }: Props) => {
 
                         <View style={styles.debugSection}>
                             <View style={styles.debugCard}>
-                                <View style={styles.debugCardHeader}>
-                                    <View style={styles.debugTitleRow}>
-                                        <MaterialCommunityIcons name="clipboard-text-outline" size={18} color="#4A5568" style={styles.btnIcon} accessible={false} />
-                                        <Text style={styles.debugTitle}>Diagnóstico técnico</Text>
-                                    </View>
-                                    <Text style={styles.debugSubtitle}>
-                                        Información utilizada durante la fase de validación del sistema.
-                                    </Text>
-                                </View>
-
                                 <Pressable
                                     accessibilityRole="button"
-                                    accessibilityLabel={showDebug ? 'Ocultar diagnóstico técnico' : 'Mostrar diagnóstico técnico'}
+                                    accessibilityLabel={showDebug ? 'Ocultar registros' : 'Mostrar registros'}
                                     accessibilityState={{expanded: showDebug}}
                                     onPress={() => {
                                         if (showDebug) setPausedLogs(null);
@@ -856,16 +846,13 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                                     style={styles.debugToggle}
                                 >
                                     <Text style={styles.debugToggleText}>
-                                        {showDebug ? 'Ocultar diagnóstico técnico' : 'Mostrar diagnóstico técnico'}
+                                        {showDebug ? 'Ocultar registros' : 'Mostrar registros'}
                                     </Text>
-                                    <MaterialCommunityIcons name={showDebug ? 'chevron-up' : 'chevron-down'} size={20} color="#4A5568" style={styles.debugChevron} accessible={false} />
+                                    <MaterialCommunityIcons name={showDebug ? 'chevron-up' : 'chevron-down'} size={20} color={COLORS.textMuted} style={styles.debugChevron} accessible={false} />
                                 </Pressable>
 
                                 {showDebug && (
                                     <View style={styles.debugContainer}>
-                                        <Text style={styles.debugHistoryNote}>
-                                            Últimos 30 eventos · Historial temporal
-                                        </Text>
                                         <Pressable
                                             accessibilityRole="button"
                                             onPress={() => setPausedLogs(pausedLogs === null ? [...logs] : null)}
@@ -919,7 +906,7 @@ export const SendCoordinates = ({ driverDni }: Props) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: COLORS.background,
+        backgroundColor: COLORS.surface,
     },
     scrollContent: {
         flexGrow: 1,
@@ -935,7 +922,7 @@ const styles = StyleSheet.create({
         marginTop: 12,
         fontFamily: TYPOGRAPHY.primary.medium,
         fontSize: 15,
-        color: '#888',
+        color: COLORS.textMuted,
     },
     statusSection: {
         flexDirection: 'row',
@@ -947,9 +934,9 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     statusSectionError: {
-        backgroundColor: '#FFF5F5',
+        backgroundColor: COLORS.dangerSoft,
         borderWidth: 1,
-        borderColor: '#F5C2C0',
+        borderColor: COLORS.danger,
         borderRadius: 10,
         paddingVertical: 10,
         paddingHorizontal: 14,
@@ -962,13 +949,13 @@ const styles = StyleSheet.create({
         flexShrink: 0,
     },
     statusDotActive: {
-        backgroundColor: '#2E7D32',
+        backgroundColor: COLORS.success,
     },
     statusDotInactive: {
         backgroundColor: '#757575',
     },
     statusDotError: {
-        backgroundColor: '#B3261E',
+        backgroundColor: COLORS.danger,
     },
     statusText: {
         fontFamily: TYPOGRAPHY.primary.semiBold,
@@ -978,21 +965,21 @@ const styles = StyleSheet.create({
         flexShrink: 1,
     },
     statusTextActive: {
-        color: '#2E7D32',
+        color: COLORS.success,
     },
     statusTextInactive: {
-        color: '#5F6368',
+        color: COLORS.textMuted,
     },
     statusTextError: {
-        color: '#B3261E',
+        color: COLORS.danger,
     },
     infoCard: {
-        backgroundColor: COLORS.background,
+        backgroundColor: COLORS.white,
         borderRadius: 14,
         padding: 18,
         marginBottom: 16,
         borderWidth: 1,
-        borderColor: '#E8E8E8',
+        borderColor: COLORS.border,
         elevation: 1,
         shadowColor: COLORS.shadow,
         shadowOffset: { width: 0, height: 1 },
@@ -1003,12 +990,12 @@ const styles = StyleSheet.create({
         marginBottom: 12,
         paddingBottom: 10,
         borderBottomWidth: 1,
-        borderBottomColor: '#E8E8E8',
+        borderBottomColor: COLORS.border,
     },
     cardTitle: {
         fontFamily: TYPOGRAPHY.primary.semiBold,
         fontSize: 15,
-        color: COLORS.textTitle,
+        color: COLORS.brandDeep,
     },
     infoRow: {
         flexDirection: 'row',
@@ -1026,7 +1013,7 @@ const styles = StyleSheet.create({
         fontFamily: TYPOGRAPHY.primary.medium,
         fontSize: 13,
         lineHeight: 18,
-        color: '#5F6368',
+        color: COLORS.textMuted,
     },
     infoLabelStacked: {
         marginRight: 0,
@@ -1044,16 +1031,16 @@ const styles = StyleSheet.create({
         textAlign: 'left',
     },
     infoValueMuted: {
-        color: '#5F6368',
+        color: COLORS.textMuted,
         fontFamily: TYPOGRAPHY.primary.regular,
     },
     divider: {
         height: 1,
-        backgroundColor: '#F0F0F0',
+        backgroundColor: COLORS.surface,
         marginVertical: 2,
     },
     errorText: {
-        color: '#d32f2f',
+        color: COLORS.danger,
         textAlign: 'center',
         marginBottom: 16,
         fontFamily: TYPOGRAPHY.primary.medium,
@@ -1066,19 +1053,19 @@ const styles = StyleSheet.create({
         marginVertical: 24,
         padding: 20,
         borderRadius: 12,
-        backgroundColor: '#FFF4F4',
+        backgroundColor: COLORS.dangerSoft,
         borderWidth: 1,
-        borderColor: '#FFCDD2',
+        borderColor: COLORS.danger,
     },
     errorTitle: {
-        color: '#d32f2f',
+        color: COLORS.danger,
         fontFamily: TYPOGRAPHY.primary.bold,
         fontSize: 16,
         textAlign: 'center',
         marginBottom: 8,
     },
     errorSubtitle: {
-        color: '#555',
+        color: COLORS.textMuted,
         fontFamily: TYPOGRAPHY.primary.medium,
         fontSize: 13,
         textAlign: 'center',
@@ -1100,7 +1087,7 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
     },
     btnStop: {
-        backgroundColor: '#d32f2f',
+        backgroundColor: COLORS.danger,
         flexDirection: 'row',
         justifyContent: 'center',
         borderRadius: 12,
@@ -1114,9 +1101,9 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
     },
     btnLogout: {
-        backgroundColor: 'transparent',
+        backgroundColor: COLORS.white,
         borderWidth: 1,
-        borderColor: '#E8E8E8',
+        borderColor: COLORS.border,
         flexDirection: 'row',
         justifyContent: 'center',
         borderRadius: 12,
@@ -1139,7 +1126,7 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
     btnLogoutText: {
-        color: '#4A5568',
+        color: COLORS.textMuted,
         fontFamily: TYPOGRAPHY.primary.bold,
         fontSize: 16,
     },
@@ -1147,38 +1134,16 @@ const styles = StyleSheet.create({
         marginTop: 16,
     },
     debugCard: {
-        backgroundColor: COLORS.background,
+        backgroundColor: COLORS.white,
         borderRadius: 14,
         borderWidth: 1,
-        borderColor: '#E8E8E8',
+        borderColor: COLORS.border,
         overflow: 'hidden',
         elevation: 1,
         shadowColor: COLORS.shadow,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.06,
         shadowRadius: 3,
-    },
-    debugCardHeader: {
-        padding: 16,
-        paddingBottom: 8,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F5F5F5',
-    },
-    debugTitleRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 4,
-    },
-    debugTitle: {
-        fontFamily: TYPOGRAPHY.primary.semiBold,
-        fontSize: 14,
-        color: COLORS.textTitle,
-    },
-    debugSubtitle: {
-        fontFamily: TYPOGRAPHY.primary.regular,
-        fontSize: 12,
-        color: '#5F6368',
-        lineHeight: 18,
     },
     debugToggle: {
         minHeight: 48,
@@ -1191,7 +1156,7 @@ const styles = StyleSheet.create({
     debugToggleText: {
         fontFamily: TYPOGRAPHY.primary.medium,
         fontSize: 14,
-        color: '#4A5568',
+        color: COLORS.brandDeep,
     },
     debugChevron: {
         marginLeft: 6,
@@ -1204,7 +1169,7 @@ const styles = StyleSheet.create({
         fontFamily: TYPOGRAPHY.primary.regular,
         fontSize: 12,
         lineHeight: 18,
-        color: '#5F6368',
+        color: COLORS.textMuted,
         marginBottom: 8,
     },
     debugReadingToggle: {
@@ -1217,7 +1182,7 @@ const styles = StyleSheet.create({
         fontFamily: TYPOGRAPHY.primary.medium,
         fontSize: 13,
         lineHeight: 18,
-        color: '#5F6368',
+        color: COLORS.textMuted,
         textAlign: 'center',
     },
     logEntry: {
@@ -1227,16 +1192,16 @@ const styles = StyleSheet.create({
         marginBottom: 6,
     },
     logEntryInfo: {
-        backgroundColor: '#F8F9FA',
+        backgroundColor: COLORS.surface,
     },
     logEntrySuccess: {
-        backgroundColor: '#F0FFF4',
+        backgroundColor: COLORS.successSoft,
     },
     logEntryError: {
-        backgroundColor: '#FFF5F5',
+        backgroundColor: COLORS.dangerSoft,
     },
     logEntryWarning: {
-        backgroundColor: '#FFF8E1',
+        backgroundColor: COLORS.warningSoft,
     },
     logText: {
         flexShrink: 1,
@@ -1245,10 +1210,10 @@ const styles = StyleSheet.create({
         lineHeight: 18,
     },
     logTextInfo: {
-        color: '#555',
+        color: COLORS.textMuted,
     },
     logTextSuccess: {
-        color: '#2E7D32',
+        color: COLORS.success,
     },
     logTextError: {
         color: '#C62828',
