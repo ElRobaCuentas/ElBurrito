@@ -30,8 +30,8 @@ export const WelcomeScreen = () => {
         style={[styles.logoWrapper, { marginTop: insets.top + 20 }]}
       >
         <Image
-          source={require('../../../assets/bus_logo.png')}
-          style={{ width: width * 0.9, height: width * 0.9 }}
+          source={require('../../../../assets/welcomeelogo.png')}
+          style={{ width: width * 0.7, height: width * 0.7 }}
           resizeMode="contain"
         />
       </Animated.View>
