@@ -43,7 +43,6 @@ C:\Movil\
 ├── docs/                    ← Documentación general del ecosistema
 ├── .opencode/               ← Configuración de OpenCode
 ├── DOCUMENTACION_OFICIAL.md
-├── HISTORIAL.md             ← Registro histórico del proyecto
 ├── MVP.md                   ← Backlog oficial
 └── FLUJO_DE_TRABAJO.md
 ```
