@@ -111,8 +111,7 @@ consultar `FIREBASE_SCHEMA.md`.
 
 | Documento | Propósito |
 |-----------|-----------|
-| `PROJECT_CONTEXT.md` | Visión general del ecosistema. |
-| `ARCHITECTURE.md` | Flujo de datos, ciclo de vida del tracking. |
+| `ARCHITECTURE.md` | Visión general, flujo de datos y ciclo de vida del tracking. |
 | `FIREBASE_SCHEMA.md` | Estructura de nodos y payloads de la RTDB. |
 | `AGENTS.md` | Comandos, convenciones y detalles para asistentes IA. |
 | `ROADMAP.md` | Fases, prioridades y tareas pendientes del proyecto. |

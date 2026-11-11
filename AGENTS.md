@@ -203,7 +203,7 @@ watchdog C3 puede reiniciar el servicio en falso. Ver ADR-019.
 | Decisión arquitectónica | `docs/DECISIONS.md` |
 | Bug en diagnóstico | `docs/TROUBLESHOOTING.md` |
 | Bug corregido | `docs/BUGS_RESUELTOS/` |
-| Limitación | `docs/PROJECT_CONTEXT.md` |
+| Limitación | `docs/ARCHITECTURE.md` §9 / `docs/TROUBLESHOOTING.md` |
 | Prioridades | `docs/ROADMAP.md` |
 | Regla IA | `AGENTS.md` |
 | Setup | `README.md` |
@@ -227,8 +227,7 @@ salvo que la tarea lo solicite.
 
 | Si necesitas... | Lee... |
 |----------------|--------|
-| Propósito del sistema | `docs/PROJECT_CONTEXT.md` |
-| Flujo detallado | `docs/ARCHITECTURE.md` |
+| Propósito, flujo y arquitectura | `docs/ARCHITECTURE.md` |
 | Estructura RTDB | `docs/FIREBASE_SCHEMA.md` |
 | Próximas fases | `docs/ROADMAP.md` |
 | Bugs conocidos | `docs/TROUBLESHOOTING.md` |
