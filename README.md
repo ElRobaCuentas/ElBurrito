@@ -135,8 +135,7 @@ src/
 
 | Documento | Propósito |
 |-----------|-----------|
-| `PROJECT_CONTEXT.md` | Visión general del ecosistema. |
-| `ARCHITECTURE.md` | Flujo de datos, componentes y ciclo de vida. |
+| `ARCHITECTURE.md` | Visión general, flujo de datos, componentes y ciclo de vida. |
 | `FIREBASE_SCHEMA.md` | Estructura de nodos y payloads de la RTDB. |
 | `AGENTS.md` | Comandos, convenciones y detalles para asistentes IA. |
 | `ROADMAP.md` | Fases, prioridades y tareas pendientes del proyecto. |

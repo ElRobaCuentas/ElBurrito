@@ -267,7 +267,7 @@ inconsistencia documental antes de continuar.
 | Una decisión arquitectónica | `docs/DECISIONS.md` |
 | Un bug identificado | `docs/TROUBLESHOOTING.md` |
 | Un bug corregido | `docs/BUGS_RESUELTOS/` |
-| Una limitación del sistema | `docs/PROJECT_CONTEXT.md` |
+| Una limitación del sistema | `docs/ARCHITECTURE.md` §9 / `docs/TROUBLESHOOTING.md` |
 | Las prioridades o fases | `docs/ROADMAP.md` |
 | Una regla de trabajo para IA | `AGENTS.md` |
 | El setup o comandos | `README.md` |
@@ -364,8 +364,7 @@ comportamiento esperado. Si el contrato se rompe, el test falla.
 
 | Si necesitas... | Lee... |
 |----------------|--------|
-| Propósito del sistema | `docs/PROJECT_CONTEXT.md` |
-| Flujo de datos detallado | `docs/ARCHITECTURE.md` |
+| Propósito, flujo y arquitectura | `docs/ARCHITECTURE.md` |
 | Estructura de RTDB | `docs/FIREBASE_SCHEMA.md` |
 | Próximas fases | `docs/ROADMAP.md` |
 | Bugs conocidos | `docs/TROUBLESHOOTING.md` |
