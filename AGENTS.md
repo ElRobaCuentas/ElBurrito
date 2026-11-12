@@ -1,36 +1,20 @@
 # BurritoDriverApp — AGENTS.md
 
-## 1. Propósito
+## 1. Alcance
 
-Este archivo está dirigido **exclusivamente a asistentes de IA** (OpenCode,
-Gemini CLI, Claude Code, Cursor, etc.). NO es un README. README.md explica
-qué hace el proyecto. AGENTS.md explica **cómo trabajar sin romperlo**.
+Esta app es un **productor de GPS Android**: captura coordenadas y las escribe
+en Firebase RTDB. Las reglas comunes están en `../AGENTS.md` y el procedimiento
+en `../FLUJO_DE_TRABAJO.md`; consultalos antes de modificar código. Si no están
+disponibles, informalo y no asumas que fueron cargados.
 
-### Filosofía
-
-Esta app es un **productor de GPS Android**. Su única función es capturar
-coordenadas y escribirlas en Firebase RTDB. Un error silencioso aquí no
-produce un crash: el bus simplemente desaparece del mapa de los estudiantes.
-
-Ante la duda: modificar menos, preguntar antes de asumir, mantener el
-ciclo de tracking intacto, no hacer refactors no solicitados.
+Un error silencioso aquí no produce un crash: el bus simplemente desaparece del
+mapa de los estudiantes. Ante la duda: modificar menos, preguntar antes de
+asumir, mantener el ciclo de tracking intacto y no hacer refactors no
+solicitados.
 
 ---
 
-## 2. Flujo obligatorio de trabajo
-
-1. **Entender la tarea** — Identifica qué parte toca.
-2. **Identificar archivos afectados** — Usa la tabla de sección 8.
-3. **Leer documentación relacionada** — Referencias al final.
-4. **Modificar solo lo necesario** — Sin refactors ni expansión.
-5. **Sincronizar documentación** — Si >1 documento impactado,
-   actualiza todos antes de cerrar.
-6. **Ejecutar verificaciones** — Checklist de sección 9.
-7. **Entregar resultado** — Confirma compilación y tracking.
-
----
-
-## 3. Comandos
+## 2. Comandos
 
 | Acción | Comando |
 |--------|---------|
@@ -43,194 +27,102 @@ ciclo de tracking intacto, no hacer refactors no solicitados.
 | Formatear | `npx prettier --write <file>` |
 
 Prettier: `singleQuote`, `arrowParens: 'avoid'`, `trailingComma: 'all'`.
-No hay script para typecheck. No hay `.env`.
+No hay script de typecheck ni archivo `.env`.
 
 ---
 
-## 4. Arquitectura mínima
+## 3. Arquitectura mínima
 
 ```
-index.js → DriverApp.tsx
-         → LoginDriverScreen (sin sesión) o SendCoordinates (con sesión)
+index.js → DriverApp.tsx (auth gate)
+         → LoginDriverScreen (sin sesión) | SendCoordinates (con sesión)
 ```
 
 | Archivo | Rol |
 |---------|-----|
-| `DriverApp.tsx` | Auth gate |
-| `LoginDriverScreen.tsx` | Login con DNI |
 | `SendCoordinates.tsx` | **Crítico**: tracking, permisos, GPS, debug |
 | `firebase_service.ts` | Escritura RTDB |
 
-La app consulta `/asignaciones` y escribe en `/ubicacion_buses/{busId}`.
-Para detalles: ARCHITECTURE.md y FIREBASE_SCHEMA.md.
+La app consulta `/asignaciones` y escribe en `/ubicacion_buses/{busId}`. Ciclo
+completo: `../docs/ARCHITECTURE.md` §8; payloads: `../docs/FIREBASE_SCHEMA.md`.
+
+Ciclo: login → `fetchAssignment` → `startProcess` → permisos Android →
+`BackgroundJob.start` → `locationTask` → `updateBusLocation` → `stopProcess`.
 
 ---
 
-## 5. Ciclo de vida del tracking
+## 4. Reglas críticas
 
-```
-Login → fetchAssignment → startProcess → permisos Android
-    → BackgroundJob.start → locationTask (watchPosition)
-    → updateBusLocation → stopProcess → isActive=false
-```
+### 4.1 Ciclo de tracking
 
-Notas:
-- DETENER RECORRIDO es la única fuente de verdad para `isActive: false`.
-- `locationTask` corre fuera de React. Errores allí son silenciosos.
-- `stopProcess` ya no cierra sesión. Cerrar sesión es una acción independiente
-  con confirmación mediante Alert.
+- **No modifiques** `locationTask` sin entender el ciclo: corre dentro del
+  `BackgroundJob` y sus errores dejan el tracking inoperativo sin aviso en la
+  UI. Leé `../docs/ARCHITECTURE.md` §8 antes.
+- **No confíes** en un cierre limpio: no hay `onDisconnect`. DETENER RECORRIDO es
+  la única fuente de verdad para `isActive: false`. Si el proceso muere de forma
+  anormal, `isActive` puede quedar en `true`; el watchdog reintenta dentro del
+  proceso, pero no cubre la terminación del proceso.
+- `stopProcess` no cierra sesión. Cerrar sesión es una acción independiente con
+  confirmación por Alert.
 
-Para implementación detallada: ARCHITECTURE.md sección 8.
+### 4.2 Foreground Service
 
----
+- Requiere `foregroundServiceType="location"` en AndroidManifest, permisos y
+  opciones JS. Si falta uno, Android 14 crashea en runtime.
+- **No modifiques** `stopWithTask="false"`: evita que Android mate el servicio al
+  cerrar la app sin escribir `isActive: false`.
 
-## 6. Reglas críticas
+### 4.3 Permisos
 
-### 6.1 No expandir alcance
+- **No cambies el orden**: `POST_NOTIFICATIONS` → `ACCESS_FINE_LOCATION` →
+  `ACCESS_BACKGROUND_LOCATION`, cada uno con early return. Alterar la secuencia
+  puede omitir un permiso.
+- **No elimines** la validación de `busId`: sin ella el servicio arranca sin bus
+  asignado y escribe en `/ubicacion_buses/null`.
 
-Resuelve exactamente lo solicitado. Sin refactors no pedidos.
+### 4.4 Configuración GPS
 
-### 6.2 Incertidumbre → preguntar
+- **No modifiques** los valores sin justificación: `interval: 3000`,
+  `enableHighAccuracy: true`. Impacta batería, precisión y frecuencia.
 
-Si no puedes determinar la intención, pregunta. No asumas.
+### 4.5 Escritura y persistencia
 
-### 6.3 Sincronización documental obligatoria
+- **No reactives** persistence (ADR-003): Firebase reenvía ubicaciones viejas en
+  ráfaga al reconectar.
+- **No agregues** una cola de reintentos: sin persistencia, el siguiente pulso
+  (3 s) reemplaza la posición fallida; una cola reintroduce la ráfaga.
+- **No abras** una segunda ruta de escritura: GPS y heartbeat deben usar el mismo
+  `writeLocation()`.
 
-Si el cambio impacta >1 documento, actualiza todos antes de cerrar.
+### 4.6 Heartbeat y watchdog
 
-### 6.4 Foreground Service en 3 lugares
+- **No elimines ni muevas** el heartbeat de 8 s (`HEARTBEAT_INTERVAL_MS`, dentro
+  de `locationTask`). Garantiza publicaciones periódicas cuando el GPS no emite
+  (bus quieto); sin él, el bus cruza el umbral de expiración de UserApp (C4.6) y
+  el watchdog puede reiniciar en falso. Ver ADR-019.
+- **No elimines** `keepAlive` ni el watchdog de C3. `keepAlive` vigila que el
+  `BackgroundJob` siga corriendo; el watchdog detecta 30 s sin pulso
+  `PRO_LOCATION_PULSE`, reinicia y, si falla, detiene la UI y avisa al conductor
+  (Alert + banner). No alterar sin pasar por el backlog.
 
-Requiere `foregroundServiceType="location"` en AndroidManifest,
-permisos y opciones JS. Si falta uno, Android 14 crashea en runtime.
+### 4.7 Autenticación
 
-### 6.5 No reactivar persistence
+- `SendCoordinates.tsx` importa `auth` de forma estática
+  (`import auth from '@react-native-firebase/auth'`). El `import()` dinámico en
+  `stopProcess` se eliminó al separar el logout en un botón independiente. No
+  revertir a import dinámico.
 
-Decisión documentada en DECISIONS.md (ADR-003). Con persistencia
-activa, Firebase reenvía ubicaciones viejas en ráfaga al reconectar.
+### 4.8 Marcadores de historial
 
-### 6.6 No modificar `locationTask` sin entender el ciclo
-
-Corre dentro del BackgroundJob. Errores allí dejan el tracking
-inoperativo sin aviso en la UI. Leer ARCHITECTURE.md sección 8 antes.
-
-### 6.7 No cambiar orden de permisos
-
-Secuencia estricta: POST_NOTIFICATIONS → FINE → BACKGROUND. Cada
-uno con early return. Cambiar el orden puede omitir un permiso.
-
-### 6.8 No modificar configuración GPS sin justificación
-
-Valores actuales: `interval: 3000`, `enableHighAccuracy: true`.
-Impacta batería, precisión y frecuencia de actualización.
-
-### 6.9 No eliminar validación de `busId`
-
-Sin ella, el servicio arranca sin bus asignado y escribe a
-`/ubicacion_buses/null`.
-
-### 6.10 Auth import estático en SendCoordinates
-
-`SendCoordinates.tsx` importa `auth` de forma estática:
-`import auth from '@react-native-firebase/auth'`.
-El `import()` dinámico en `stopProcess` fue eliminado porque la
-separación del logout en un botón independiente requiere auth
-disponible en todo momento. No revertir a import dinámico.
-
-### 6.11 No eliminar `keepAlive` ni el watchdog de C3
-
-`keepAlive` vigila que el BackgroundJob siga corriendo y limpia
-recursos si no. El watchdog (C3) detecta la muerte silenciosa del
-servicio: si pasan 30s sin pulso `PRO_LOCATION_PULSE`, detiene e
-intenta reiniciar el servicio; si el reinicio falla, detiene la
-UI de tracking y avisa al conductor (Alert + banner). Ambos son la
-red de seguridad del tracking. No alterar sin pasar por el backlog.
-
-### 6.12 No agregar cola de reintentos
-
-Sin persistence, el siguiente pulso (3s) reemplaza la posición
-fallida. Agregar cola reintroduce el problema de ráfaga.
-
-### 6.13 No confiar en cierre limpio
-
-No hay `onDisconnect`. DETENER RECORRIDO es la única fuente de verdad
-para `isActive: false`. Limitación conocida: si el proceso muere de forma
-anormal (kill del SO, crash nativo), `isActive` puede quedar en `true`; el
-watchdog reintenta dentro del proceso, pero no cubre la terminación del
-proceso.
-
-### 6.14 No modificar `stopWithTask`
-
-`stopWithTask="false"` evita que Android mate el foreground service
-al cerrar la app sin escribir `isActive: false`.
-
-### 6.15 No eliminar comentarios `// T11:`
-
-Son marcadores de refactors anteriores en `SendCoordinates.tsx`.
-Ayudan a rastrear el historial de cambios en líneas críticas.
-
-### 6.16 No eliminar ni mover el heartbeat (T4.1)
-
-El heartbeat de 8 s (`HEARTBEAT_INTERVAL_MS`, dentro de `locationTask`)
-garantiza publicaciones periódicas a RTDB cuando el GPS no emite (bus
-quieto). Debe escribir con el mismo `writeLocation()` del GPS; **nunca**
-abrir una segunda ruta de escritura. Sin él, un bus estacionado cruza el
-umbral de expiración de la UserApp y desaparece del mapa (C4.6), y el
-watchdog C3 puede reiniciar el servicio en falso. Ver ADR-019.
+- **No elimines** los comentarios `// T11:` de `SendCoordinates.tsx`: rastrean
+  refactors anteriores en líneas críticas.
 
 ---
 
-## 7. Convenciones
+## 5. Verificación
 
-| Ámbito | Regla |
-|--------|-------|
-| UI strings | Español |
-| Código | Inglés |
-| Variables | camelCase |
-| Componentes | PascalCase |
-| Comentarios | Español |
-| Documentación | Español |
-| Estilos | `StyleSheet.create` |
-| Commits | Conventional Commits |
-
----
-
-## 8. Actualización de documentación
-
-| Si cambias... | Actualiza... |
-|---------------|-------------|
-| Path de RTDB | `docs/FIREBASE_SCHEMA.md` |
-| Flujo de datos | `docs/ARCHITECTURE.md` |
-| Decisión arquitectónica | `docs/DECISIONS.md` |
-| Bug en diagnóstico | `docs/TROUBLESHOOTING.md` |
-| Bug corregido | `docs/BUGS_RESUELTOS/` |
-| Limitación | `docs/ARCHITECTURE.md` §9 / `docs/TROUBLESHOOTING.md` |
-| Prioridades | `docs/ROADMAP.md` |
-| Regla IA | `AGENTS.md` |
-| Setup | `README.md` |
-
----
-
-## 9. Checklist pre-entrega
-
-- [ ] `npm run lint` sin errores.
-- [ ] Sin `console.log` temporales.
-- [ ] Ciclo de tracking intacto (login → start → stop → logout).
-- [ ] Foreground Service consistente en los 3 lugares si se modificó.
-- [ ] Documentación sincronizada (todos los docs afectados).
-
-**Nota:** `__tests__/App.test.tsx` es heredado y falla. No corregirlo
-salvo que la tarea lo solicite.
-
----
-
-## Referencias
-
-| Si necesitas... | Lee... |
-|----------------|--------|
-| Propósito, flujo y arquitectura | `docs/ARCHITECTURE.md` |
-| Estructura RTDB | `docs/FIREBASE_SCHEMA.md` |
-| Próximas fases | `docs/ROADMAP.md` |
-| Bugs conocidos | `docs/TROUBLESHOOTING.md` |
-| Decisiones | `docs/DECISIONS.md` |
-| Historial de bugs resueltos | `docs/BUGS_RESUELTOS/` |
-| Setup | `README.md` |
+- `npm run lint` sin errores nuevos.
+- Sin `console.log` temporales.
+- Ciclo de tracking intacto (login → start → stop → logout).
+- Foreground Service consistente en los tres lugares si se modificó.
+- Documentación sincronizada según `../AGENTS.md` §7.
