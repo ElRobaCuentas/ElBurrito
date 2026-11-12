@@ -1,48 +1,20 @@
 # BurritoUserApp — AGENTS.md
 
-## 1. Propósito
+## 1. Alcance
 
-Este archivo está dirigido **exclusivamente a asistentes de IA** (OpenCode,
-Gemini CLI, Claude Code, Cursor, etc.).
+App pública de estudiantes (React Native): mapa y tracking. Las reglas comunes
+del ecosistema están en `../AGENTS.md` y el procedimiento en
+`../FLUJO_DE_TRABAJO.md`; consultalos antes de modificar código. Si no están
+disponibles, informalo y no asumas que fueron cargados. Este archivo cubre solo
+lo particular de esta app.
 
-NO es un README. README.md explica qué hace el proyecto y cómo usarlo.
-AGENTS.md explica **cómo debe trabajar una IA** dentro de este proyecto sin
-romper su arquitectura.
-
-### Filosofía
-
-La prioridad de cualquier modificación es preservar la estabilidad del
-sistema y mantener consistencia entre código y documentación.
-
-Ante la duda:
-- Modificar menos.
-- Preguntar antes de asumir.
-- Mantener la arquitectura existente.
-- Evitar refactors innecesarios.
-
-Lee este documento completo antes de modificar cualquier archivo.
+Prioridad: preservar la estabilidad del sistema y la consistencia entre código y
+documentación. Ante la duda, modificar menos y preguntar antes de asumir. Evitá
+refactors innecesarios.
 
 ---
 
-## 2. Flujo obligatorio de trabajo
-
-1. **Entender la tarea** — Identifica qué funcionalidad toca (auth, mapa,
-   tracking, tema, feedback).
-2. **Identificar archivos afectados** — Usa la tabla de sección 7 para
-   mapear el cambio a los documentos que debes actualizar.
-3. **Leer la documentación relacionada** — Antes de modificar, lee los
-   docs que aplican (ver referencias al final).
-4. **Modificar únicamente lo necesario** — No hagas refactors ni
-   expansion de alcance no solicitados.
-5. **Sincronizar documentación** — Si el cambio impacta >1 documento,
-   todos deben quedar actualizados antes de cerrar la tarea.
-6. **Ejecutar verificaciones** — Corre el checklist de sección 8.
-7. **Entregar resultado** — Confirma que compila, tests pasan, y la
-   documentación está consistente.
-
----
-
-## 3. Comandos
+## 2. Comandos
 
 | Acción | Comando |
 |--------|---------|
@@ -57,33 +29,19 @@ Lee este documento completo antes de modificar cualquier archivo.
 Prettier 2.8.8: `singleQuote: true`, `arrowParens: 'avoid'`,
 `trailingComma: 'all'`.
 
-No existe npm script para typecheck. Ejecuta `npx tsc --noEmit`
-manualmente.
+No existe npm script para typecheck. Ejecuta `npx tsc --noEmit` manualmente.
 
 ---
 
-## 4. Arquitectura mínima necesaria
+## 3. Arquitectura mínima
 
-Solo lo imprescindible. Para el flujo completo, lee ARCHITECTURE.md.
+Entry point: `index.js` → `src/app/App.tsx`. La navegación es declarativa en
+`StackNavigator.tsx` según `isLoggedIn`; no hay route guards manuales. `App.tsx`
+espera `userStore._hasHydrated && themeStore._hasHydrated` antes de renderizar
+`NavigationContainer`.
 
-### Entry point
-
-`index.js` → `src/app/App.tsx`
-
-Si modificas el montaje global (splash, hidratación, Google Sign-In),
-lee ARCHITECTURE.md sección 4.
-
-### Auth gating
-
-Declarativo en `StackNavigator.tsx`: renderiza grupos de pantallas según
-`isLoggedIn`. No hay route guards manuales.
-
-Si modificas navegación, lee ARCHITECTURE.md sección 4.
-
-### Estado global
-
-5 stores en `src/store/` (Zustand). Los listeners de Firebase viven
-dentro de los stores, no en componentes React.
+5 stores Zustand en `src/store/`. Los listeners de Firebase viven dentro de los
+stores, no en componentes React:
 
 | Store | Persistencia |
 |-------|-------------|
@@ -93,284 +51,136 @@ dentro de los stores, no en componentes React.
 | `burritoLocationStore` | Efímera (aquí vive el listener de tracking) |
 | `drawerStore` | Efímera |
 
-App.tsx espera `userStore._hasHydrated && themeStore._hasHydrated`
-antes de renderizar `NavigationContainer`.
+RTDB que toca la app: lectura `/ubicacion_buses`, escritura `/comentarios` y
+`/usuarios/{uid}`. Payloads y flujo: `../docs/FIREBASE_SCHEMA.md` y
+`../docs/ARCHITECTURE.md` §4–§5.
 
-Si modificas stores o hidratación, lee ARCHITECTURE.md sección 4.
-
-### Firebase RTDB (paths que la app toca)
-
-Paths resumidos. Payloads completos en FIREBASE_SCHEMA.md.
-
-| Uso | Paths |
-|-----|-------|
-| Tracking (lectura) | `/ubicacion_buses` |
-| Feedback (escritura) | `/comentarios` |
-| Usuarios (lectura/escritura) | `/usuarios/{uid}` |
-
-Si modificas paths de RTDB, lee FIREBASE_SCHEMA.md completo y
-ARCHITECTURE.md sección 5.
+Nombres: stores `useXStore`, servicios `XService`, componentes PascalCase.
+TypeScript en `strict: true`; estilos con `StyleSheet.create` al final del
+archivo.
 
 ---
 
-## 5. Reglas críticas
+## 4. Reglas críticas
 
-Cada regla sigue el formato: **qué no hacer**, **por qué**, **qué hacer**.
-
-Ordenadas por prioridad de severidad.
-
-### 5.1 Persistencia Firebase
+### 4.1 Sin persistencia Firebase
 
 - **No reactives** `database().setPersistenceEnabled(true)`.
-- Acumula ubicaciones durante micro-cortes de red y las reenvía en ráfaga
-  al reconectar, haciendo que el bus "viaje en el tiempo" (ADR-003).
-- La ubicación en tiempo real es efímera. Sin persistencia, cada pulso
-  fallido se descarta y el siguiente (3s) refleja la posición real.
+- Acumula ubicaciones durante micro-cortes de red y las reenvía en ráfaga al
+  reconectar, haciendo que el bus "viaje en el tiempo" (ADR-003).
+- La ubicación en tiempo real es efímera: cada pulso fallido se descarta y el
+  siguiente (3 s) refleja la posición real.
 
-### 5.2 Listeners de Firebase
+### 4.2 Listeners fuera de React
 
 - **No conectes** listeners de RTDB directamente a componentes React.
-- Causa re-renders masivos en Mapbox. El canvas nativo no puede seguir el
-  ritmo, provocando tirones y caída de FPS.
-- Usa `burritoLocationStore.startTracking()` que canaliza los deltas por
-  Zustand. Map.tsx usa selectores estrictos.
+- Causa re-renders masivos en Mapbox: el canvas nativo no sigue el ritmo y cae
+  el FPS.
+- Usá `burritoLocationStore.startTracking()`, que canaliza los deltas por
+  Zustand. `Map.tsx` usa selectores estrictos.
 
-### 5.3 Gestión de conductores / Secondary Auth (obsoleta en UserApp)
+### 4.3 Sin gestión administrativa
 
-- **Ya no aplica.** La gestión de conductores, buses y asignaciones se
-  movió fuera de UserApp. Esta app es de solo lectura respecto al
-  tracking (auth, mapa y feedback).
-- La creación de cuentas de conductor/admin y la escritura de `/choferes`,
-  `/buses`, `/asignaciones` y `/administradores` se realiza desde
-  **AdminWeb** (y usa su propia instancia secundaria de Auth en
-  `admin_service.ts`). No reintroducir la gestión de conductores aquí.
+- La gestión de conductores, buses y asignaciones **ya no vive aquí**. La app es
+  de solo lectura respecto al tracking (auth, mapa y feedback).
+- La creación de cuentas y la escritura de `/choferes`, `/buses`,
+  `/asignaciones` y `/administradores` se hacen desde **AdminWeb**. No la
+  reintroduzcas en UserApp.
 
-### 5.4 Ciclo de tracking
+### 4.4 Ciclo de tracking
 
-- **No modifiques** el flujo `startTracking → listener RTDB → dedup →
-  store` sin actualizar ARCHITECTURE.md sección 5.
-- Es el corazón del sistema. Cualquier cambio afecta cómo la UserApp
-  recibe ubicaciones.
-- Trabaja dentro de `MapService.subscribeToBusLocation()` y
+- **No modifiques** el flujo `startTracking → listener RTDB → dedup → store` sin
+  actualizar `../docs/ARCHITECTURE.md` §5.
+- Es el corazón del sistema: cualquier cambio afecta cómo la app recibe
+  ubicaciones. Trabajá dentro de `MapService.subscribeToBusLocation()` y
   `burritoLocationStore`.
 
-### 5.5 Sincronización documental obligatoria
-
-- **Si un cambio impacta cualquier documento del ecosistema, todos deben quedar
-  sincronizados antes de cerrar la tarea.**
-- Ejemplo: cambiar un path de RTDB toca FIREBASE_SCHEMA.md (payloads),
-  ARCHITECTURE.md (flujo de datos), y potencialmente este AGENTS.md.
-- Usa la tabla de sección 7 para saber qué actualizar.
-
-### 5.6 No expandir alcance
-
-- **Si la tarea pide arreglar un bug, no hagas refactors, no actualices
-  dependencias, no renombres variables, no limpies código.**
-- "Ya que estaba..." es la causa principal de regresiones en proyectos
-  mantenidos por IA.
-- Resuelve exactamente lo solicitado y nada más.
-
-### 5.7 Estado duplicado
+### 4.5 Una sola fuente de estado
 
 - **No crees** `useState` local para datos que ya existen en un store.
-- Dos fuentes de verdad llevan a inconsistencias.
-- Usa selectores de Zustand. Si necesitas estado derivado, usa `useMemo`
-  o selectores.
+- Dos fuentes de verdad llevan a inconsistencias. Usá selectores de Zustand;
+  para estado derivado, `useMemo` o selectores.
 
-### 5.8 Paths de RTDB
+### 4.6 Paths de RTDB
 
-- **No cambies** un path de RTDB sin actualizar FIREBASE_SCHEMA.md.
-- FIREBASE_SCHEMA.md es la fuente de verdad. Si el path cambia y el
-  documento no, el próximo desarrollador escribirá en nodos inexistentes.
+- **No cambies** un path de RTDB sin actualizar `../docs/FIREBASE_SCHEMA.md`.
+- Es la fuente de verdad: si el path cambia y el documento no, el próximo
+  desarrollador escribirá en nodos inexistentes.
 
-### 5.9 Librerías externas
+### 4.7 Dependencias nuevas
 
-- **No introduzcas** librerías nuevas sin justificarlas en DECISIONS.md.
-- Cada dependencia nueva aumenta el bundle y el riesgo de incompatibilidad
-  con RN 0.83.1 + Firebase 23.8.x.
-- Evalúa si puedes resolverlo con lo existente. Si es necesario, crea un
-  nuevo ADR en DECISIONS.md.
+- **No introduzcas** librerías sin evaluar si lo existente alcanza. Cada
+  dependencia aumenta el bundle y el riesgo de incompatibilidad con RN 0.83.1 +
+  Firebase 23.8.x.
+- Si la incorporación implica una decisión arquitectónica, registrala en
+  `../docs/DECISIONS.md`. Las dependencias rutinarias no requieren un ADR.
 
-### 5.10 Comentarios de advertencia
+### 4.8 Comentarios de advertencia
 
 - **No elimines** comentarios con `//!`, `NO TOCAR` o `CAMBIO QUIRÚRGICO`.
-- Son señales de peligro sobre código frágil (p. ej. `snapToRoute` comentado
-  en Map.tsx).
-- Si entiendes completamente el contexto y la advertencia ya no aplica,
-  verifica antes de eliminar.
+- Son señales de peligro sobre código frágil (p. ej. `snapToRoute` comentado en
+  `Map.tsx`). Si la advertencia ya no aplica, verificá el contexto antes de
+  quitarla.
 
-### 5.11 Tareas futuras
+### 4.9 Trabajo futuro
 
-- **No implementes** funcionalidades marcadas como pendientes en ROADMAP.md
-  a menos que la tarea lo exija.
-- ROADMAP.md define el orden de fases. Implementar fuera de secuencia
-  rompe dependencias y crea deuda técnica.
+- **No implementes** funcionalidades clasificadas como post-MVP en
+  `../docs/ROADMAP.md` ni tareas del backlog sin autorización explícita.
+- `ROADMAP.md` no impone una secuencia numérica: cada tarea depende solo de lo
+  que allí se indica. No adelantes trabajo por número de fase.
 
-### 5.12 Incertidumbre
-
-- **Si no puedes determinar con certeza la intención del cambio, detente
-  y pide aclaración. No asumas.**
-- Asumir incorrectamente produce cambios que parecen lógicos pero son
-  erróneos en el contexto del proyecto.
-
-### 5.13 Variables de entorno
+### 4.10 Variables de entorno
 
 - **No hardcodees** tokens en el código.
-- `MAPBOX_PUBLIC_TOKEN` y `GOOGLE_WEB_CLIENT_ID` están en `.env`
-  (gitignored). Se acceden vía `import { VAR } from '@env'`.
-- Si necesitas una nueva variable, agrégala a `.env`, `env.d.ts` y
-  README.md.
+- `MAPBOX_PUBLIC_TOKEN` y `GOOGLE_WEB_CLIENT_ID` se acceden vía
+  `import { VAR } from '@env'`.
+- No leas ni muestres el archivo `.env` (protegido en la raíz). Si necesitás una
+  variable nueva, declarala en `env.d.ts` y documentala en `README.md`, y pedile
+  al usuario que la agregue a su archivo local.
 
-### 5.14 Compatibilidad Android
+### 4.11 Compatibilidad de plataforma
 
-- **No asumas que una dependencia funciona igual en Android e iOS.** Las dependencias como `react-native-haptic-feedback` tienen
-  comportamiento distinto por plataforma. Usa `Platform.OS` donde sea
-  necesario. No introduzcas dependencias solo-Android.
+- **No asumas** que una dependencia funciona igual en Android e iOS
+  (`react-native-haptic-feedback` es un caso conocido). Usá `Platform.OS` donde
+  corresponda y evitá dependencias solo-Android.
 
-### 5.15 Babel plugin order
+### 4.12 Orden de plugins de Babel
 
-- `react-native-reanimated/plugin` debe ser el **último** en el array de
-  `plugins` de `babel.config.js`. Si agregas un plugin, ponlo antes.
+- `react-native-reanimated/plugin` debe ser el **último** del array `plugins` de
+  `babel.config.js`. Cualquier plugin nuevo va antes.
 
-### 5.16 Nunca contradigas un documento existente
+### 4.13 Contradicciones documentales
 
-- Si encuentras una aparente contradicción entre dos
-documentos, detén la modificación y resuelve primero la
-inconsistencia documental antes de continuar.
-
----
-
-## 6. Convenciones del proyecto
-
-| Ámbito | Regla |
-|--------|-------|
-| UI strings | Español |
-| Código (variables, funciones, tipos) | Inglés |
-| Variables | camelCase |
-| Componentes | PascalCase |
-| Stores | camelCase + Store (`useXStore`) |
-| Servicios | PascalCase + Service (`XService`) |
-| Comentarios en código | Español |
-| Documentación (.md) | Español |
-| Estilos | `StyleSheet.create` al final del archivo |
-| Commits | Conventional Commits |
-| TypeScript | strict mode (`strict: true`) |
+- Si detectás una contradicción que afecte el cambio en curso, detené la
+  modificación y resolvé la inconsistencia con el usuario antes de continuar.
 
 ---
 
-## 7. Actualización de documentación
+## 5. Pruebas
 
-| Si cambias... | Actualiza... |
-|---------------|-------------|
-| Un path de RTDB | `docs/FIREBASE_SCHEMA.md` |
-| El flujo de datos | `docs/ARCHITECTURE.md` |
-| Una decisión arquitectónica | `docs/DECISIONS.md` |
-| Un bug identificado | `docs/TROUBLESHOOTING.md` |
-| Un bug corregido | `docs/BUGS_RESUELTOS/` |
-| Una limitación del sistema | `docs/ARCHITECTURE.md` §9 / `docs/TROUBLESHOOTING.md` |
-| Las prioridades o fases | `docs/ROADMAP.md` |
-| Una regla de trabajo para IA | `AGENTS.md` |
-| El setup o comandos | `README.md` |
+Las pruebas de `__tests__/` son contratos contra regresiones silenciosas:
 
----
-
-## 8. Checklist pre-entrega
-
-- [ ] `npx tsc --noEmit` sin errores.
-- [ ] `npm run lint` sin errores.
-- [ ] `npm test` pasa.
-- [ ] No quedaron `TODO` sin resolver (a menos que la tarea lo exija).
-- [ ] No quedaron `console.log` temporales.
-- [ ] No hay tokens/variables hardcodeadas.
-- [ ] Los stores se usaron para datos compartidos (no `useState` local
-      duplicado).
-- [ ] Documentación sincronizada (si cambió >1 área, todos los docs
-      afectados están actualizados).
-- [ ] Si se agregaron/quitaron dependencias, DECISIONS.md actualizado.
-
----
-
-## 9. Filosofía de Blindaje Lógico (SYTHOR)
-
-### Propósito
-
-Los archivos de prueba unitaria en `__tests__/` no son "código secundario".
-Son **blindajes lógicos** que protegen las funciones matemáticas y de estado
-del ecosistema contra regresiones silenciosas.
-
-### Caso de estudio: Regresión de Haversine
-
-En octubre de 2026, una actualización de `react-native` (o un refactor de
-dependencias matemáticas) podría alterar la precisión de la fórmula de
-Haversine. Sin tests, el error sería invisible:
-
-- El bus está en la Puerta Principal de la UNMSM (-12.0575, -77.0830).
-- La app calcula distancia a la Biblioteca Central (-12.0585, -77.0820).
-- **Sin test:** una regresión podría devolver 4km en vez de 120m. El bus
-  aparece "saltando" en el mapa. No hay error de compilación, no hay crash.
-  El bug pasa a producción silenciosamente.
-- **Con test:** `calculateDistance.test.ts` falla al instante porque
-  `expect(result).toBeGreaterThan(100)` detecta el valor anómalo.
-
-### Regla: No eliminar tests unitarios
-
-- **Nunca borres** `__tests__/calculateDistance.test.ts`,
-  `__tests__/getMovementStatus.test.ts`,
-  `__tests__/movement.test.ts` o
-  `__tests__/burritoLocationStore.test.ts`.
-- Son la única barrera contra regresiones matemáticas en el pipeline.
+- **No elimines** `calculateDistance.test.ts`, `getMovementStatus.test.ts`,
+  `movement.test.ts` ni `burritoLocationStore.test.ts`.
 - Si un refactor cambia la firma de `calculateDistance`, `getMovementStatus`,
-  `evaluateMovementEvidence` o `nextMovementStatus`, los tests deben
-  actualizarse, no eliminarse.
-- Si una dependencia nativa deja de ser compatible, se mockea en el test,
-  no se elimina el test.
-
-### Regla: Mock, no silencies
-
-Cuando una función pura necesita aislarse de módulos nativos (Firebase,
-Mapbox, Reanimated), se extrae a un archivo utilitario (ej. `geo.ts`,
-`trackingUtils.ts`) y se prueba sin mock. Si el módulo nativo es inevitable,
-se usa `jest.mock()` en el test, no se elimina la cobertura.
-
-### Regla: Datos de simulación como documentación viva
-
-Los casos de prueba en las tablas parametrizadas (`test.each`) son
-documentación ejecutable. Definen los límites del sistema:
-
-| Test | Qué protege |
-|------|-------------|
-| `calculateDistance(0,0,0,1) ≈ 111km` | Fórmula del ecuador |
-| `isBusMoving(MOVEMENT_THRESHOLD_M + 0.001) === true` | Umbral de movimiento de la estrategia A (8m, histórica; ya NO decide el estado en vivo desde C4.6 experimental) |
-| `evaluateMovementEvidence({dist:0, dtMs:3000, speedMps:2.78}) === false` | Speed congelada del heartbeat no engaña (C4.6 experimental) |
-| `nextMovementStatus` con 2 parejas consecutivas sin evidencia === `stopped` | Histeresis mínima de la estrategia C (C4.6 experimental) |
-| `getMovementStatus({ timestampAge: 12000, isActive: true, displacementMeters: undefined }) === 'stopped'` | Fallback de edad de 12s para el primer snapshot |
-| `getMovementStatus({ timestampAge: 30000, isActive: true, displacementMeters: 100 }) === 'offline'` | Umbral de obsoleto (C4.6, 30s): el bus se oculta aunque `isActive` siga en `true` y se haya movido |
-| Filtro de aduana rechaza timestamp ≤ previo | Consistencia multi-bus |
-
-> **C4.6 (estado actual):** la decisión en vivo EN MOVIMIENTO/EN PARADERO usa
-> la **estrategia C experimental** (`src/features/map/utils/movement.ts`):
-> distancia + Δt + speed condicional + memoria (2 parejas sin evidencia →
-> PARADERO). Parámetros = CALIBRACIÓN PENDIENTE hasta validación en campo
-> (ADR-020). `MOVEMENT_THRESHOLD_M` (8 m, estrategia A) queda solo para
-> comparación offline A vs C, tests y simulación. El diagnóstico temporal
-> `CALIB_LOG_ENABLED` se eliminará al terminar la evaluación.
-
-Cada uno de estos tests es un **contrato** entre el código y el
-comportamiento esperado. Si el contrato se rompe, el test falla.
+  `evaluateMovementEvidence` o `nextMovementStatus`, actualizá los tests; no los
+  borres.
+- Si una dependencia nativa deja de ser compatible, mockeala con `jest.mock()`;
+  no elimines la cobertura.
+- Las tablas `test.each` son contratos ejecutables. El estado vigente del
+  movimiento en vivo (estrategia C, C4.6) y la calibración pendiente están en
+  `../docs/ARCHITECTURE.md` §5.3 y ADR-020.
 
 ---
 
-## Referencias
+## 6. Verificación
 
-| Si necesitas... | Lee... |
-|----------------|--------|
-| Propósito, flujo y arquitectura | `docs/ARCHITECTURE.md` |
-| Estructura de RTDB | `docs/FIREBASE_SCHEMA.md` |
-| Próximas fases | `docs/ROADMAP.md` |
-| Bugs conocidos | `docs/TROUBLESHOOTING.md` |
-| Decisiones arquitectónicas | `docs/DECISIONS.md` |
-| Historial de bugs resueltos | `docs/BUGS_RESUELTOS/` |
-| Setup del proyecto | `README.md` |
-
-Recomendación: consulta `docs/BUGS_RESUELTOS/` o `docs/TROUBLESHOOTING.md`
-para verificar si existe alguna nota pendiente relacionada.
+- `npx tsc --noEmit` sin errores.
+- `npm run lint`: tu cambio no debe agregar hallazgos. La deuda preexistente
+  (21 errores / 50 advertencias) está en `../docs/LINT_DEBT.md` y no se corrige
+  dentro de otra tarea.
+- `npm test` pasa.
+- Sin `TODO` ni `console.log` temporales.
+- Sin tokens ni variables hardcodeadas.
+- Stores usados para datos compartidos (sin `useState` duplicado).
+- Documentación sincronizada según `../AGENTS.md` §7.
