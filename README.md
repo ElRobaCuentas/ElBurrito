@@ -25,8 +25,9 @@ conductores, buses y asignaciones se realiza exclusivamente desde
 
 ## Requisitos de Plataforma
 
-- **Android 14 (API 34)**: `targetSdkVersion` y `compileSdkVersion`
-  configurados en 34.
+- **SDK de Android**: `compileSdkVersion` 36 y `targetSdkVersion` 34
+  (Android 14), según `android/build.gradle`. El target no es la versión
+  mínima de instalación.
 - **Foreground Service**: el servicio de rastreo utiliza el tipo
   `location`, que debe declararse en tres lugares:
   - `AndroidManifest.xml`: `android:foregroundServiceType="location"`
@@ -46,7 +47,9 @@ conductores, buses y asignaciones se realiza exclusivamente desde
 npm install
 ```
 
-`google-services.json` ya está incluido en `android/app/`.
+Se necesita `android/app/google-services.json` correspondiente al proyecto
+Firebase usado para desarrollo; no asumir que una copia contiene una
+configuración válida para otro entorno.
 
 No se requiere archivo `.env`. Las credenciales de Firebase se
 configuran exclusivamente mediante `google-services.json`.
@@ -95,26 +98,35 @@ UserApp (vía listener propio)
 ```
 
 Para el detalle del payload y la estructura del nodo de tracking,
-consultar `FIREBASE_SCHEMA.md`.
+consultar el [esquema Firebase](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/FIREBASE_SCHEMA.md).
 
 ## Estado de Implementación
 
 - Login con DNI + contraseña.
 - Asignación automática de bus desde `/asignaciones`.
 - Rastreo GPS continuo con foreground service.
-- Compatibilidad total con Android 14.
-- Transmisión ininterrumpida incluso con la app en segundo plano.
+- Servicio de ubicación con las declaraciones requeridas para Android 14;
+  esto no garantiza compatibilidad con todos los dispositivos.
+- Tracking en segundo plano con heartbeat y watchdog. La conexión, los
+  permisos o la terminación del proceso pueden interrumpir las publicaciones;
+  el watchdog intenta recuperar fallos mientras el proceso sigue vivo.
 
 **Pendiente**: geofencing, control de turnos.
 
 ## Documentación Relacionada
 
+La documentación compartida vive en [BurritoDocs](https://github.com/ElRobaCuentas/BurritoDocs),
+la carpeta hermana `docs/` en `C:\Movil`. El reporte de recuperación de
+compilación pertenece a este repositorio y conserva el contexto histórico
+del incidente, no una certificación de builds actuales.
+
 | Documento | Propósito |
 |-----------|-----------|
-| `ARCHITECTURE.md` | Visión general, flujo de datos y ciclo de vida del tracking. |
-| `FIREBASE_SCHEMA.md` | Estructura de nodos y payloads de la RTDB. |
-| `AGENTS.md` | Comandos, convenciones y detalles para asistentes IA. |
-| `ROADMAP.md` | Fases, prioridades y tareas pendientes del proyecto. |
-| `TROUBLESHOOTING.md` | Guía operativa para diagnosticar problemas conocidos. |
-| `DECISIONS.md` | Decisiones de arquitectura (ADR) del ecosistema. |
-| `BUGS_RESUELTOS/` | Historial de bugs resueltos durante el desarrollo. |
+| [Recuperación de compilación](docs/build-recovery-report.md) | Incidente de julio de 2026 y workaround de geolocation. |
+| [Arquitectura](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/ARCHITECTURE.md) | Flujo de datos y ciclo de vida del tracking. |
+| [Esquema Firebase](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/FIREBASE_SCHEMA.md) | Nodos y payloads de la RTDB. |
+| [AGENTS.md](AGENTS.md) | Convenciones e instrucciones para asistentes IA. |
+| [Roadmap](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/ROADMAP.md) | Trabajo planificado después del MVP. |
+| [Diagnóstico](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/TROUBLESHOOTING.md) | Problemas conocidos. |
+| [Decisiones](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/DECISIONS.md) | Decisiones de arquitectura (ADR). |
+| [Bugs resueltos](https://github.com/ElRobaCuentas/BurritoDocs/tree/main/BUGS_RESUELTOS) | Historial de correcciones. |

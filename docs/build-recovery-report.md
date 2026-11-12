@@ -2,6 +2,12 @@
 
 > Documento oficial del incidente de compilación del APK Release.
 
+> **Registro histórico de julio de 2026.** Las rutas, ramas, copias y resultados
+> de compilación describen aquel incidente; no certifican el estado actual.
+> La raíz del proyecto en el workspace actual es `C:\Movil\Driver`.
+> Las correcciones documentales posteriores se indican sin borrar la evidencia
+> histórica. No ejecutar las tareas pendientes antiguas sin revisar su vigencia.
+
 **Documento**: Build Recovery Report  
 **Proyecto**: BurritoDriverApp  
 **Fecha**: Julio 2026  
@@ -19,7 +25,7 @@
 - **Rama**: `pruebas-bateria-datos`
 - **React Native**: 0.83.1
 - **React**: 19.2.0
-- **Arquitectura**: Legacy (`newArchEnabled=false`)
+- **Configuración registrada**: `newArchEnabled=false`; no demuestra que RN 0.83.1 ejecute Legacy Architecture (ver aclaración en §6).
 - **Objetivo inicial**: Generar APK Release (`gradlew assembleRelease`)
 
 ### Proyecto no afectado
@@ -33,7 +39,7 @@
 - **Propósito**: Evitar el límite de 260 caracteres del NDK de Windows
 - **Estado**: Copia física con `.git` propio, mismo HEAD que el original
 
-### Estructura relevante de `C:\Movil`
+### Mapa de carpetas registrado (no inventario vigente)
 
 ```
 C:\Movil\
@@ -157,7 +163,7 @@ package com.facebook.react.bridge does not exist
 
 4. Se verificó que `GenerateAutolinkingNewArchitecturesFileTask.kt` del Gradle Plugin emite `add_subdirectory` si `libraryName != null && cmakeListsPath != null`. `cmakeListsPath` siempre tiene un valor por defecto; el único interruptor real es `libraryName`.
 
-### Fase 7: Creación del workaround permanente
+### Fase 7: Creación del workaround reproducible
 
 1. Se creó `scripts/fix-geolocation-codegen.js`.
 2. Se agregó `"postinstall": "node scripts/fix-geolocation-codegen.js"` en `package.json`.
@@ -244,7 +250,7 @@ En `react-native-gesture-handler@2.x`, todo el código C++ está dentro de `andr
 
 En `react-native-gesture-handler@3.x`, los ShadowNodes de Fabric se movieron a `shared/shadowNodes/react/renderer/components/rngesturehandler_codegen/`, **fuera** del directorio `android/`. Al estar fuera del directorio del `CMakeLists.txt`, CMake espeja la ruta absoluta completa del fuente.
 
-#### Ruta exacta del archivo que falla
+#### Reconstrucción de la ruta del archivo que falla
 
 ```
 C:\ProyectosMovil\BurritoDriverApp\android\app\.cxx\
@@ -257,7 +263,9 @@ C:\ProyectosMovil\BurritoDriverApp\android\app\.cxx\
   RNGestureHandlerDetectorShadowNode.cpp.o
 ```
 
-Longitud: ~362 caracteres. El límite de Windows (`MAX_PATH`) es 260.
+El registro original estimó ~362 caracteres frente al límite de 260 del
+error observado. El ejemplo está partido en líneas y no conserva una
+medición reproducible de la ruta completa; la cifra no debe tratarse como exacta.
 
 #### Por qué LongPathsEnabled no ayuda
 
@@ -265,19 +273,24 @@ Windows 10/11 tienen `LongPathsEnabled=1` que permite rutas de hasta 32767 carac
 
 #### Por qué C:\BD solucionó el problema
 
-La ruta `C:\BD\...` tiene solo **5 caracteres** de prefijo, contra los **39 caracteres** de `C:\ProyectosMovil\BurritoDriverApp\...`. Esa diferencia de 34 caracteres fue suficiente para que la ruta del `.o` quedara por debajo de 260.
+El registro del incidente reporta un build exitoso desde `C:\BD`. Acortar
+la raíz reduce las rutas generadas, que pueden incluirla más de una vez.
+Sin embargo, las cifras originales no demostraban la explicación: restar
+34 a 362 da 328, no una longitud inferior a 260. No se conserva aquí una
+comparación medida de ambas rutas generadas; el éxito reportado se mantiene
+como evidencia histórica, sin atribuirle una reducción numérica no comprobada.
 
 ---
 
 ## 5. Cambios realizados
 
-### 5.1 Cambios permanentes (deben mantenerse)
+### 5.1 Cambios persistidos durante el incidente
 
 | Archivo | Cambio | Justificación |
 |---------|--------|---------------|
 | `package.json` | Agregado `"postinstall": "node scripts/fix-geolocation-codegen.js"` | Ejecuta el fix automáticamente en cada `npm install` |
 | `scripts/fix-geolocation-codegen.js` | Archivo nuevo | Parchea geolocation en postinstall |
-| `android/gradle.properties` | `newArchEnabled=true` → `false` | Restaura la arquitectura legacy que el proyecto siempre usó |
+| `android/gradle.properties` | `newArchEnabled=true` → `false` | Intento original de seleccionar Legacy; no tiene ese efecto en RN 0.83 (ver §6) |
 | `docs/build-recovery-report.md` | Archivo nuevo (este documento) | Referencia oficial del incidente |
 
 ### 5.2 Cambios temporales (en node_modules, se regeneran con npm install + postinstall)
@@ -321,7 +334,7 @@ La ruta `C:\BD\...` tiene solo **5 caracteres** de prefijo, contra los **39 cara
 
 ---
 
-## 6. Estado actual del proyecto
+## 6. Estado registrado al cierre del incidente (julio de 2026)
 
 ### Qué quedó funcionando
 
@@ -350,24 +363,31 @@ La ruta `C:\BD\...` tiene solo **5 caracteres** de prefijo, contra los **39 cara
 | **Reinstalación de node_modules** | El postinstall se ejecuta automáticamente; si el script falla silenciosamente, el error del build reaparecería | Muy baja (script probado) |
 | **Cambio de máquina/CI** | En otra máquina Windows, el problema de ruta larga seguiría existiendo; en Linux/Mac no | Media |
 
-### Por qué el proyecto sigue usando Legacy Architecture
+### Aclaración posterior: configuración y arquitectura efectiva
 
-- `newArchEnabled=false` fue el estado original del proyecto durante meses de funcionamiento correcto.
-- RN 0.83 permite Legacy Architecture sin problemas; la New Architecture es optativa.
-- Activar `newArchEnabled=true` requeriría verificar TODAS las dependencias: `react-native-firebase/*`, `react-native-background-actions`, `react-native-gesture-handler`, etc.
-- No hay un beneficio inmediato que justifique la migración en este momento.
+El diagnóstico original interpretó `newArchEnabled=false` como una selección
+de Legacy Architecture. Esa conclusión es incorrecta para RN 0.83:
+[React Native solo admite New Architecture desde 0.82](https://reactnative.dev/blog/2025/10/08/react-native-0.82),
+e ignora ese flag como opción para volver a Legacy.
+
+Una dependencia puede consultar la propiedad por su cuenta; eso no demuestra
+qué arquitectura ejecuta React Native. El registro del workaround y del build
+exitoso no certifica compatibilidad de todas las dependencias ni permite
+recomendar una migración basándose únicamente en ese flag. La cadena causal
+de §4.1 se conserva como interpretación del incidente, no como validación
+actual del soporte Legacy.
 
 ---
 
 ## 7. Decisiones técnicas
 
-### Decisión 1: Mantener `newArchEnabled=false`
+### Decisión 1: Mantener `newArchEnabled=false` durante el incidente
 
 | Aspecto | Detalle |
 |---------|---------|
-| **Motivo** | El proyecto siempre funcionó con Legacy Architecture. La New Architecture de RN 0.83 no es obligatoria. |
-| **Ventajas** | Sin impacto en runtime. Sin riesgo de incompatibilidad con dependencias. Sin necesidad de migración. |
-| **Desventajas** | El bug del autolinking de RN 0.83 solo afecta a proyectos con `newArchEnabled=false`, por lo que el workaround es necesario. |
+| **Motivo registrado** | Conservar la configuración que se estaba investigando, entonces interpretada como Legacy. Esa interpretación se corrige en §6. |
+| **Resultado registrado** | Se mantuvo el flag y se aplicó el workaround; no se acredita que el flag desactive New Architecture en RN 0.83. |
+| **Limitación** | El resultado histórico no demuestra ausencia de incompatibilidades ni que el workaround sea necesario en otras combinaciones de versiones. |
 
 ### Decisión 2: Aceptar el postinstall como workaround
 
@@ -415,7 +435,10 @@ Se decidió crear este documento (`docs/build-recovery-report.md`) para registra
 
 ---
 
-## 8. Trabajo pendiente
+## 8. Pendientes registrados en julio de 2026
+
+Las tareas sin marcar conservan el estado del reporte original: no son un
+backlog vigente ni autorizan limpiezas, fusiones o cambios de configuración.
 
 ### 8.1 Limpieza
 
@@ -431,7 +454,7 @@ Se decidió crear este documento (`docs/build-recovery-report.md`) para registra
   - Problema de rutas largas con gesture-handler 3.x en Windows
   - Comando para generar APK Release desde ruta corta
   - Comando para limpiar artefactos de build
-- [ ] Mejorar el encabezado del script `fix-geolocation-codegen.js` (agregar "TEMPORARY WORKAROUND", referencia a este documento)
+- [x] Mejorar el encabezado del script `fix-geolocation-codegen.js`: contiene "TEMPORARY WORKAROUND" y referencia a este documento (comprobado en la revisión documental de noviembre de 2026).
 
 ### 8.3 Integración de UI
 
@@ -448,49 +471,59 @@ Se decidió crear este documento (`docs/build-recovery-report.md`) para registra
 
 ### 8.5 Migración futura (sin fecha definida)
 
-- [ ] Evaluar migración a New Architecture cuando todas las dependencias la soporten completamente
+- [ ] Revisar compatibilidad de las dependencias y necesidad del workaround; la propuesta original de migrar a New Architecture se basaba en la interpretación corregida en §6.
 - [ ] En ese momento: eliminar `scripts/fix-geolocation-codegen.js` y el `postinstall`
-- [ ] Restaurar `newArchEnabled=true`
-- [ ] Reevaluar gesture-handler para ver si la estructura de archivos cambió y el límite de 256 ya no es problema
+- [ ] Reevaluar el flag `newArchEnabled` como parte de esa revisión, no como interruptor de arquitectura en RN 0.83.
+- [ ] Reevaluar gesture-handler para ver si la estructura de archivos cambió y el error de rutas de más de 260 caracteres sigue aplicando.
 
 ---
 
 ## 9. Criterios para eliminar el workaround
 
-El script `scripts/fix-geolocation-codegen.js` y su `postinstall` deben eliminarse si **cualquiera** de las siguientes condiciones se cumple:
+Las siguientes condiciones motivan revisar el script
+`scripts/fix-geolocation-codegen.js` y su `postinstall`; no autorizan retirarlos
+automáticamente. La retirada requiere comprobar el autolinking y una
+compilación sin el parche con las versiones concretas del proyecto.
 
-### Condición 1: Migración a New Architecture
+### Condición 1: Cambio de compatibilidad o configuración nativa
 
-- Se cambia `newArchEnabled=true` en `android/gradle.properties`
-- **Motivo**: Bajo New Architecture, geolocation DEBE generar su codegen. El script lo impediría.
+- Se revisan las versiones de React Native y geolocation y su generación de codegen.
+- Cambiar únicamente `newArchEnabled` no demuestra una migración en RN 0.83 (ver §6).
+- El parche elimina configuración de codegen; antes de retirarlo o mantenerlo, comprobar qué necesita la combinación de dependencias evaluada.
 
 ### Condición 2: Fix oficial de React Native CLI
 
-- Una versión futura de `@react-native-community/cli` (≥20.x) corrige `findLibraryName.js` para no hacer regex sobre `build.gradle`, o respeta `newArchEnabled` en el autolinking.
+- Una versión del CLI corrige el comportamiento de detección observado. No asumirlo por un número de versión: el reporte no identifica una versión con fix verificado.
 - **Verificar**: Ejecutar `npx react-native config` y confirmar que geolocation ya no reporta `libraryName: "RNCGeolocation"` sin el parche.
 
 ### Condición 3: Fix oficial de @react-native-community/geolocation
 
-- Una versión futura de la librería elimina el bloque `react { libraryName }` de su `build.gradle`, o elimina `codegenConfig` de su `package.json`.
+- Una versión de la librería corrige el problema de autolinking o generación de codegen. Eliminar una sola fuente de `libraryName` no basta si la otra sigue activa, según el diagnóstico de §3.
 - **Verificar**: Inspeccionar el `package.json` y `android/build.gradle` de la nueva versión.
 
 ### Procedimiento para eliminar
 
-```bash
-# 1. Revertir cambios en package.json (quitar postinstall)
-git checkout HEAD -- package.json
+Solo en una intervención autorizada y con los cambios locales preservados:
 
-# 2. Eliminar el script
-rm scripts/fix-geolocation-codegen.js
+1. Editar `package.json` y quitar únicamente la entrada
+   `"postinstall": "node scripts/fix-geolocation-codegen.js"`. Si el hook
+   contiene otras acciones, conservarlas. No restaurar el manifiesto completo
+   desde Git para quitar un solo campo.
+2. Retirar `scripts/fix-geolocation-codegen.js`, conservando una vía de
+   recuperación de ambos cambios.
+3. Desde la raíz del proyecto, ejecutar `npm ci`. El comando reemplaza
+   `node_modules` a partir del lockfile y elimina las modificaciones de la
+   instalación parcheada; `npm install` sobre esa instalación no garantiza
+   restaurar los archivos modificados. Requiere un lockfile sincronizado.
+4. Inspeccionar `npx react-native config` y comprobar una compilación Release
+   sin el parche. En PowerShell, desde `android/`, el comando es
+   `.\gradlew.bat assembleRelease`.
+5. Si falla, recuperar únicamente los cambios de esta retirada y reinstalar
+   con el hook restaurado. No descartar trabajo ajeno ni tratar el intento
+   fallido como evidencia de compatibilidad.
 
-# 3. Reinstalar dependencias (ya no se aplica el parche)
-npm install
-
-# 4. Verificar que el build funciona sin el parche
-cd android && ./gradlew assembleRelease
-
-# 5. Si falla, revertir y esperar a que las condiciones se cumplan
-```
+Estos pasos son un procedimiento para una revisión futura; no se ejecutaron
+durante la corrección documental.
 
 ---
 
@@ -560,4 +593,4 @@ La documentación de un incidente debe etiquetar cada afirmación según su nive
 
 ---
 
-*Fin del documento. Última actualización: Julio 2026.*
+*Incidente: julio de 2026. Revisión documental: noviembre de 2026, sin nueva compilación ni validación de runtime.*
