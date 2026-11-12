@@ -1,144 +1,136 @@
-# BurritoUserApp
+# El Burrito
 
+![El Burrito](assets/readme-title.gif)
 
-## Introducción
+El Burrito permite a los estudiantes de la Universidad Nacional Mayor de
+San Marcos (UNMSM) consultar dónde está el bus universitario mientras
+esperan en el campus. Muestra en el mapa la ubicación que transmite el
+conductor, junto con la ruta y los paraderos.
 
-Aplicación móvil para los estudiantes de la Universidad Nacional Mayor
-de San Marcos (UNMSM). Consume las coordenadas GPS de los buses
-universitarios en tiempo real y las muestra en un mapa.
+Este repositorio contiene la app de estudiantes, identificada en el código
+como **BurritoUserApp**. No captura el GPS del bus ni inicia o detiene sus
+recorridos: recibe las ubicaciones de **BurritoDriverApp**. La gestión de
+conductores, buses y asignaciones corresponde a **AdminWeb**.
 
-Es una app de **solo lectura** en cuanto al tracking: no genera
-coordenadas ni cierra recorridos. Escucha Firebase y dibuja.
+## Qué permite hacer
 
+- Consultar la posición y orientación del bus sobre un mapa de Mapbox.
+- Ver la ruta del campus y seleccionar sus paraderos.
+- Iniciar sesión con correo y contraseña o con Google.
+- Cambiar entre tema claro y oscuro; la preferencia se conserva.
+- Enviar una calificación y un comentario desde el menú lateral.
 
-## Requisitos
+### Alcance actual
 
-Android mínimo
-Node
-JDK
-React Native CLI
-Mapbox Token
-Firebase
+La app está orientada a **Android**; iOS no está configurado ni soportado.
+Aunque recibe ubicaciones de varias unidades, el mapa muestra **un solo
+bus**: selecciona la unidad activa con la publicación más reciente. La
+visualización simultánea de varios buses queda fuera de esta versión.
 
-## Stack Principal
+La ubicación depende de las publicaciones del conductor y de la conexión
+con Firebase; no es una predicción del tiempo de llegada.
 
-| Capa | Tecnología |
-|------|-----------|
-| Framework | React Native 0.83.1 (CLI, no Expo) |
-| Lenguaje | TypeScript (tipado estricto) |
-| Estado global | Zustand 5.x |
-| Base de datos | Firebase Realtime Database + Auth (23.8.x) |
-| Mapas | Mapbox (`@rnmapbox/maps` 10.2.x) |
-| Navegación | React Navigation (Stack + Drawer) |
-| Auth adicional | Google Sign-In, react-native-dotenv |
+## Preparar el entorno
 
-## Setup
+El proyecto utiliza React Native CLI, no Expo. Para trabajar en Android:
 
-```bash
-npm install
-```
+| Requisito | Referencia |
+|-----------|------------|
+| Node.js y npm | Node **20.19.4 o superior**, según React Native 0.83. El manifiesto local declara `>=20`. |
+| Java | **JDK 17**, recomendado por React Native 0.83. |
+| Android Studio y SDK | SDK **36**, Build Tools **36.0.0** y NDK **27.1.12297006**, declarados en `android/build.gradle`. |
+| Dispositivo o emulador | Android **API 24 o superior**, con depuración habilitada. |
+| Servicios | Configuración Android de Firebase, token público de Mapbox y cliente web de Google Sign-In. |
 
-**Credenciales:** El repositorio incluye `google-services.json` para
-Android.
+La [guía de entorno de React Native 0.83](https://reactnative.dev/docs/0.83/set-up-your-environment)
+explica la instalación de las herramientas y las variables del SDK. Los
+valores Android de este repositorio están en
+[`android/build.gradle`](android/build.gradle).
 
-> **iOS no está implementado en ninguna versión actual.** La app es
-> Android-only por ahora. La estructura iOS existe en el template de
-> React Native CLI, pero no está configurada ni soportada. El soporte
-> iOS está planificado para futuras versiones.
+## Ejecutar en Android
 
-Crear un archivo `.env` en la raíz con:
-```
-MAPBOX_PUBLIC_TOKEN=<tu_token>
-GOOGLE_WEB_CLIENT_ID=<tu_client_id>
-```
+Desde la raíz del repositorio:
 
-**Ejecutar (Android):**
-```bash
-npm run android
-```
+1. Instalar las dependencias:
 
-## Scripts
+   ```bash
+   npm install
+   ```
+
+2. Disponer de `android/app/google-services.json` correspondiente al proyecto
+   Firebase usado para desarrollo. No asumir que una copia del repositorio
+   contiene una configuración válida para otro entorno.
+
+3. Crear `.env` en la raíz con los valores de ese entorno:
+
+   ```dotenv
+   MAPBOX_PUBLIC_TOKEN=<token_publico_de_mapbox>
+   GOOGLE_WEB_CLIENT_ID=<id_del_cliente_web_de_google>
+   ```
+
+   Estos nombres están declarados en [`env.d.ts`](env.d.ts). No publicar el
+   archivo `.env` ni agregar credenciales privadas al código.
+
+4. Conectar el dispositivo o iniciar el emulador. Arrancar Metro y, en otra
+   terminal, instalar y abrir la aplicación:
+
+   ```bash
+   npm start
+   ```
+
+   ```bash
+   npm run android
+   ```
+
+### Comandos de desarrollo
 
 | Acción | Comando |
 |--------|---------|
-| Metro dev server | `npm start` |
-| Android | `npm run android` |
-| Tests | `npm test` |
-| Lint | `npm run lint` |
-| Typecheck | `npx tsc --noEmit` |
+| Iniciar Metro | `npm start` |
+| Ejecutar Android | `npm run android` |
+| Ejecutar pruebas | `npm test` |
+| Revisar lint | `npm run lint` |
+| Comprobar tipos | `npx tsc --noEmit` |
 
-## Estructura del Código
+La comprobación de tipos es un comando manual; no hay un script npm
+`typecheck`. La [deuda de lint documentada](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/LINT_DEBT.md)
+distingue los hallazgos preexistentes de los cambios nuevos.
 
-```
+## Organización del proyecto
+
+```text
 src/
-├── app/          # Entry point (App.tsx), splash, navegación
+├── app/          # Inicio, splash y navegación
 ├── features/
-│   ├── auth/     # Login, registro, recuperar contraseña, avatar
-│   └── map/      # Mapa, paraderos, UI flotante, tracking
-├── shared/       # Config Firebase, colores, tipografía
-└── store/        # 5 stores de Zustand
+│   ├── auth/     # Sesión y pantallas de acceso
+│   └── map/      # Mapa, paraderos, seguimiento y comentarios
+├── shared/       # Configuración de Firebase y tema visual
+└── store/        # Estado compartido con Zustand
 ```
 
-## Funcionalidades
+El flujo de ubicación es **Firebase RTDB → servicio de mapa → store de
+Zustand → mapa**. El listener recibe `/ubicacion_buses`; los comentarios se
+envían a `/comentarios`. La sesión se conserva con Zustand y AsyncStorage;
+el arranque espera a restaurar la sesión y el tema antes de mostrar la
+navegación.
 
-- **Autenticación dual:** email/contraseña y Google Sign-In. Sesión
-  persistente con AsyncStorage + Zustand persist.
-- **Mapa en vivo:** renderizado con Mapbox, ruta circular del campus,
-  10 paraderos marcados, el bus con indicador de heading y radar de
-  posición.
-- **Dark mode:** tema oscuro/claro con persistencia manual, accesible
-  desde el menú lateral.
-- **Feedback:** modal de calificación y comentarios desde el menú
-  lateral. Los datos se almacenan en `/comentarios`.
-- **Splash animado:** splash con react-native-bootsplash + hydration gating
-  (espera a que los stores de sesión y tema se restauren antes de
-  renderizar la navegación).
+La base técnica es React Native **0.83.1**, TypeScript estricto, Zustand
+**5.x**, React Native Firebase **23.8.x**, `@rnmapbox/maps` **10.2.x** y
+React Navigation. Las dependencias y scripts están en
+[`package.json`](package.json).
 
-> Nota: la gestión de conductores, buses y asignaciones **no** vive en
-> esta app. Se realiza desde **AdminWeb**.
+## Documentación técnica
 
-## Cómo funciona el Realtime
+La documentación del Ecosistema El Burrito se mantiene en el repositorio
+compartido [BurritoDocs](https://github.com/ElRobaCuentas/BurritoDocs). En el
+workspace `C:\Movil`, ese repositorio corresponde a la carpeta hermana
+`docs/`; no forma parte de este repositorio de la app.
 
-1. **El Listener:** La app se conecta a Firebase RTDB (nodo
-   `/ubicacion_buses`) mediante un listener continuo. Firebase empuja
-   los cambios en milisegundos.
-
-2. **El Amortiguador (Zustand):** El listener escribe los datos en
-   `burritoLocationStore.ts`. Nunca conectes Firebase directamente a un
-   componente de React — el mapa se re-renderizaría completo en cada
-   latido del GPS.
-
-3. **El Render:** `Map.tsx` lee las coordenadas desde Zustand. Mapbox
-   interpola la posición del marcador suavemente sobre el canvas nativo.
-
-## Estado de Implementación
-
-- Listener de ubicación en tiempo real funcional.
-- Autenticación completa (email y Google).
-- Dark mode funcional.
-- Render de un solo bus. El **backend multi-bus está operativo**
-  (`/ubicacion_buses` es `Record<string, BurritoLocation>`), pero el
-  frontend aún renderiza una sola unidad. La arquitectura multi-bus
-  está planificada como Post-MVP.
-
-## Limitaciones conocidas
-
-- **Un solo bus visible:** el frontend muestra una única unidad en tiempo
-  real. El backend multi-bus ya está operativo; el render multi-marcador
-  (ShapeSource + SymbolLayer por cada bus activo) está planificado en el
-  backlog Post-MVP.
-- **iOS no implementado:** la app es Android-only en esta versión. El
-  soporte iOS está planificado para futuras versiones.
-
-
-## Documentación Relacionada
-
-| Documento | Propósito |
+| Documento | Contenido |
 |-----------|-----------|
-| `ARCHITECTURE.md` | Visión general, flujo de datos, componentes y ciclo de vida. |
-| `FIREBASE_SCHEMA.md` | Estructura de nodos y payloads de la RTDB. |
-| `AGENTS.md` | Comandos, convenciones y detalles para asistentes IA. |
-| `ROADMAP.md` | Fases, prioridades y tareas pendientes del proyecto. |
-| `TROUBLESHOOTING.md` | Guía operativa para diagnosticar problemas conocidos. |
-| `DECISIONS.md` | Decisiones de arquitectura (ADR) del ecosistema. |
-| `BUGS_RESUELTOS/` | Historial de bugs resueltos durante el desarrollo. |
+| [Arquitectura](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/ARCHITECTURE.md) | Componentes y flujo de datos entre aplicaciones. |
+| [Esquema Firebase](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/FIREBASE_SCHEMA.md) | Nodos y payloads de Realtime Database. |
+| [Diagnóstico](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/TROUBLESHOOTING.md) | Limitaciones y problemas conocidos. |
+| [Decisiones](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/DECISIONS.md) | Decisiones de arquitectura e historial técnico. |
+| [Roadmap](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/ROADMAP.md) | Trabajo planificado después del MVP. |
+| [Bugs resueltos](https://github.com/ElRobaCuentas/BurritoDocs/tree/main/BUGS_RESUELTOS) | Registro de correcciones por aplicación. |
