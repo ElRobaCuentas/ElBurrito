@@ -242,8 +242,8 @@ export const Map = ({ locations, isDarkMode }: MapProps) => {
       <Mapbox.MapView
         style={styles.map} 
         scaleBarEnabled={false} 
-        attributionEnabled={false} 
-        logoEnabled={false}
+        attributionEnabled={true} 
+        logoEnabled={true}
         styleURL={isDarkMode ? Mapbox.StyleURL.Dark : Mapbox.StyleURL.Street}
         onDidFinishLoadingMap={() => {
           setIsMapReady(true);
