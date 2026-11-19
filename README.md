@@ -145,6 +145,7 @@ separado del código de esta aplicación.
 
 | Documento | Contenido |
 |-----------|-----------|
+| [Versionado y publicación](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/VERSIONADO_Y_PUBLICACION.md) | Procedimiento oficial de entregas Android, firmas, artefactos y distribución. |
 | [Arquitectura](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/ARCHITECTURE.md) | Componentes y flujo de datos entre aplicaciones. |
 | [Esquema Firebase](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/FIREBASE_SCHEMA.md) | Nodos y payloads de Realtime Database. |
 | [Diagnóstico](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/TROUBLESHOOTING.md) | Limitaciones y problemas conocidos. |
