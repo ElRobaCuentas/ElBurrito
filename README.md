@@ -122,6 +122,7 @@ del incidente, no una certificación de builds actuales.
 
 | Documento | Propósito |
 |-----------|-----------|
+| [Versionado y publicación](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/VERSIONADO_Y_PUBLICACION.md) | Procedimiento previsto de entregas y actualizaciones mediante APK privada. |
 | [Recuperación de compilación](docs/build-recovery-report.md) | Incidente de julio de 2026 y workaround de geolocation. |
 | [Arquitectura](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/ARCHITECTURE.md) | Flujo de datos y ciclo de vida del tracking. |
 | [Esquema Firebase](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/FIREBASE_SCHEMA.md) | Nodos y payloads de la RTDB. |
