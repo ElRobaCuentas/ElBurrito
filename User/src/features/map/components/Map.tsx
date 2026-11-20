@@ -1,0 +1,398 @@
+import React, { useEffect, useRef, useMemo, useState } from 'react';
+import { StyleSheet, View, Text, Easing as RNEasing, Animated as RNAnimated } from 'react-native'; 
+import Mapbox from '@rnmapbox/maps';
+import { COLORS } from '../../../shared/theme/colors';
+import { PARADEROS, RUTA_GEOJSON, PARADEROS_GEOJSON} from '../constants/map_route';
+import { StopCard } from './StopCard'; 
+import { useMapStore } from '../../../store/mapStore'; 
+import { useBurritoStore, BusMovementStatus } from '../../../store/burritoLocationStore'; 
+import { BurritoLocation } from '../types';
+import Reanimated, { FadeInDown, FadeOutDown, Easing } from 'react-native-reanimated';
+import ReactNativeHapticFeedback from "react-native-haptic-feedback";
+import analytics from '@react-native-firebase/analytics';
+
+import { MAPBOX_PUBLIC_TOKEN } from '@env'; 
+
+const hapticOptions = {
+  enableVibrateFallback: true,
+  ignoreAndroidSystemSettings: false,
+};
+
+Mapbox.setAccessToken(MAPBOX_PUBLIC_TOKEN); 
+
+const UNMSM_STATIC_VIEW = { center: [-77.0830, -12.0575] as [number, number], zoom: 15.1 };
+
+const UNMSM_BOUNDS = {
+  ne: [-77.0600, -12.0300] as [number, number],
+  sw: [-77.1100, -12.0850] as [number, number]
+};
+
+// T1.2: panel de diagnóstico DESACTIVADO para el lanzamiento a pruebas.
+// Reactivar en desarrollo: cambiar a true (sigue limitado a builds debug por __DEV__).
+const SHOW_DEBUG_PANEL = false;
+
+const STOP_COLORS = {
+  light: { bg: '#E65100', border: '#FFFFFF', icon: '#FFFFFF' },
+  dark: { bg: '#FFB74D', border: '#1A1A1A', icon: '#1A1A1A' }
+};
+
+//! Fórmula de Haversine para calcular distancia entre dos puntos geográficos (en metros)
+//! Función para snapear a la ruta (opcional, puede causar que el bus "salte" si el GPS es inexacto)
+// const snapToRoute = (lat: number, lng: number) => {
+//   let minDistance = Infinity;
+//   let closestPoint = [lng, lat]; 
+//   RUTA_GEOJSON.geometry.coordinates.forEach((coord: number[]) => {
+//     const dist = calculateDistance(lat, lng, coord[1], coord[0]);
+//     if (dist < minDistance) {
+//       minDistance = dist;
+//       closestPoint = coord; 
+//     }
+//   });
+//   return closestPoint; 
+// };
+
+interface MapProps {
+  locations: Record<string, BurritoLocation>;
+  isDarkMode: boolean;
+}
+
+export const Map = ({ locations, isDarkMode }: MapProps) => {
+  const cameraRef = useRef<Mapbox.Camera>(null);
+  const [selectedStopId, setSelectedStopId] = useState<string | null>(null);
+  const { command, setCommand } = useMapStore();
+  
+  const busMovementStates = useBurritoStore((state) => state.busMovementStates);
+
+  const burritoLocation = useMemo(() => {
+    const entries = Object.entries(locations || {});
+    const active = entries.filter((entry): entry is [string, BurritoLocation] => entry[1].isActive !== false);
+    if (active.length === 0) return null;
+    active.sort((a, b) => (b[1].timestamp || 0) - (a[1].timestamp || 0));
+    return active[0][1];
+  }, [locations]);
+
+  const busMovementStatus: BusMovementStatus = useMemo(() => {
+    const entries = Object.entries(locations || {});
+    const active = entries.filter((entry): entry is [string, BurritoLocation] => entry[1].isActive !== false);
+    if (active.length === 0) return 'offline';
+    active.sort((a, b) => (b[1].timestamp || 0) - (a[1].timestamp || 0));
+    const topPlaca = active[0][0];
+    return busMovementStates[topPlaca] || 'offline';
+  }, [locations, busMovementStates]);
+
+  const [isMapReady, setIsMapReady] = useState(false);
+  const [boundsActive, setBoundsActive] = useState(false);
+  const [isFirstBusLoad, setIsFirstBusLoad] = useState(true);
+
+  const latAnim = useRef(new RNAnimated.Value(UNMSM_STATIC_VIEW.center[1])).current;
+  const lngAnim = useRef(new RNAnimated.Value(UNMSM_STATIC_VIEW.center[0])).current;
+  
+  const [currentPos, setCurrentPos] = useState<number[] | null>(null);
+  const [currentHeading, setCurrentHeading] = useState<number>(0);
+
+  const [radarRadius, setRadarRadius] = useState(0);
+  const [radarOpacity, setRadarOpacity] = useState(0.85);
+  const radarAnimValue = useRef(new RNAnimated.Value(0)).current;
+
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
+
+  useEffect(() => {
+    return () => {
+      radarAnimValue.stopAnimation();
+    };
+  }, []);
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    if (selectedStopId) {
+      timer = setTimeout(() => setSelectedStopId(null), 5000); 
+    }
+    return () => { if (timer) clearTimeout(timer); };
+  }, [selectedStopId]);
+
+  useEffect(() => {
+    if (!isMapReady) return;
+    const timer = setTimeout(() => setBoundsActive(true), 800);
+    return () => clearTimeout(timer);
+  }, [isMapReady]);
+
+  useEffect(() => {
+    radarAnimValue.stopAnimation();
+    radarAnimValue.setValue(0);
+
+    if (busMovementStatus === 'offline') return;
+
+    let duration = busMovementStatus === 'stopped' ? 2500 : 1200; 
+
+    const loop = RNAnimated.loop(
+      RNAnimated.timing(radarAnimValue, {
+        toValue: 1,
+        duration: duration,
+        easing: RNEasing.out(RNEasing.ease),
+        useNativeDriver: false, 
+      })
+    );
+
+    loop.start();
+
+    const listenerId = radarAnimValue.addListener(({ value }) => {
+      setRadarRadius(value * 60);
+      setRadarOpacity(0.85 * (1 - value));
+    });
+
+    return () => {
+      loop.stop();
+      radarAnimValue.removeListener(listenerId);
+    };
+  }, [busMovementStatus]);
+
+  useEffect(() => {
+    if (burritoLocation) {
+      if (burritoLocation.isActive === false) return; 
+
+      // const snappedCoords = snapToRoute(burritoLocation.latitude, burritoLocation.longitude);
+      const rawCoords = [burritoLocation.longitude, burritoLocation.latitude];
+      
+      const timeStr = burritoLocation.timestamp ? new Date(burritoLocation.timestamp).toLocaleTimeString() : 'N/A';
+      const logMsg = `T:${timeStr} | L:${burritoLocation.latitude.toFixed(4)},${burritoLocation.longitude.toFixed(4)}`;
+      
+      setDebugLogs(prev => {
+        const newLogs = [logMsg, ...prev];
+        return newLogs.slice(0, 5);
+      });
+
+      if (isFirstBusLoad) {
+        lngAnim.setValue(rawCoords[0]); 
+        setCurrentPos(rawCoords);       
+        latAnim.setValue(rawCoords[1]); 
+        setCurrentHeading((burritoLocation.heading || 0) - 90);
+        setIsFirstBusLoad(false); 
+      } else {
+        latAnim.stopAnimation();
+        lngAnim.stopAnimation();
+
+        RNAnimated.parallel([
+          RNAnimated.timing(latAnim, { toValue: rawCoords[1], duration: 2000, easing: RNEasing.linear, useNativeDriver: false }),
+          RNAnimated.timing(lngAnim, { toValue: rawCoords[0], duration: 2000, easing: RNEasing.linear, useNativeDriver: false }),
+        ]).start();
+        
+        setCurrentHeading((burritoLocation.heading || 0) - 90);
+      }
+    }
+  }, [burritoLocation]);
+
+  useEffect(() => {
+    const listenerId = lngAnim.addListener(() => {
+      // @ts-ignore
+      setCurrentPos([lngAnim._value, latAnim._value]);
+    });
+    return () => lngAnim.removeListener(listenerId);
+  }, []);
+
+  const busShape = useMemo(() => {
+    if (!currentPos) return null; 
+    return {
+      type: 'Feature' as const,
+      geometry: { type: 'Point' as const, coordinates: currentPos }
+    };
+  }, [currentPos]);
+
+  useEffect(() => {
+    if (command === 'center') {
+      cameraRef.current?.setCamera({
+        centerCoordinate: UNMSM_STATIC_VIEW.center,
+        zoomLevel: UNMSM_STATIC_VIEW.zoom,
+        animationDuration: 2000,
+        animationMode: 'flyTo'
+      });
+      setCommand(null);
+    }
+  }, [command]);
+
+  const selectedStop = useMemo(() => PARADEROS.find(p => p.id === selectedStopId), [selectedStopId]);
+  
+  // Tema actual para pintar tanto los círculos como el texto
+  const currentStopTheme = isDarkMode ? STOP_COLORS.dark : STOP_COLORS.light;
+
+  let radarBorderColor = COLORS.primary;
+  let radarBgColor = 'rgba(0, 174, 239, 0.35)';
+  
+  if (busMovementStatus === 'stopped') {
+    radarBorderColor = '#FF9800';
+    radarBgColor = 'rgba(255, 152, 0, 0.35)';
+  }
+
+  const showBusOnMap = burritoLocation && busMovementStatus !== 'offline';
+  const showRadar = busMovementStatus !== 'offline';
+
+  return (
+    <View style={styles.container}>
+      
+      {SHOW_DEBUG_PANEL && __DEV__ && (
+        <View style={styles.debugPanel}>
+          <Text style={styles.debugTitle}>RADAR DE DATOS RAW</Text>
+          {debugLogs.map((log, index) => (
+            <Text key={index} style={styles.debugText}>
+               {index === 0 ? '▶ ' : '  '}{log}
+            </Text>
+          ))}
+        </View>
+      )}
+
+      <Mapbox.MapView
+        style={styles.map} 
+        scaleBarEnabled={false} 
+        attributionEnabled={true} 
+        logoEnabled={true}
+        styleURL={isDarkMode ? Mapbox.StyleURL.Dark : Mapbox.StyleURL.Street}
+        onDidFinishLoadingMap={() => {
+          setIsMapReady(true);
+          // Forzar la posición inicial de la cámara tras cargar el mapa:
+          // workaround para el comportamiento de Mapbox en Android que a veces
+          // ignora defaultSettings en el primer frame y muestra otra posición.
+          cameraRef.current?.setCamera({
+            centerCoordinate: UNMSM_STATIC_VIEW.center,
+            zoomLevel: UNMSM_STATIC_VIEW.zoom,
+            animationDuration: 0,
+          });
+        }}
+        onPress={() => setSelectedStopId(null)}
+      >
+        <Mapbox.Camera 
+          ref={cameraRef} 
+          maxBounds={boundsActive ? UNMSM_BOUNDS : undefined}
+          defaultSettings={{ 
+            centerCoordinate: UNMSM_STATIC_VIEW.center, 
+            zoomLevel: UNMSM_STATIC_VIEW.zoom 
+          }} 
+        />
+        
+        {/* Solo cargamos la imagen del bus */}
+        <Mapbox.Images images={{ busIcon: require('../../../assets/bus.png') }} />
+        
+        <Mapbox.ShapeSource id="routeSource" shape={RUTA_GEOJSON}>
+          <Mapbox.LineLayer 
+            id="routeLine" 
+            style={{ lineColor: COLORS.primary, lineWidth: 5, lineOpacity: 0.85 }} 
+          />
+        </Mapbox.ShapeSource>
+
+        {showBusOnMap && currentPos && showRadar && (
+          <Mapbox.ShapeSource id="radarSource" shape={busShape as any}>
+            <Mapbox.CircleLayer
+              id="radarRingInner"
+              style={{
+                circleRadius: radarRadius,
+                circleOpacity: radarOpacity,
+                circleColor: radarBgColor,
+                circleStrokeWidth: 4,
+                circleStrokeColor: radarBorderColor,
+                circleStrokeOpacity: radarOpacity,
+              }}
+            />
+          </Mapbox.ShapeSource>
+        )}
+
+        {/* PARADEROS: Círculos pequeños con la letra "P" adentro */}
+        <Mapbox.ShapeSource 
+          id="stopsSource" 
+          shape={PARADEROS_GEOJSON}
+          onPress={(event) => {
+            const feature = event.features[0];
+            if (feature && feature.properties) {
+              const stopId = feature.properties.id;
+              const stopName = feature.properties.name;
+              
+              ReactNativeHapticFeedback.trigger("impactLight", hapticOptions);
+              analytics().logEvent('paradero_tocado', { nombre: stopName });
+              
+              setSelectedStopId(prev => prev === stopId ? null : stopId);
+            }
+          }}
+        >
+          {/* Círculo de Borde Exterior */}
+          <Mapbox.CircleLayer 
+            id="stopsLayerOuter" 
+            style={{
+              circleRadius: 10, // Reducido (antes 12)
+              circleColor: currentStopTheme.border, 
+              circlePitchAlignment: 'map',
+            }} 
+          />
+          {/* Círculo de Fondo Interior */}
+          <Mapbox.CircleLayer 
+            id="stopsLayerInner" 
+            style={{
+              circleRadius: 8, // Reducido (antes 9)
+              circleColor: currentStopTheme.bg, 
+              circlePitchAlignment: 'map',
+            }} 
+          />
+          {/* La letra "P" renderizada de forma nativa */}
+          <Mapbox.SymbolLayer 
+            id="stopsTextLayer" 
+            style={{
+              textField: 'P',
+              textSize: 10, // Letra pequeña para encajar en el radio 8
+              textColor: currentStopTheme.icon, // Blanco en Light, Gris Oscuro en Dark
+              textAllowOverlap: true,
+              textIgnorePlacement: true,
+              textPitchAlignment: 'map',
+              // Pequeño efecto para que la letra se note más limpia
+              textHaloColor: currentStopTheme.bg,
+              textHaloWidth: 0.5,
+            }} 
+          />
+        </Mapbox.ShapeSource>
+
+        {showBusOnMap && busShape && (
+          <Mapbox.ShapeSource id="busSource" shape={busShape as any}>
+            <Mapbox.SymbolLayer 
+              id="busLayer" 
+              style={{ 
+                iconImage: 'busIcon', 
+                iconSize: 0.08, 
+                iconRotate: currentHeading, 
+                iconRotationAlignment: 'map', 
+                iconAllowOverlap: true, 
+                iconIgnorePlacement: true 
+              }} 
+            />
+          </Mapbox.ShapeSource>
+        )}
+      </Mapbox.MapView>
+
+      {selectedStop && (
+        <Reanimated.View 
+          key={selectedStop.id} 
+          entering={FadeInDown.springify().stiffness(400).damping(25).mass(0.5)} 
+          exiting={FadeOutDown.duration(150).easing(Easing.in(Easing.ease))} 
+          style={styles.cardWrapper} 
+          pointerEvents="box-none"
+        >
+          <StopCard title={selectedStop.name || 'Paradero'} onClose={() => setSelectedStopId(null)} />
+        </Reanimated.View>
+      )}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({ 
+  container: { flex: 1 }, 
+  map: { flex: 1 }, 
+  cardWrapper: { position: 'absolute', bottom: 40, alignSelf: 'center', zIndex: 100, elevation: 10 },
+  
+  debugPanel: {
+    position: 'absolute',
+    top: 100,
+    left: 10,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    padding: 10,
+    borderRadius: 8,
+    zIndex: 999,
+    elevation: 10,
+    pointerEvents: 'none' 
+  },
+  debugTitle: { color: '#00FFFF', fontSize: 10, fontWeight: 'bold', marginBottom: 5 },
+  debugText: { color: '#00FF00', fontSize: 11, fontFamily: 'monospace' },
+});

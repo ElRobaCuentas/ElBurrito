@@ -1,0 +1,21 @@
+{
+  "name": "el-burrito-firebase-lab",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Laboratorio local de control y candidatas I03-I04 de conductores, asignaciones y comentarios. No publicar reglas.",
+  "scripts": {
+    "test": "node lab.js test",
+    "test:integration": "node lab.js integration",
+    "test:all": "node lab.js all",
+    "emulators": "node lab.js emulators",
+    "b2": "node lab.js b2"
+  },
+  "engines": {
+    "node": ">=24.12.0"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "5.0.0",
+    "firebase": "12.17.1"
+  }
+}

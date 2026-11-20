@@ -1,0 +1,46 @@
+{
+  "rules": {
+    "usuarios": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "comentarios": {
+      ".read": false,
+      ".write": false,
+      "$comentarioId": {
+        ".write": "auth != null && !data.exists() && newData.exists() && newData.child('uid').isString() && newData.child('uid').val() === auth.uid",
+        ".validate": "newData.hasChildren(['uid', 'rating']) && newData.child('uid').isString() && newData.child('uid').val() === auth.uid && newData.child('rating').isNumber() && (newData.child('rating').val() === 1 || newData.child('rating').val() === 2 || newData.child('rating').val() === 3 || newData.child('rating').val() === 4 || newData.child('rating').val() === 5) && (!newData.child('username').exists() || newData.child('username').isString()) && (!newData.child('avatar').exists() || newData.child('avatar').isString()) && (!newData.child('mensaje').exists() || newData.child('mensaje').isString()) && (!newData.child('email').exists() || newData.child('email').isString()) && (!newData.child('timestamp').exists() || (newData.child('timestamp').isNumber() && newData.child('timestamp').val() > 0))"
+      }
+    },
+    "administradores": {
+      ".read": "auth != null && root.child('administradores').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('administradores').child(auth.uid).exists()"
+    },
+    "asignaciones": {
+      ".read": "auth != null && (root.child('administradores').child(auth.uid).exists() || (root.child('choferes_uids').child(auth.uid).isString() && query.orderByChild === 'choferId' && query.equalTo === root.child('choferes_uids').child(auth.uid).val()))",
+      ".write": "auth != null && root.child('administradores').child(auth.uid).exists()",
+      ".indexOn": ["choferId"]
+    },
+    "ubicacion_buses": {
+      ".read": true,
+      ".write": "auth != null && (root.child('administradores').child(auth.uid).exists() || root.child('choferes_uids').child(auth.uid).exists())"
+    },
+    "choferes": {
+      ".read": "auth != null && root.child('administradores').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('administradores').child(auth.uid).exists()",
+      "$dni": {
+        ".read": "auth != null && root.child('choferes_uids').child(auth.uid).val() === $dni"
+      }
+    },
+    "choferes_uids": {
+      ".read": false,
+      ".write": "auth != null && root.child('administradores').child(auth.uid).exists()"
+    },
+    "buses": {
+      ".read": "auth != null && root.child('administradores').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('administradores').child(auth.uid).exists()"
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "name": "adminweb",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:pulso": "vite --mode pulso-local --host 127.0.0.1",
+    "emulators:pulso": "node monitor/worker/scripts/test-api-local.ts --serve",
+    "test:pulso": "node --test tests/pulso.test.ts tests/pulsoProduction.test.ts tests/pulsoPolling.test.ts",
+    "test:pulso:integration": "node monitor/worker/scripts/test-api-local.ts pulsoScreen.integration.test.ts",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "firebase": "^12.17.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.2",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.4",
+    "oxlint": "^1.75.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.2.0"
+  }
+}

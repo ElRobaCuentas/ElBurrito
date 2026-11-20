@@ -1,0 +1,408 @@
+import { BurritoLocation } from '../src/features/map/types';
+
+jest.mock('../src/features/map/services/map_service', () => ({
+  MapService: {
+    subscribeToBusLocations: jest.fn(() => jest.fn()),
+  },
+}));
+
+import { MapService } from '../src/features/map/services/map_service';
+import { useBurritoStore, MOVEMENT_THRESHOLD_M } from '../src/store/burritoLocationStore';
+
+const baseLocation: BurritoLocation = {
+  latitude: -12.0575,
+  longitude: -77.0830,
+  heading: 0,
+  isActive: true,
+  timestamp: 1000,
+};
+
+describe('burritoLocationStore - filtro de aduana', () => {
+  let onUpdate: (locations: Record<string, BurritoLocation>) => void;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    useBurritoStore.getState().actions.stopTracking();
+    useBurritoStore.setState({ locations: {}, busMovementStates: {}, movementDisplacements: {}, movementMemory: {}, isConnecting: false, connectionError: false });
+    jest.clearAllMocks();
+
+    useBurritoStore.getState().actions.startTracking();
+
+    const mockSubscribe = MapService.subscribeToBusLocations as jest.Mock;
+    onUpdate = mockSubscribe.mock.calls[0][0];
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  test('debería almacenar la primera recepción de datos', () => {
+    onUpdate({
+      'ABC-123': { ...baseLocation, timestamp: 1000 },
+    });
+
+    const state = useBurritoStore.getState();
+    expect(state.locations['ABC-123']).toBeDefined();
+    expect(state.locations['ABC-123'].timestamp).toBe(1000);
+  });
+
+  test('debería rechazar un timestamp más viejo que el almacenado para la misma placa', () => {
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 2000 } });
+    expect(useBurritoStore.getState().locations['ABC-123'].timestamp).toBe(2000);
+
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 1500 } });
+    expect(useBurritoStore.getState().locations['ABC-123'].timestamp).toBe(2000);
+  });
+
+  test('debería aceptar un timestamp más nuevo para la misma placa', () => {
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 1000 } });
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 3000 } });
+
+    expect(useBurritoStore.getState().locations['ABC-123'].timestamp).toBe(3000);
+  });
+
+  test('debería aceptar una placa nueva aunque su timestamp sea antiguo', () => {
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 2000 } });
+    onUpdate({ 'XYZ-789': { ...baseLocation, timestamp: 500 } });
+
+    const state = useBurritoStore.getState();
+    expect(state.locations['XYZ-789'].timestamp).toBe(500);
+  });
+
+  test('debería mantener los datos de placas no afectadas al actualizar otra', () => {
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 1000 } });
+    onUpdate({ 'XYZ-789': { ...baseLocation, timestamp: 500 } });
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 2000 } });
+
+    const state = useBurritoStore.getState();
+    expect(state.locations['ABC-123'].timestamp).toBe(2000);
+    expect(state.locations['XYZ-789'].timestamp).toBe(500);
+  });
+
+  test('debería calcular busMovementStates para cada placa', () => {
+    const dateSpy = jest.spyOn(Date, 'now').mockReturnValue(5000);
+
+    onUpdate({
+      'ABC-123': { ...baseLocation, timestamp: 2000, isActive: true },
+      'XYZ-789': { ...baseLocation, timestamp: 1000, isActive: false },
+    });
+
+    const state = useBurritoStore.getState();
+    expect(state.busMovementStates['ABC-123']).toBe('moving');
+    expect(state.busMovementStates['XYZ-789']).toBe('offline');
+
+    dateSpy.mockRestore();
+  });
+
+  test('debería marcar como offline un bus activo con timestamp obsoleto (C4.6)', () => {
+    const dateSpy = jest.spyOn(Date, 'now').mockReturnValue(40000);
+
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 1000, isActive: true } });
+
+    const state = useBurritoStore.getState();
+    expect(state.busMovementStates['ABC-123']).toBe('offline');
+
+    dateSpy.mockRestore();
+  });
+
+  test('debería marcar "stopped" cuando el bus no se desplaza entre snapshots (C4.6, estrategia C con histeresis)', () => {
+    const dateSpy = jest.spyOn(Date, 'now').mockReturnValue(5000);
+
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 1000 } });
+    // Sin evidencia (dist=0) una sola vez: aún no es suficiente para parar.
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 2000 } });
+    expect(useBurritoStore.getState().busMovementStates['ABC-123']).toBe('moving');
+
+    // Segunda medición consecutiva sin evidencia (dist=0): STOP_CONFIRM_PAIRS=2.
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 3000 } });
+    const state = useBurritoStore.getState();
+    expect(state.busMovementStates['ABC-123']).toBe('stopped');
+    expect(state.movementDisplacements['ABC-123']).toBe(0);
+
+    dateSpy.mockRestore();
+  });
+
+  test('debería marcar "moving" cuando el bus se desplaza entre snapshots (C4.6)', () => {
+    const dateSpy = jest.spyOn(Date, 'now').mockReturnValue(5000);
+
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 1000 } });
+    onUpdate({
+      'ABC-123': {
+        ...baseLocation,
+        latitude: -12.0,
+        longitude: -77.0,
+        timestamp: 2000,
+      },
+    });
+
+    const state = useBurritoStore.getState();
+    expect(state.busMovementStates['ABC-123']).toBe('moving');
+    expect(state.movementDisplacements['ABC-123']).toBeGreaterThan(MOVEMENT_THRESHOLD_M);
+
+    dateSpy.mockRestore();
+  });
+
+  test('debería quedar "offline" aunque se mueva si el timestamp ya expiró (C4.6)', () => {
+    const dateSpy = jest.spyOn(Date, 'now').mockReturnValue(40000);
+
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 1000 } });
+    onUpdate({
+      'ABC-123': {
+        ...baseLocation,
+        latitude: -12.0,
+        longitude: -77.0,
+        timestamp: 2000,
+      },
+    });
+
+    const state = useBurritoStore.getState();
+    expect(state.busMovementStates['ABC-123']).toBe('offline');
+
+    dateSpy.mockRestore();
+  });
+
+  test('debería limpiar el estado al hacer stopTracking', () => {
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 1000 } });
+    expect(Object.keys(useBurritoStore.getState().locations).length).toBeGreaterThan(0);
+
+    useBurritoStore.getState().actions.stopTracking();
+
+    expect(useBurritoStore.getState().locations).toEqual({});
+    expect(useBurritoStore.getState().busMovementStates).toEqual({});
+    expect(useBurritoStore.getState().isConnecting).toBe(false);
+  });
+
+  test('I05: acepta una detención con el mismo timestamp', () => {
+    const dateSpy = jest.spyOn(Date, 'now').mockReturnValue(5000);
+
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 2000, isActive: true } });
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 2000, isActive: false } });
+
+    const state = useBurritoStore.getState();
+    expect(state.locations['ABC-123'].isActive).toBe(false);
+    expect(state.locations['ABC-123'].timestamp).toBe(2000);
+    expect(state.busMovementStates['ABC-123']).toBe('offline');
+
+    dateSpy.mockRestore();
+  });
+
+  test('I05: rechaza una detención con timestamp anterior', () => {
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 2000, isActive: true } });
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 1500, isActive: false } });
+
+    const state = useBurritoStore.getState();
+    expect(state.locations['ABC-123'].isActive).toBe(true);
+    expect(state.locations['ABC-123'].timestamp).toBe(2000);
+  });
+
+  test('I05: no reactiva el bus con un activo del mismo timestamp que la detención', () => {
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 1000, isActive: true } });
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 1000, isActive: false } });
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 1000, isActive: true } });
+
+    const state = useBurritoStore.getState();
+    expect(state.locations['ABC-123'].isActive).toBe(false);
+    expect(state.locations['ABC-123'].timestamp).toBe(1000);
+  });
+
+  test('I05: acepta un nuevo recorrido con timestamp posterior a la detención', () => {
+    const dateSpy = jest.spyOn(Date, 'now').mockReturnValue(5000);
+
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 1000, isActive: true } });
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 1000, isActive: false } });
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 3000, isActive: true } });
+
+    const state = useBurritoStore.getState();
+    expect(state.locations['ABC-123'].isActive).toBe(true);
+    expect(state.locations['ABC-123'].timestamp).toBe(3000);
+    expect(state.busMovementStates['ABC-123']).not.toBe('offline');
+
+    dateSpy.mockRestore();
+  });
+
+  test('I05: rechaza una repetición activa con el mismo timestamp', () => {
+    onUpdate({ 'ABC-123': { ...baseLocation, latitude: -12.05, timestamp: 2000 } });
+    onUpdate({ 'ABC-123': { ...baseLocation, latitude: -12.06, timestamp: 2000 } });
+
+    expect(useBurritoStore.getState().locations['ABC-123'].latitude).toBe(-12.05);
+  });
+
+  test('I05: acepta una detención sin coordenadas con el mismo timestamp', () => {
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 2000, isActive: true } });
+    onUpdate({ 'ABC-123': {
+      latitude: 0, longitude: 0, heading: 0, timestamp: 2000, isActive: false,
+    } });
+
+    const state = useBurritoStore.getState();
+    expect(state.locations['ABC-123'].isActive).toBe(false);
+    expect(state.busMovementStates['ABC-123']).toBe('offline');
+  });
+
+  test('I06: un snapshot vacío conserva la última posición válida y su timestamp', () => {
+    const dateSpy = jest.spyOn(Date, 'now').mockReturnValue(5000);
+
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 2000, isActive: true } });
+    onUpdate({});
+
+    const state = useBurritoStore.getState();
+    expect(state.locations['ABC-123'].latitude).toBe(baseLocation.latitude);
+    expect(state.locations['ABC-123'].timestamp).toBe(2000);
+
+    dateSpy.mockRestore();
+  });
+
+  test('I06: una detención con timestamp igual y datos auxiliares inválidos queda offline', () => {
+    const dateSpy = jest.spyOn(Date, 'now').mockReturnValue(5000);
+
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 2000, isActive: true } });
+    onUpdate({
+      'ABC-123': {
+        ...baseLocation,
+        heading: -1,
+        speed: -1,
+        timestamp: 2000,
+        isActive: false,
+      },
+    });
+
+    const state = useBurritoStore.getState();
+    expect(state.locations['ABC-123'].isActive).toBe(false);
+    expect(state.busMovementStates['ABC-123']).toBe('offline');
+
+    dateSpy.mockRestore();
+  });
+
+  test('I06: una detención con coordenadas inválidas conserva la última posición y el historial', () => {
+    const dateSpy = jest.spyOn(Date, 'now').mockReturnValue(5000);
+
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 1000, isActive: true } });
+    onUpdate({
+      'ABC-123': {
+        ...baseLocation,
+        latitude: -12.0,
+        longitude: -77.0,
+        timestamp: 2000,
+        isActive: true,
+      },
+    });
+
+    const beforeStop = useBurritoStore.getState();
+    const previousDisplacement = beforeStop.movementDisplacements['ABC-123'];
+    const previousMemory = beforeStop.movementMemory['ABC-123'];
+
+    onUpdate({
+      'ABC-123': {
+        ...baseLocation,
+        latitude: 0,
+        longitude: -77.0845,
+        timestamp: 2000,
+        isActive: false,
+        coordinatesValid: false,
+      },
+    });
+
+    const state = useBurritoStore.getState();
+    expect(state.locations['ABC-123'].isActive).toBe(false);
+    expect(state.busMovementStates['ABC-123']).toBe('offline');
+    expect(state.locations['ABC-123'].latitude).toBe(-12.0);
+    expect(state.locations['ABC-123'].longitude).toBe(-77.0);
+    expect(state.movementDisplacements['ABC-123']).toBe(previousDisplacement);
+    expect(state.movementMemory['ABC-123']).toEqual(previousMemory);
+
+    dateSpy.mockRestore();
+  });
+
+  test('I06: una publicación inválida no renueva la caducidad de la última posición válida', () => {
+    const dateSpy = jest.spyOn(Date, 'now').mockReturnValue(5000);
+
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 1000, isActive: true } });
+    expect(useBurritoStore.getState().busMovementStates['ABC-123']).toBe('moving');
+
+    dateSpy.mockReturnValue(20000);
+    onUpdate({});
+
+    const afterInvalid = useBurritoStore.getState();
+    expect(afterInvalid.locations['ABC-123'].timestamp).toBe(1000);
+    expect(afterInvalid.busMovementStates['ABC-123']).toBe('moving');
+
+    dateSpy.mockReturnValue(31000);
+    jest.advanceTimersByTime(2000);
+
+    expect(useBurritoStore.getState().busMovementStates['ABC-123']).toBe('offline');
+
+    dateSpy.mockRestore();
+  });
+});
+
+describe('burritoLocationStore - estados de conexión (C4.5)', () => {
+  let onUpdate: (locations: Record<string, BurritoLocation>) => void;
+  let onError: (error: Error) => void;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    useBurritoStore.getState().actions.stopTracking();
+    useBurritoStore.setState({ locations: {}, busMovementStates: {}, movementDisplacements: {}, isConnecting: false, connectionError: false });
+    jest.clearAllMocks();
+
+    useBurritoStore.getState().actions.startTracking();
+
+    const mockSubscribe = MapService.subscribeToBusLocations as jest.Mock;
+    onUpdate = mockSubscribe.mock.calls[0][0];
+    onError = mockSubscribe.mock.calls[0][1];
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  test('un snapshot vacío termina el loading sin marcar error', () => {
+    onUpdate({});
+
+    const state = useBurritoStore.getState();
+    expect(state.isConnecting).toBe(false);
+    expect(state.connectionError).toBe(false);
+  });
+
+  test('un error del listener marca el estado degradado', () => {
+    onError(new Error('simulado'));
+
+    const state = useBurritoStore.getState();
+    expect(state.isConnecting).toBe(false);
+    expect(state.connectionError).toBe(true);
+  });
+
+  test('el timeout de 10s sin snapshot ni error marca el estado degradado', () => {
+    jest.advanceTimersByTime(10000);
+
+    const state = useBurritoStore.getState();
+    expect(state.isConnecting).toBe(false);
+    expect(state.connectionError).toBe(true);
+  });
+
+  test('recibir un snapshot cancela el timeout', () => {
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 1000 } });
+
+    jest.advanceTimersByTime(10000);
+
+    expect(useBurritoStore.getState().connectionError).toBe(false);
+  });
+
+  test('se recupera automáticamente cuando llega un snapshot después del timeout', () => {
+    jest.advanceTimersByTime(10000);
+    expect(useBurritoStore.getState().connectionError).toBe(true);
+
+    onUpdate({ 'ABC-123': { ...baseLocation, timestamp: 1000 } });
+
+    const state = useBurritoStore.getState();
+    expect(state.connectionError).toBe(false);
+    expect(state.locations['ABC-123']).toBeDefined();
+  });
+
+  test('stopTracking cancela el timeout', () => {
+    useBurritoStore.getState().actions.stopTracking();
+
+    jest.advanceTimersByTime(10000);
+
+    expect(useBurritoStore.getState().connectionError).toBe(false);
+  });
+});

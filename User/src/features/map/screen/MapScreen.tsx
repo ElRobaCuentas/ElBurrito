@@ -1,0 +1,326 @@
+import React, { useEffect, useState } from 'react';
+import {
+  StyleSheet,
+  View,
+  TouchableOpacity,
+  StatusBar,
+  Platform,
+  Text,
+  ActivityIndicator
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useBurritoStore } from '../../../store/burritoLocationStore';
+import { useThemeStore } from '../../../store/themeStore';
+import { useMapStore } from '../../../store/mapStore';
+import { useDrawerStore } from '../../../store/drawerStore';
+import { useUserStore } from '../../../store/userStore'; 
+import { Map } from '../components/Map';
+import { FAB } from '../components/FAB';
+import { CustomDrawer } from '../components/CustomDrawer';
+import { MapBranding } from '../components/MapBranding';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { TYPOGRAPHY } from '../../../shared/theme/typography';
+import ReactNativeHapticFeedback from "react-native-haptic-feedback";
+import analytics from '@react-native-firebase/analytics'; 
+
+import LinearGradient from 'react-native-linear-gradient';
+import Animated, { FadeOut } from 'react-native-reanimated';
+
+const hapticOptions = {
+  enableVibrateFallback: true,
+  ignoreAndroidSystemSettings: false,
+};
+
+const BURRITO_COLORS = {
+  primary: '#00AEEF',
+  darkPrimary: '#005D8C',
+};
+
+export const MapScreen = () => {
+  const { locations, actions, isConnecting, connectionError } = useBurritoStore();
+  const { isDarkMode } = useThemeStore();
+  const { setCommand } = useMapStore();
+  const { openDrawer } = useDrawerStore();
+
+  const insets = useSafeAreaInsets();
+
+  const [minTimeReached, setMinTimeReached] = useState(false);
+  const [hasInitialLoad, setHasInitialLoad] = useState(false);
+
+  useEffect(() => {
+    actions.startTracking();
+    const timer = setTimeout(() => setMinTimeReached(true), 1500);
+
+    const initAnalytics = async () => {
+      try {
+        const uid = useUserStore.getState().uuid ?? 'anonimo';
+        const avatar = useUserStore.getState().avatar ?? 'desconocido';
+
+        await analytics().setUserId(uid);
+        await analytics().setUserProperty('facultad', avatar);
+        await analytics().logEvent('mapa_abierto', {
+          metodo_ingreso: 'auto_login'
+        });
+      } catch (error) {
+        console.log("Error en Analytics:", error);
+      }
+    };
+    initAnalytics();
+
+    return () => {
+      clearTimeout(timer);
+      actions.stopTracking();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (minTimeReached && !isConnecting) {
+      setHasInitialLoad(true);
+    }
+  }, [isConnecting, minTimeReached]);
+
+  const loadingGradient = isDarkMode
+    ? ['#121212', BURRITO_COLORS.darkPrimary]
+    : ['#FFFFFF', BURRITO_COLORS.primary];
+
+  const handleOpenDrawerWithHaptic = () => {
+    ReactNativeHapticFeedback.trigger("soft", hapticOptions);
+    setTimeout(() => {
+      ReactNativeHapticFeedback.trigger("soft", hapticOptions);
+    }, 120);
+    openDrawer();
+  };
+
+  const handleRetry = () => {
+    setHasInitialLoad(false);
+    actions.startTracking();
+  };
+
+  const locationValues = Object.values(locations);
+  const isBusResting = hasInitialLoad && !connectionError && locationValues.every(loc => loc.isActive === false);
+
+  return (
+    <View style={styles.container}>
+      <StatusBar
+        translucent
+        backgroundColor="transparent"
+        barStyle={isDarkMode ? "light-content" : "dark-content"}
+      />
+
+      <View style={styles.mapWrapper}>
+        <Map locations={locations} isDarkMode={isDarkMode} />
+      </View>
+
+      {!hasInitialLoad && !connectionError && (
+        <Animated.View
+          exiting={FadeOut.duration(600)}
+          style={styles.loadingOverlay}
+        >
+          <LinearGradient
+            colors={loadingGradient}
+            style={styles.gradientWrapper}
+          >
+            <View style={styles.loaderContent}>
+              <ActivityIndicator size="large" color={BURRITO_COLORS.primary} style={{ marginBottom: 20 }} />
+              <Text style={[styles.loadingText, { color: isDarkMode ? '#FFFFFF' : '#333' }]}>
+                Esperando al burrito...
+              </Text>
+              <Text style={[styles.subLoadingText, { color: isDarkMode ? '#A0A0A0' : '#666666' }]}>
+                Sincronizando ubicación
+              </Text>
+            </View>
+          </LinearGradient>
+        </Animated.View>
+      )}
+
+      {(hasInitialLoad || connectionError) && (
+        <View style={styles.uiLayer} pointerEvents="box-none">
+
+          {!connectionError && <MapBranding isDarkMode={isDarkMode} />}
+
+          <View
+            style={[
+              styles.topBar,
+              { paddingTop: Platform.OS === 'android' ? insets.top + 10 : insets.top + 5 }
+            ]}
+            pointerEvents="box-none"
+          >
+            <TouchableOpacity
+              onPress={handleOpenDrawerWithHaptic}
+              activeOpacity={0.8}
+              style={styles.hamburgerButton}
+            >
+              <Icon name="menu" size={28} color="#333" />
+            </TouchableOpacity>
+
+            {isBusResting && (
+              <View style={styles.restingBadgeWrapper} pointerEvents="none">
+                <View style={styles.restingBadge}>
+                  <Text style={styles.restingText}> BURRITO DESCANSANDO</Text>
+                </View>
+              </View>
+            )}
+          </View>
+
+          {!connectionError && (
+            <View style={{ flex: 1, justifyContent: 'flex-end', paddingBottom: insets.bottom }} pointerEvents="box-none">
+              <FAB
+                onCenterMap={() => {
+                  analytics().logEvent('mapa_centrado');
+                  setCommand('center');
+                }}
+              />
+            </View>
+          )}
+        </View>
+      )}
+
+      {connectionError && (
+        <View style={styles.errorOverlay} pointerEvents="box-none">
+          <View style={[styles.errorCard, { backgroundColor: isDarkMode ? '#1A1A2E' : '#FFFFFF' }]}>
+            <Icon name="wifi-off" size={48} color={BURRITO_COLORS.primary} />
+            <Text style={[styles.errorTitle, { color: isDarkMode ? '#FFFFFF' : '#333' }]}>
+              Sin conexión
+            </Text>
+            <Text style={[styles.errorSubtitle, { color: isDarkMode ? '#A0A0A0' : '#666666' }]}>
+              Revisa tu conexión a internet e inténtalo de nuevo.
+            </Text>
+            <TouchableOpacity
+              onPress={handleRetry}
+              activeOpacity={0.8}
+              style={styles.retryButton}
+            >
+              <Text style={styles.retryButtonText}>REINTENTAR</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      <View style={styles.drawerWrapper} pointerEvents="box-none">
+        <CustomDrawer />
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#000' },
+  mapWrapper: { ...StyleSheet.absoluteFillObject, zIndex: 1 },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 999,
+  },
+  gradientWrapper: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loaderContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 30,
+    borderRadius: 20,
+    backgroundColor: 'transparent',
+  },
+  loadingText: {
+    fontFamily: TYPOGRAPHY.primary.bold,
+    fontSize: 18,
+    letterSpacing: 0.5,
+  },
+  subLoadingText: {
+    fontFamily: TYPOGRAPHY.primary.regular,
+    fontSize: 12,
+    marginTop: 5,
+    letterSpacing: 0.3,
+  },
+  uiLayer: { ...StyleSheet.absoluteFillObject, zIndex: 10 },
+  drawerWrapper: { ...StyleSheet.absoluteFillObject, zIndex: 20 },
+  topBar: {
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+  },
+  hamburgerButton: {
+    backgroundColor: 'white',
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+  },
+  restingBadgeWrapper: {
+    flex: 1,
+    alignItems: 'center',
+    paddingRight: 80,
+    paddingLeft: 10,
+  },
+  restingBadge: {
+    backgroundColor: '#1A1A2E',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+  },
+  restingText: {
+    fontFamily: TYPOGRAPHY.primary.bold,
+    fontSize: 12,
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  errorOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 40,
+  },
+  errorCard: {
+    alignItems: 'center',
+    padding: 28,
+    borderRadius: 20,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+  },
+  errorTitle: {
+    fontFamily: TYPOGRAPHY.primary.bold,
+    fontSize: 20,
+    marginTop: 16,
+    letterSpacing: 0.5,
+  },
+  errorSubtitle: {
+    fontFamily: TYPOGRAPHY.primary.regular,
+    fontSize: 14,
+    marginTop: 6,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  retryButton: {
+    marginTop: 24,
+    backgroundColor: BURRITO_COLORS.primary,
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 25,
+    elevation: 4,
+  },
+  retryButtonText: {
+    fontFamily: TYPOGRAPHY.primary.bold,
+    fontSize: 14,
+    color: '#FFFFFF',
+    letterSpacing: 1,
+  },
+});

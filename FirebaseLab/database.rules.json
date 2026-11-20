@@ -1,0 +1,17 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "publico": {
+      ".read": true
+    },
+    "privado": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid"
+      }
+    },
+    "bloqueado": {
+      ".write": false
+    }
+  }
+}

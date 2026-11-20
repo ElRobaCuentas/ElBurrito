@@ -1,0 +1,14 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "ubicacion_buses": {
+      ".read": false,
+      ".write": false,
+      "__PULSO_BUS_ID_PENDING__": {
+        ".read": "auth != null && auth.uid === 'B0KBCdOgh5cSpRKzwPAO9E2rEdl1'",
+        ".write": false
+      }
+    }
+  }
+}
