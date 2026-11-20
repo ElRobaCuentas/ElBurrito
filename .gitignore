@@ -1,0 +1,38 @@
+# Artefactos y respaldos locales
+/Releases/
+/BurritoBackup/
+*.bundle
+*.aab
+*.apk
+*.ipa
+
+# Entorno, credenciales y firma
+.env
+.env.*
+!.env.example
+.dev.vars*
+!.dev.vars.example
+serviceAccountKey.json
+local.properties
+keystore.properties
+*.jks
+*.keystore
+!/User/android/app/debug.keystore
+!/Driver/android/app/debug.keystore
+
+# Dependencias y salidas locales
+node_modules/
+*.log
+.firebase/
+.wrangler/
+/FirebaseLab/.cache/
+/FirebaseLab/.npm-cache/
+
+# Herramientas y estado privado del workspace
+/.agents/
+/skills-lock.json
+/.atl/
+/.engram/
+/.opencode/
+/.gentle-ai-default-agent.json
+.codegraph/
