@@ -1,7 +1,7 @@
 # FirebaseLab — control local de permisos
 
-Laboratorio independiente de SYTHOR para el Ecosistema El Burrito. No es un
-repositorio Git ni está conectado a User, Driver o AdminWeb.
+Laboratorio independiente de SYTHOR para el Ecosistema El Burrito. Forma parte
+del monorepo, pero no está conectado en ejecución a User, Driver ni AdminWeb.
 
 **Las reglas son locales y no están publicadas.** `database.rules.json` es la
 política ficticia de control. `rules/i03-choferes.rules.json` conserva la
@@ -51,10 +51,10 @@ No se permiten sobrescrituras, modificaciones, eliminaciones ni lecturas.
 
 Dos dependencias locales exactas: `@firebase/rules-unit-testing` 5.0.0 y
 `firebase` 12.17.1. Se utiliza el runner incorporado `node:test`, sin Jest.
-Para reinstalar desde el lockfile dentro de esta carpeta:
+Para reinstalar desde el lockfile, desde la raíz del monorepo:
 
 ```powershell
-cd C:\Movil\FirebaseLab
+Set-Location -LiteralPath .\FirebaseLab
 npm ci --cache .npm-cache --no-audit --no-fund
 ```
 
@@ -64,8 +64,9 @@ en el laboratorio. No son bases de datos ni copias de datos productivos.
 
 ## Ejecutar la regresión de reglas
 
+Desde `FirebaseLab/`:
+
 ```powershell
-cd C:\Movil\FirebaseLab
 npm test
 ```
 
@@ -150,7 +151,7 @@ rechaza puertos ocupados. No matar procesos preexistentes para liberar puertos.
 
 ### Escenario B2 con datos ficticios
 
-Desde `C:\Movil\FirebaseLab`:
+Desde `FirebaseLab/`:
 
 ```powershell
 npm run b2

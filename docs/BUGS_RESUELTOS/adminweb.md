@@ -32,7 +32,8 @@ que esta prueba de navegador haya ocurrido ni que el bundle valide Firebase.
 
 **Estado:** corregido y verificado localmente en `5e66d46` (`fix/modal-focus`),
 integrado y publicado en `main`/`origin/main`; deploy no acreditado. B2
-preservado exclusivamente en la rama local `test/b2-adminweb-emulator`,
+preservado exclusivamente en la rama local `test/b2-adminweb-emulator` del
+repositorio anterior de AdminWeb; esa rama no forma parte del monorepo actual,
 commit `dc58daf`. En esa rama, sus tres archivos conservan los hashes Git
 previos y no forman parte de esta corrección:
 

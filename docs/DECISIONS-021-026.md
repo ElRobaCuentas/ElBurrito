@@ -1,0 +1,425 @@
+# ADR-021–026: experiencia, autorización y gestión operativa
+
+[Volver al documento principal](DECISIONS.md).
+
+### ADR-021: Splash nativo único (react-native-bootsplash) en lugar de AnimatedSplash
+
+**Estado:** Aceptada.
+
+**Contexto:**
+
+La UserApp tenía una doble capa de splash: el tema nativo de arranque
+(`BootTheme` de `react-native-bootsplash`) y un overlay JS
+(`AnimatedSplash.tsx`, animación Lottie) montado en `App.tsx` con
+`zIndex: 999` sobre `StyleSheet.absoluteFill`. Al terminar la animación
+JS, `onFinish` desmontaba el overlay y el fondo `#00AEEF` (cian) del
+`GestureHandlerRootView` quedaba expuesto en el instante de la
+transición hacia `WelcomeScreen`, provocando un "flash cian". El
+`StatusBar` además dependía de `showAnimatedSplash`, forzando un cambio
+de color abrupto.
+
+**Decisión:**
+
+Eliminar `AnimatedSplash.tsx` por completo y dejar el splash nativo de
+`react-native-bootsplash` (dependencia ya presente, `^7.1.0`) como única
+capa. El splash se oculta en `onReady` del `NavigationContainer`:
+
+```typescript
+<NavigationContainer
+  onReady={() => {
+    requestAnimationFrame(() => BootSplash.hide({ fade: true }));
+  }}
+>
+```
+
+De esta forma el splash nativo cubre el arranque, la hidratación de los
+stores y el primer paint del árbol de navegación; al ocultarse con fade,
+la primera pantalla ya está lista y no hay flash. El `StatusBar` deja de
+depender del estado del splash.
+
+**Alternativas consideradas:**
+
+- Mantener el overlay JS ajustando solo los colores: descartado, no
+  elimina la doble capa ni el flash de transición.
+- Ocultar el splash con un temporizador fijo: descartado, no garantiza
+  que la navegación ya esté pintada (mismo problema de flash o splash
+  recortado).
+- Ocultar apenas completada la hidratación (`_hasHydrated`): descartado,
+  podía revelar la pantalla antes del primer paint de React Navigation.
+
+**Consecuencias:**
+
+- Una sola capa de splash, controlada por el ciclo de vida real del
+  árbol de navegación (`onReady`).
+- El arranque muestra el logo oficial, regenerado desde
+  `assets/splash_logo.png` en `drawable-*/bootsplash_logo.png` y
+  `assets/bootsplash/*`. El launcher usa `mipmap-*/ic_launcher*.png`.
+- Se eliminó `src/app/screen/AnimatedSplash.tsx`; `App.tsx` ya no usa
+  `useState` para el splash ni el overlay absoluto.
+- No se agregó ninguna dependencia nueva: `react-native-bootsplash`
+  ya estaba en `package.json` (`^7.1.0`).
+
+**Referencias:** ARCHITECTURE.md (sección 4), BUGS_RESUELTOS/userapp.md
+(CASO 018).
+
+---
+
+### ADR-022: Desactivación de la funcionalidad "Seguir Bus" en la UserApp
+
+**Estado:** Aceptada.
+
+**Contexto:**
+
+La UserApp incluía un botón flotante (FAB con icono `crosshairs`) que
+centraba la cámara sobre el bus (zoom 17.5) y la mantenía anclada a su
+posición mediante un seguimiento continuo (`isFollowing` en `mapStore`,
+rama `'follow'` del comando y efecto de cámara en `Map.tsx`). La vista
+general por defecto del campus (zoom 15.1, centrada en la UNMSM) ya
+muestra el circuito completo de la ruta, por lo que el seguimiento
+cercano resultaba redundante para el caso de uso principal.
+
+**Decisión:**
+
+Funcionalidad dejada de lado por decisión del desarrollador. Se eliminó
+por completo el botón y toda su maquinaria asociada: props del `FAB`
+(`isFollowingBus`, `onFollowBus`, `isBusActive`), evento de analytics
+`bus_seguido`, rama `'follow'` del manejador de comandos, efecto de
+seguimiento continuo de cámara en `Map.tsx`, cancelación por gesto del
+usuario (`onRegionWillChange`) y el estado `isFollowing`/`setIsFollowing`
+de `mapStore`. Este ADR es el único registro histórico de que esta
+funcionalidad existió; el código anterior permanece recuperable en el
+historial de Git si algún día se decide reintroducirla.
+
+**Alternativas consideradas:**
+
+- Mantener la maquinaria dormida (solo ocultar el botón): descartado
+  porque deja estado muerto y un comando inalcanzable en un store
+  compartido, dificultando el mantenimiento.
+- Reutilizar el botón restante para centrar en el bus en lugar del
+  campus: descartado; se preserva el comportamiento actual de recentrado
+  a la vista general (comando `'center'`) sin cambios.
+
+**Consecuencias:**
+
+- El FAB reduce a un solo botón ("centrar mapa"). No existe forma de
+  anclar la cámara al bus; el usuario navega manualmente o usa la vista
+  general, donde todo el circuito es visible.
+- Desaparece el evento de analytics `bus_seguido`; cualquier tablero o
+  embudo que lo use deja de recibir datos desde esta versión.
+- `mapStore` queda reducido al comando `'center'`.
+
+**Referencias:** ARCHITECTURE.md (sección 4, tabla de stores; estructura
+de UserApp). Los identificadores «Mockups §7c», «apéndice de archivos
+UserApp» y «flujo manual User» de MVP.md ya no están vigentes.
+
+---
+
+### ADR-023: Autorización de escritura en `/ubicacion_buses` por vínculo uid→DNI (`/choferes_uids`)
+
+**Estado:** Aceptada e implementada (23/08/2026).
+
+**Contexto:**
+
+Hasta esta fecha, la escritura del nodo de tracking era
+`.write: "auth != null"` (decisión aceptada para el MVP, ADR-017):
+cualquier usuario autenticado podía sobrescribir la posición de
+cualquier bus, suplantando al conductor real. La auditoría de seguridad
+del 23/08 identificó además que la alternativa "barata" de restringir
+por dominio de email (`@burritodriver.com`) era inviable: `SignUpScreen.tsx:83`
+acepta emails arbitrarios sin verificación (`emailVerified` no se
+consulta ni exige en ninguno de los tres repos), por lo que un atacante
+podía registrarse como `atacante@burritodriver.com` y pasar el filtro.
+El catálogo `/choferes/{dni}` tampoco sirve directamente a las reglas:
+sus claves son DNI, no UID, y las Security Rules solo conocen el
+`auth.uid` del solicitante.
+
+**Decisión:**
+
+Introducir un índice inverso `/choferes_uids/{uid} = dni`, escrito
+automáticamente por `createChofer()` (DriverApp `e09ec2f`, AdminWeb
+`9c5c288`) inmediatamente después de crear la cuenta Auth y el registro
+en `/choferes`. Las reglas publicadas quedan así:
+
+- `/ubicacion_buses` `.write`: `auth != null && (root.child('administradores').child(auth.uid).exists() || root.child('choferes_uids').child(auth.uid).exists())`
+- Nuevo bloque `/choferes_uids`: `.read: false`, `.write` solo admin.
+- Eliminado el bloque legacy `/ubicacion_burrito` (denegado por defecto).
+
+Los conductores preexistentes se poblaron con backfill manual desde
+Consola (2 entradas, verificadas). La lectura pública del tracking se
+mantiene intacta (requisito funcional de UserApp).
+
+**Alternativas consideradas:**
+
+- Autorizar por dominio de email: descartada; sin verificación de
+  email es trivialmente burlable (ver Contexto).
+- Autorizar conductor→bus específico (que cada uid solo pueda escribir
+  SU bus asignado del día): descartada para MVP porque exige evaluar
+  `/asignaciones` con condición de fecha actual dentro de las rules,
+  algo no expresable de forma fiable (el roll-over diario de
+  `fecha = hoy` requiere escritura diaria que solo puede hacer un
+  admin). El password=DNI sigue siendo la debilidad real previa; se
+  deja anotada como mejora post-MVP.
+
+**Consecuencias:**
+
+- Un usuario autenticado ya no puede publicar ubicación salvo que su
+  uid esté indexado en `/choferes_uids` o sea admin. Suplantación de
+  bus desde cuentas de estudiante: cerrada.
+- Postura fail-closed: si falla la última escritura de `createChofer()`
+  (el índice), el conductor existe pero no puede transmitir hasta reparar
+  el índice manualmente desde Consola.
+- Todo conductor creado desde una build vieja de AdminWeb desplegada
+  nacerá SIN índice (no podrá trackear): obligatorio redeployar
+  Firebase Hosting tras el merge.
+- `/choferes_uids` duplica parcialmente información de `/choferes`;
+  mantener ambos sincronizados es responsabilidad de `createChofer()`.
+- La matriz de validación quedó probada end-to-end el 23/08: simulador
+  de reglas (estudiante denegado, conductor permitido, admin permitido)
+  + pruebas reales web y móvil con conductores nuevos (99999999) y
+  backfilleado (44332211).
+
+**Referencias:** FIREBASE_SCHEMA.md (§2 claves primarias, §4 nodo
+`/choferes_uids`, §9 modelo de autorización), ADR-017. La referencia histórica
+«Bloque 2 S3» identificaba autorización RTDB por UID, no la rotación de firma
+S3 de ROADMAP.md.
+
+---
+
+### ADR-024: Auditoría mínima en `/asignaciones` (`createdAt` epoch + `createdBy` UID) y semántica de "desactivar"
+
+**Estado:** Aceptada e implementada (24/08/2026); alcance de auditoría
+ampliado en AdminWeb (27/08/2026).
+
+**Contexto:**
+
+El modelo de gestión del MVP permitía crear asignaciones sin rastro de
+quién las creó ni cuándo. Ante un dato inconsistente (asignación
+inesperada, turno duplicado) no había forma de reconstruir qué ocurrió.
+Se evaluó añadir campos de auditoría y se definieron tres decisiones de
+diseño:
+
+1. **Formato del timestamp**: se descartó guardar la hora como string
+   localizado (`"24/08/2026, 07:43:15 a. m."`). Un string así impide
+   ordenar cronológicamente, consultar por rangos o calcular duraciones
+   sin parsear. Se respeta la convención de FIREBASE_SCHEMA.md §2:
+   en RTDB se guarda Unix timestamp en milisegundos (`Date.now()`); el
+   formato legible es responsabilidad exclusiva de la UI
+   (`toLocaleString('es-PE', { timeZone: 'America/Lima' })`), que
+   convierte al mostrar. Datos estructurados en DB, presentación
+   localizada en pantalla.
+2. **Autoría sin fallback falso**: `createdBy` toma siempre el UID real
+   de la sesión admin (`auth.currentUser.uid`, vía `getAuth()` en
+   AdminWeb y `auth()` en DriverApp). Si no hay administrador
+   autenticado, `createAsignacion()` falla con error explícito ("No hay
+   administrador autenticado.") y no se escribe nada. Se descartó el
+   fallback `|| 'unknown'` porque introduciría un dato falso en la base.
+   No se creó `/administradores_uids`: ya existe `/administradores/{uid}`
+   como índice por UID (a diferencia de `/choferes`, indexado por DNI,
+   que sí necesitó `/choferes_uids`).
+3. **Alcance limitado a asignaciones**: `choferes` y `buses` NO reciben
+   campos de auditoría por ahora. Criterio: solo se guarda un dato si
+   cambia una decisión operativa del MVP. La fecha de alta de un
+   conductor/bus no condiciona nada hoy; agregarla sería construir el
+   post-MVP antes de validar el piloto.
+
+**Decisión complementaria — semántica de "desactivar" (Opción A):**
+
+Se documenta formalmente que desactivar conductor o bus
+(`activo: false` en `/choferes/{dni}` o `/buses/{placa}`) afecta solo la
+**elegibilidad futura**: el elemento deja de aparecer en los selectores
+de nueva asignación, pero NO revoca la autorización de escritura GPS ni
+interrumpe un recorrido ya iniciado. El tracking continúa hasta que el
+conductor presione DETENER RECORRIDO (ADR-026; anteriormente "DETENER TODO").
+Razones:
+
+- Desactivar es decisión administrativa; cancelar asignación es acción
+  operativa. Son conceptos distintos y usan herramientas distintas.
+- Revocar el GPS en caliente (Opción B) dejaría al bus desaparecido del
+  mapa sin aviso al conductor ni al estudiante: peor escenario de
+  producto que el falso positivo administrativo.
+- Con un único admin, el caso de uso real ("sacar a alguien AHORA") no
+  existe aún; si existiera, post-MVP: botón "Forzar detención" que
+  escriba `isActive: false` directo en `/ubicacion_buses/{placa}`.
+
+**Nota sobre la idea futura:** escribir `isActive:false` no garantiza
+detener al productor; la siguiente publicación del Driver puede volver a
+escribir `isActive:true`. Es una idea post-MVP no aprobada, no una
+funcionalidad implementada.
+
+**Alternativas consideradas:**
+
+- String localizado en RTDB: descartada (ver punto 1).
+- `createdBy: 'unknown'` como fallback: descartada (dato falso).
+- Auditoría también en conductores/buses: diferida en la decisión
+  original; implementada después en `3590d87`.
+- Revocación GPS inmediata al desactivar: descartada para MVP (Opción B,
+  ver arriba).
+
+**Consecuencias:**
+
+- Payload de `/asignaciones` gana `createdAt` (number, epoch ms) y
+  `createdBy` (string, UID). Ambos opcionales: registros previos siguen
+  siendo válidos y las pantallas renderizan condicionalmente.
+- `fecha` conserva su significado propio (día del turno); `createdAt`
+  registra el momento de creación. Puede darse `fecha: 2026-08-25` con
+  `createdAt` del 24/08 23:50 si el admin prepara turnos con antelación.
+- `createdBy` es auditoría, no seguridad: un cliente malicioso podría
+  escribir un UID ajeno en ese campo si las reglas lo permitieran. La
+  autorización real sigue determinada por `auth.uid` en
+  `/administradores` vía Security Rules (ADR-017/023).
+- **Hito histórico:** tras este cambio no se agregaron más
+  funcionalidades administrativas al MVP en esa fase; el siguiente hito
+  era el E2E de campo. La ampliación posterior de auditoría muestra que
+  la congelación no fue una prohibición permanente.
+
+**Evolución posterior (27/08/2026):** el alcance de auditoría se amplió
+en AdminWeb. `3590d87` incorporó `creadoEn`/`creadoPor` en
+`/choferes/{dni}` y `/buses/{placa}` (`admin_service.ts`). La exclusión
+del punto 3 describe la decisión original del 24/08; la implementación
+posterior la extendió.
+
+**Referencias:** FIREBASE_SCHEMA.md (§4 nodo `/asignaciones`),
+ROADMAP.md (Condiciones de pre-release y publicación, W12); MVP.md (§1, riesgo del piloto);
+AdminWeb commit `3590d87`.
+
+---
+
+### ADR-025: Migración de la administración a AdminWeb y separación de dominios de correo por rol
+
+**Estado:** Aceptada.
+
+**Contexto:**
+
+El panel administrativo vivió primero en la UserApp y luego fue movido a la
+DriverApp (ver ADR-009 y ADR-017). Mantener el panel y el tracking en la
+misma aplicación obligaba a un enrutador que decidía entre modo *admin* y
+modo *conductor* tras el login, y compartía un único proyecto móvil Android
+para dos roles con requisitos distintos. Además, todos los roles usaban el
+mismo dominio de correo (`@burritodriver.com`), lo que impedía distinguir el
+rol por identidad.
+
+**Decisión:**
+
+1. El panel administrativo vive en una aplicación web independiente,
+   **AdminWeb** (React 19 + Vite + Firebase JS SDK). La DriverApp queda como
+   aplicación móvil Android exclusiva de conductores; la UserApp, de
+   estudiantes.
+2. Separación de dominios de correo por rol, hardcodeada en los servicios:
+   - **Administradores**: `{dni}@admin.com` (login en AdminWeb).
+   - **Conductores**: `{dni}@conductor.com` (login en la DriverApp; creado
+     desde AdminWeb).
+3. La autorización administrativa sigue basada en la existencia de
+   `/administradores/{auth.uid}` (ADR-017), evaluada por AdminWeb tras el
+   login (`existeAdministrador`, con timeout de 10 s).
+4. El aislamiento entre las cuentas Auth creadas por el panel y la sesión del
+   admin se logra con una **app temporal por operación** con
+   `inMemoryPersistence` (ver ADR-011), no con `SecondaryApp`.
+5. La contraseña del conductor es su DNI; la del administrador la define
+   quien crea la cuenta.
+
+**Alternativas consideradas:**
+
+- Mantener el panel dentro de la DriverApp (ADR-017): descartado por mezclar
+  dos roles y dos plataformas en un mismo artefacto.
+- Un único dominio de correo para todos los roles: descartado; impide
+  distinguir el rol por identidad.
+- Autorizar por dominio de correo (`@admin.com`): descartado como mecanismo
+  de seguridad (el registro público no verifica el email, ver ADR-023); el
+  dominio es una convención de identidad, no un control de acceso.
+
+**Consecuencias:**
+
+- Tres aplicaciones con responsabilidad única: Driver (conductor), User
+  (estudiante) y AdminWeb (administrador).
+- El correo queda vinculado al rol por convención; el control de acceso real
+  depende de Firebase Auth (UID) y de `/administradores`.
+- El campo `rol` de `/usuarios` queda inerte (siempre `'estudiante'`), como
+  ya anticipaba ADR-017.
+
+**Limitaciones conocidas (observadas en el código, no son tareas):**
+
+- `deleteAdmin` borra únicamente el nodo RTDB `/administradores/{uid}`; la
+  cuenta de Auth debe borrarse manualmente en Firebase Console.
+- `toggleChoferStatus` alterna `activo` en `/choferes/{dni}` pero **no**
+  limpia el índice `/choferes_uids/{uid}`.
+
+**Referencias:** ARCHITECTURE.md, FIREBASE_SCHEMA.md (secciones 4 y 9),
+AdminWeb/README.md, ADR-009, ADR-017, ADR-023.
+
+---
+
+### ADR-026: Separación de "Detener recorrido" y "Cerrar sesión"
+
+**Estado:** Aceptada.
+
+**Contexto:**
+
+El diseño original (ADR-010) trataba el fin de turno como una operación
+compuesta: la acción "DETENER TODO" escribía `isActive:false` y a
+continuación cerraba la sesión de Firebase Auth. Acoplar el control del
+tracking con el ciclo de sesión forzaba a cerrar sesión para finalizar el
+recorrido y mezclaba dos responsabilidades distintas.
+
+**Decisión:**
+
+1. **DETENER RECORRIDO** es la única **acción explícita del usuario** que
+   detiene la transmisión de ubicación: cancela el `watchPosition`,
+   detiene el heartbeat y el Foreground Service, y escribe `isActive:false`
+   en `/ubicacion_buses/{busId}`. Watchdog, fallos del servicio y
+   terminaciones del proceso también pueden detener el motor sin esa
+   acción; esto no cambia la separación de responsabilidades.
+2. **Cerrar sesión** es una acción **independiente** (`auth().signOut()`),
+   con confirmación mediante Alert. No detiene el tracking por sí misma.
+3. El término **"DETENER TODO"** y la acción compuesta quedan retirados como
+   concepto vigente.
+
+**Alternativas consideradas:**
+
+- Mantener la acción compuesta "DETENER TODO" (ADR-010): descartado; mezcla
+  dos responsabilidades y obliga a cerrar sesión para terminar el recorrido.
+- Hacer que "Cerrar sesión" detenga el tracking de forma implícita:
+  descartado; el cierre de sesión no debe alterar el servicio de forma
+  silenciosa.
+
+**Consecuencias:**
+
+- El conductor finaliza el recorrido con "DETENER RECORRIDO"; cerrar sesión
+  no cambia el estado del bus por sí mismo.
+- La etiqueta de la acción de detención ya no implica un logout.
+
+**Actualización de implementación (I07, 01/11/2026):**
+
+El cierre local ya no espera confirmación Firebase. DETENER invalida la
+intención/generación compartida antes del primer await, libera los recursos
+de su ejecución y serializa el stop nativo con los inicios/recuperaciones.
+Solo tras éxito nativo solicita `isActive:false`, antes de liberar INICIAR y
+sin esperar ACK. La solicitud remota es condicional y no confirma recepción.
+Una respuesta anterior solo aporta diagnóstico; no altera
+el recorrido nuevo. Un stop nativo fallido no se presenta como Detenido:
+INICIAR permanece bloqueado y DETENER permite reintento. El estado compartido
+se sincroniza al remontar mediante `PRO_TRACKING_STATE`.
+
+Esto conserva la separación manual de este ADR y los turnos informativos de
+ADR-027, sin cambiar rutas, payloads, dependencias ni configuración Android.
+La persistencia en disco continúa desactivada (ADR-003), pero ello no implica
+descartar todas las escrituras offline: el SDK conserva pendientes en memoria.
+La promesa de usuario pendiente tras limpiar evita el stop automático del
+wrapper al resolverla, no acredita cierre HeadlessJS. La biblioteca 4.1.0
+conserva el residual de resolver global sobrescrito por entregas tardías,
+caracterizado en tests controlados, no como defecto Android reproducido.
+Validación y límites: `BUGS_RESUELTOS/driverapp.md` (CASO 020).
+
+**Limitación conocida (verificada en código, no es tarea):**
+
+Ninguna terminación anómala escribe `isActive:false`: el reinicio fallido del
+watchdog, la muerte silenciosa del servicio y el desmontaje de la pantalla no
+lo hacen (tampoco existe `onDisconnect`). Un bus puede quedar marcado como
+activo en RTDB hasta la acción manual del conductor o la mitigación por
+expiración de timestamp en la UserApp. **El sistema no garantiza que
+`isActive` refleje el estado real del bus.**
+
+**Referencias:** ARCHITECTURE.md (sección 8), FIREBASE_SCHEMA.md (sección 3),
+SendCoordinates.tsx (separación stopProcess/signOut; antecedente histórico UX-01), ADR-010.
+
+---
+

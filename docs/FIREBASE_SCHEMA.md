@@ -397,7 +397,8 @@ esta auditoría.
 
 La candidata local tiene SHA-256
 `0BFAC5C2D900F6900B3E975D6CEFA7A34DBC38DCF6929A4D5C4FD2BA283359C2`.
-FirebaseLab está fuera de un repositorio Git. `../FirebaseLab/firebase.json`
+FirebaseLab forma parte del monorepo; su laboratorio es independiente de las
+apps y no se ejecuta en producción. `../FirebaseLab/firebase.json`
 apunta inicialmente a `database.rules.json`; la candidata completa es un
 archivo separado que debe seleccionarse explícitamente en las pruebas. Por tanto, **no se puede afirmar que esa candidata sea la
 política activa**.

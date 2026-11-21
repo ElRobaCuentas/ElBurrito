@@ -48,15 +48,15 @@ El proyecto utiliza React Native CLI, no Expo. Para trabajar en Android:
 | Servicios | Configuración Android de Firebase, token público de Mapbox y cliente web de Google Sign-In. |
 
 La [guía de entorno de React Native 0.83](https://reactnative.dev/docs/0.83/set-up-your-environment)
-explica la instalación de las herramientas y las variables del SDK. Los
-valores Android de este repositorio están en
+explica la instalación de las herramientas y las variables del SDK. Los valores
+Android de esta app están en
 [`android/build.gradle`](android/build.gradle). El manifiesto local declara
 Node `>=20`; para preparar el entorno debe respetarse el mínimo más
 específico de React Native indicado arriba.
 
 ### Configuración y ejecución
 
-Desde la raíz del repositorio:
+Desde esta carpeta (`User/`):
 
 1. Instalar las dependencias:
 
@@ -110,7 +110,7 @@ documentación técnica enlazada al final.
 
 ### Organización del proyecto
 
-Este repositorio contiene la app de estudiantes, identificada en el código
+Esta carpeta contiene la app de estudiantes, identificada en el código
 como **BurritoUserApp**. Recibe las ubicaciones de **BurritoDriverApp**:
 no captura el GPS del bus ni inicia o detiene sus recorridos. La gestión
 de conductores, buses y asignaciones corresponde a **AdminWeb**.
@@ -139,17 +139,16 @@ React Navigation. Las dependencias y scripts están en
 
 ## Documentación técnica
 
-La documentación del Ecosistema El Burrito se mantiene en el repositorio
-compartido [BurritoDocs](https://github.com/ElRobaCuentas/BurritoDocs),
-separado del código de esta aplicación.
+La documentación del Ecosistema El Burrito se mantiene en `../docs/`, dentro
+del monorepo:
 
 | Documento | Contenido |
 |-----------|-----------|
-| [Versionado y publicación](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/VERSIONADO_Y_PUBLICACION.md) | Procedimiento oficial de entregas Android, firmas, artefactos y distribución. |
-| [Arquitectura](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/ARCHITECTURE.md) | Componentes y flujo de datos entre aplicaciones. |
-| [Esquema Firebase](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/FIREBASE_SCHEMA.md) | Nodos y payloads de Realtime Database. |
-| [Diagnóstico](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/TROUBLESHOOTING.md) | Limitaciones y problemas conocidos. |
-| [Decisiones](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/DECISIONS.md) | Decisiones de arquitectura e historial técnico. |
-| [Roadmap](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/ROADMAP.md) | Trabajo planificado después del MVP. |
-| [Bugs resueltos](https://github.com/ElRobaCuentas/BurritoDocs/tree/main/BUGS_RESUELTOS) | Registro de correcciones por aplicación. |
-| [Deuda de lint](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/LINT_DEBT.md) | Hallazgos preexistentes y criterios para distinguir cambios nuevos. |
+| [Versionado y publicación](../docs/VERSIONADO_Y_PUBLICACION.md) | Procedimiento oficial de entregas Android, firmas, artefactos y distribución. |
+| [Arquitectura](../docs/ARCHITECTURE.md) | Componentes y flujo de datos entre aplicaciones. |
+| [Esquema Firebase](../docs/FIREBASE_SCHEMA.md) | Nodos y payloads de Realtime Database. |
+| [Diagnóstico](../docs/TROUBLESHOOTING.md) | Limitaciones y problemas conocidos. |
+| [Decisiones](../docs/DECISIONS.md) | Decisiones de arquitectura e historial técnico. |
+| [Roadmap](../docs/ROADMAP.md) | Trabajo planificado después del MVP. |
+| [Bugs resueltos](../docs/BUGS_RESUELTOS/) | Registro de correcciones por aplicación. |
+| [Deuda de lint](../docs/LINT_DEBT.md) | Hallazgos preexistentes y criterios para distinguir cambios nuevos. |

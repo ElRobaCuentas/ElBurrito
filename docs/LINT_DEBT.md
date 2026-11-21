@@ -24,7 +24,7 @@ Estado general al **07/11/2026**:
 
 ## 2. Alcance
 
-- Proyecto: **UserApp** (`C:\Movil\User`).
+- Proyecto: **UserApp** (`User/` en el monorepo).
 - Herramienta: **ESLint 8.57.1** con la configuración de React Native del
   proyecto (`npm run lint` → `eslint .`).
 - Cubre los hallazgos del árbol de trabajo al 07/11/2026.
@@ -335,10 +335,11 @@ queda sujeta a las condiciones de §9.
 
 ## 10. Cómo reproducir la auditoría
 
-Ejecutar desde `C:\Movil\User`:
+Ejecutar desde `User/`, con la raíz del monorepo como referencia:
 
 ```powershell
-Set-Location C:\Movil\User
+# Desde la raíz del monorepo
+Set-Location -LiteralPath .\User
 
 # Versión del linter usada en la línea base
 npx eslint --version        # 8.57.1

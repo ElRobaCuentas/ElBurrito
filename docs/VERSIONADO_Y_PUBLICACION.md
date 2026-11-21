@@ -4,6 +4,10 @@ Guía operativa de Juan y Jose para el MVP, acordada el **19/11/2026**.
 **Versionamos entregas, no commits.** Para Android: preparar → compilar → verificar
 → respaldar → crear tag y release → distribuir → confirmar el resultado.
 
+El monorepo comparte un único repositorio e historial. Cada aplicación conserva
+sus propias versiones, dependencias, comandos de compilación y canal de
+distribución.
+
 ## 1. Reglas y fuentes de verdad
 
 | Componente | Identificación de la entrega | Distribución |
@@ -11,10 +15,11 @@ Guía operativa de Juan y Jose para el MVP, acordada el **19/11/2026**.
 | El Burrito (UserApp, `User/`) | SemVer, `versionCode`, commit, tag anotado y GitHub Release | Google Play |
 | BurritoDriverApp (`Driver/`) | SemVer, `versionCode`, commit, tag anotado y GitHub Release | APK privada |
 | Central y servicio PULSO (`AdminWeb/`) | Commits e IDs de Hosting/Workers; sin nuevo SemVer ni tags obligatorios | Firebase Hosting / Cloudflare |
-| `docs/` | Historial Git | Documentación compartida |
+| `docs/` | Historial Git del monorepo | Documentación compartida |
 
 - Este documento contiene el procedimiento; **GitHub Releases**, el historial Android.
-- **Play Console** indica el estado de User; **`C:\Movil\Releases`** conserva los binarios privados.
+- **Play Console** indica el estado de User; un directorio privado de Releases
+  fuera del monorepo conserva los binarios privados.
 - Las versiones y los contadores son propios de cada app. No mover tags, reemplazar
   artefactos publicados ni atribuir origen a binarios históricos sin evidencia.
 - No incorporar CI/CD de publicación, Fastlane, generadores de changelog ni otras herramientas.
@@ -51,25 +56,26 @@ para conservar las variables. Ejecutar paso a paso y detenerse ante cualquier er
    e instalaciones privadas (Driver). Cambiar solo los dos valores aprobados;
    no mezclar dependencias, Firebase, `applicationId` ni firma.
 
-**Desde la raíz de la app**, seleccionar `User` o `Driver` y comprobar el candidato:
+**Desde la raíz del monorepo**, seleccionar `User` o `Driver` y comprobar el candidato:
 
 ```powershell
 $app = 'User' # Cambiar a 'Driver' para su entrega.
-$repoPath = "C:\Movil\$app"
-Set-Location -LiteralPath $repoPath
-git status --short           # Identificar cambios propios o ajenos.
+$repoRoot = (git rev-parse --show-toplevel)
+$appPath = Join-Path $repoRoot $app
+Set-Location -LiteralPath $repoRoot
+git status --short -- $app # Identificar cambios propios o ajenos.
 git branch --show-current    # Confirmar la rama acordada.
-git remote -v                # Confirmar el repositorio remoto.
+git remote -v                # Confirmar el remoto del monorepo.
 $version = Read-Host 'SemVer acordada'
 $code = [int](Read-Host 'versionCode acordado')
-git diff -- android/app/build.gradle
+git diff -- "$app/android/app/build.gradle"
 git diff --cached            # Comprobar que no haya otros cambios preparados.
-git add -- android/app/build.gradle
+git add -- "$app/android/app/build.gradle"
 git diff --cached            # Revisar exactamente lo que se va a registrar.
 git commit -m "chore(android): bump version to $version"
 ```
 
-Tras el commit exitoso, **en la misma raíz**, sincronizar y conservar su SHA:
+Tras el commit exitoso, **desde la raíz del monorepo**, sincronizar y conservar su SHA:
 
 ```powershell
 git status --short           # Debe estar vacío antes de compilar.
@@ -78,6 +84,9 @@ $commit = git rev-parse HEAD
 git push origin "$branch"
 git ls-remote origin "refs/heads/$branch" # Debe anunciar $commit.
 ```
+
+Los pasos de sincronización requieren que el monorepo ya tenga remoto (fase 7).
+Hasta entonces, verificar el commit localmente y no publicar.
 
 Mantener el código y la configuración estables al compilar. Un commit y un lock
 identifican fuentes, pero no garantizan reconstrucciones idénticas byte a byte.
@@ -89,13 +98,13 @@ no reutilizar una salida anterior. No regenerar ni rotar claves para publicar.
 
 ### User: AAB para Play
 
-**Directorio: `C:\Movil\User\android`.** Generar el bundle y verificar su firma:
+**Directorio: `User/android`.** Generar el bundle y verificar su firma:
 
 ```powershell
-Set-Location -LiteralPath 'C:\Movil\User\android'
+Set-Location -LiteralPath "$repoRoot\User\android"
 .\gradlew.bat bundleRelease
 if ($LASTEXITCODE -ne 0) { throw 'Falló la compilación.' }
-$source = 'C:\Movil\User\android\app\build\outputs\bundle\release\app-release.aab'
+$source = "$repoRoot\User\android\app\build\outputs\bundle\release\app-release.aab"
 $fileName = "el-burrito-v$version-vc$code.aab"
 jarsigner -verify -verbose -certs "$source"
 if ($LASTEXITCODE -ne 0) { throw 'Falló la verificación de firma.' }
@@ -110,13 +119,13 @@ el AAB de publicación.
 ### Driver: APK privada
 
 **Procedimiento previsto, pendiente de validación como nueva entrega formal.**
-**Directorio: `C:\Movil\Driver\android`.** Ajustar Build Tools al SDK instalado:
+**Directorio: `Driver/android`.** Ajustar Build Tools al SDK instalado:
 
 ```powershell
-Set-Location -LiteralPath 'C:\Movil\Driver\android'
+Set-Location -LiteralPath "$repoRoot\Driver\android"
 .\gradlew.bat assembleRelease
 if ($LASTEXITCODE -ne 0) { throw 'Falló la compilación.' }
-$source = 'C:\Movil\Driver\android\app\build\outputs\apk\release\app-release.apk'
+$source = "$repoRoot\Driver\android\app\build\outputs\apk\release\app-release.apk"
 $fileName = "burrito-driver-v$version-vc$code.apk"
 $buildTools = "$env:LOCALAPPDATA\Android\Sdk\build-tools\36.0.0"
 & "$buildTools\aapt.exe" dump badging "$source" # Ver paquete y versión/código.
@@ -132,13 +141,14 @@ sin desinstalar para eludirlas. Elegir SemVer de tres componentes en la próxima
 
 ## 5. Calcular el hash y respaldar la copia exacta
 
-**Desde el directorio Android de la app elegida**, con las variables anteriores:
+**Con las variables de la misma sesión**, calcular el hash y respaldar la copia:
 
 ```powershell
 $hash = (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash
 $hash # Registrar este valor en la GitHub Release.
-$backupDir = "C:\Movil\Releases\$app"
-if (-not (Test-Path -LiteralPath 'C:\Movil')) { throw 'Revisar la ruta base.' }
+$releasesRoot = Join-Path (Split-Path -Parent $repoRoot) 'BurritoReleases'
+$backupDir = Join-Path $releasesRoot $app
+if (-not (Test-Path -LiteralPath $releasesRoot)) { throw 'Revisar el directorio privado de Releases.' }
 New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
 $artifact = Join-Path $backupDir $fileName
 if (Test-Path -LiteralPath $artifact) { throw 'El destino ya existe; no sobrescribir.' }
@@ -148,8 +158,10 @@ if ((Get-FileHash -LiteralPath $artifact -Algorithm SHA256).Hash -ne $hash) {
 }
 ```
 
-Usar esa copia para distribuir. Mantener `Releases` fuera de los repositorios;
-guardar una segunda copia en el destino privado acordado y comprobar su hash.
+Ajustar `$releasesRoot` al directorio privado acordado; debe quedar fuera del
+monorepo. Usar esa copia para distribuir. Mantener `Releases` fuera del
+repositorio; guardar una segunda copia en el destino privado acordado y
+comprobar su hash.
 Una copia en el mismo disco no cubre la pérdida del equipo. Conservar mappings
 y sourcemaps de esa compilación cuando sean necesarios para diagnosticarla.
 No publicar artefactos privados por defecto; nunca incluir tokens, contraseñas
@@ -157,13 +169,16 @@ ni keystores en releases o paquetes. Respaldar las claves separadamente.
 
 ## 6. Crear el tag anotado y la GitHub Release
 
-**Desde la raíz de la app**, fijar el commit que produjo el artefacto:
+La convención aprobada es `user-vX.Y.Z` para User y `driver-vX.Y.Z` para
+Driver. Los tags históricos permanecen en los repositorios anteriores.
+
+**Desde la raíz del monorepo**, fijar el commit que produjo el artefacto:
 
 ```powershell
-Set-Location -LiteralPath $repoPath
-git status --short            # Debe estar vacío.
+Set-Location -LiteralPath $repoRoot
+git status --short -- $app    # Sin cambios de fuentes pendientes.
 git rev-parse HEAD            # Debe coincidir con $commit.
-$tag = "v$version"
+$tag = "$($app.ToLower())-v$version"
 git tag --list "$tag"
 git ls-remote --tags origin "refs/tags/$tag"
 ```
@@ -179,9 +194,11 @@ git push origin "refs/tags/$tag"
 git ls-remote --tags origin "refs/tags/$tag" "refs/tags/$tag^{}"
 ```
 
-En **GitHub web → Releases → nueva release**, seleccionar ese tag existente.
-Usar títulos como `El Burrito vX.Y.Z - Pruebas cerradas MVP` o
-`BurritoDriverApp vX.Y.Z - Piloto privado`. Marcar **pre-release** para pruebas;
+Estos comandos requieren que el monorepo tenga remoto (fase 7).
+
+En **GitHub web → Releases del monorepo → nueva release**, seleccionar ese tag
+existente. Usar títulos como `El Burrito user-vX.Y.Z - Pruebas cerradas MVP` o
+`BurritoDriverApp driver-vX.Y.Z - Piloto privado`. Marcar **pre-release** para pruebas;
 clasificar como estable solo cuando se acuerde. Incluir:
 
 - Commit completo, versión/código y cambios de la entrega.
@@ -190,7 +207,9 @@ clasificar como estable solo cuando se acuerde. Incluir:
 - Canal y estado fechado: inicialmente, pendiente de envío o instalación.
 
 Usar Conventional Commits: `fix`, `feat`, `chore(android)` o `docs` según el cambio.
-Los tags `vMAJOR.MINOR.PATCH` son propios de cada repositorio Android.
+Cada app conserva su propia secuencia SemVer. Los prefijos distinguen las
+entregas en el espacio de tags compartido. Los tags históricos `vX.Y.Z` de los
+repositorios anteriores no se recrean ni se mueven.
 
 ## 7. Distribuir y confirmar el resultado
 
@@ -217,10 +236,10 @@ Actualizar **después de que el último conductor finalice la jornada o antes de
 que el primero la inicie**. Nunca durante un relevo ni interrumpiendo un recorrido
 activo. Confirmar servicio detenido, estado remoto esperado y versión previa.
 
-**Desde `C:\Movil\Driver`**, con ADB configurado y `$artifact` de esta entrega:
+**Desde `Driver/`**, con ADB configurado y `$artifact` de esta entrega:
 
 ```powershell
-Set-Location -LiteralPath 'C:\Movil\Driver'
+Set-Location -LiteralPath "$repoRoot\Driver"
 adb devices # Elegir el teléfono autorizado.
 $serial = Read-Host 'Serial del teléfono'
 adb -s "$serial" install -r "$artifact" # Actualizar conservando los datos.
@@ -235,8 +254,9 @@ datos sensibles, versiones previa/nueva y resultado. Compilar no acredita instal
 
 ## 8. Central y PULSO
 
-Antes de desplegar, ejecutar `git status --short` y `git rev-parse HEAD` desde
-`C:\Movil\AdminWeb`: exigir árbol limpio y registrar el SHA completo.
+Antes de desplegar, desde la raíz del monorepo, ejecutar
+`git status --short -- AdminWeb` y `git rev-parse HEAD`: exigir que `AdminWeb/`
+esté limpio y registrar el SHA completo.
 Central incluye la pantalla PULSO; el Worker se publica aparte e incluye código
 de `monitor/src/` y `monitor/worker/`. No requieren nuevo SemVer ni GitHub Releases.
 
@@ -248,7 +268,7 @@ de `monitor/src/` y `monitor/worker/`. No requieren nuevo SemVer ni GitHub Relea
 
 Asociar el SHA a la descripción del proveedor cuando sea posible; no inferirlo
 por fechas. Seguir los comandos y verificaciones del
-[README de AdminWeb](https://github.com/ElRobaCuentas/AdminWeb/blob/main/README.md#migraciones-y-publicación-en-producción):
+[README de AdminWeb](../AdminWeb/README.md#migraciones-y-publicación-en-producción):
 **migración compatible → Worker → verificación → Hosting**. Conservar `STATE_VERSION`,
 validaciones y migraciones; `compatibility_date` identifica compatibilidad del
 runtime, no del producto. Validar combinaciones con [FIREBASE_SCHEMA.md](FIREBASE_SCHEMA.md)
@@ -286,7 +306,9 @@ sustituye y el resultado de recuperación, sin mover tags ni reemplazar backups.
 
 El Burrito `1.2.0 (3)` fue la primera aplicación del procedimiento; consultar su
 [GitHub Release v1.2.0](https://github.com/ElRobaCuentas/BurritoUserApp/releases/tag/v1.2.0)
-para artefacto, firma, hash y evidencias. Al corte del **19/11/2026**, los
-desarrolladores reportaron envío a revisión; aprobación/disponibilidad para
-testers seguían sin confirmar. El estado actual se consulta en Play Console.
-Los pasos Driver de esta guía siguen pendientes de validación como entrega formal.
+para artefacto, firma, hash y evidencias. El enlace pertenece al repositorio
+anterior de User y se conserva como evidencia histórica. Al corte del
+**19/11/2026**, los desarrolladores reportaron envío a revisión;
+aprobación/disponibilidad para testers seguían sin confirmar. El estado actual
+se consulta en Play Console. Los pasos Driver de esta guía siguen pendientes de
+validación como entrega formal.

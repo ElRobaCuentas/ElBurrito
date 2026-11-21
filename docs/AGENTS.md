@@ -2,14 +2,14 @@
 
 ## 1. Alcance
 
-`docs/` es un repositorio Git independiente del Ecosistema El Burrito. Contiene
+`docs/` forma parte del monorepo del Ecosistema El Burrito. Contiene
 la documentación técnica compartida por El Burrito (`../User/`), BurritoDriverApp
 (`../Driver/`) y AdminWeb (`../AdminWeb/`): arquitectura, esquema de RTDB,
 decisiones, diagnóstico, deuda técnica y bugs resueltos.
 
 Este archivo rige solo el trabajo dentro de `docs/`; no reemplaza las reglas de
-cada app ni el índice del ecosistema. Los comandos Git, diffs y commits se
-ejecutan dentro de este repositorio, nunca desde `../`.
+cada app ni el índice del ecosistema. Los comandos Git se ejecutan desde la
+raíz del monorepo (`../`).
 
 ---
 
@@ -36,6 +36,9 @@ ejecutan dentro de este repositorio, nunca desde `../`.
   van en `TROUBLESHOOTING.md`.
 - No elimines historial, evidencias, contratos técnicos ni documentación
   histórica vigente sin autorización explícita.
+- Las referencias a ramas, tags, remotos y commits del esquema polyrepo en
+  `DECISIONS.md` y `BUGS_RESUELTOS/` se conservan como evidencia histórica;
+  verificá su vigencia antes de aplicarlas al monorepo.
 - No sobrescribas backups ni evidencias.
 - Si un cambio invalida un contrato (path o nodo de RTDB, flujo, variable de
   entorno), actualizá el documento que lo define en la misma tarea.
@@ -45,7 +48,7 @@ ejecutan dentro de este repositorio, nunca desde `../`.
 ## 4. Verificación contra las fuentes
 
 Confirmá toda afirmación técnica contra el código o la configuración vigente del
-repositorio correspondiente. Una inferencia, un resumen previo o una herramienta
+componente correspondiente. Una inferencia, un resumen previo o una herramienta
 de navegación no constituyen verificación. Si no podés comprobarlo, decilo en
 vez de afirmarlo.
 
@@ -74,6 +77,7 @@ solicitud explícita.
 
 | Documento | Contenido |
 |-----------|-----------|
+| `INCORPORACION.md` | Acceso al monorepo, herramientas, tipos de configuración y primera tarea; enlaza los procedimientos de cada app |
 | `VERSIONADO_Y_PUBLICACION.md` | Política y procedimiento oficial de entregas, artefactos y distribución del MVP |
 | `ARCHITECTURE.md` | Arquitectura, flujos y limitaciones del sistema |
 | `FIREBASE_SCHEMA.md` | Paths y nodos de Realtime Database |

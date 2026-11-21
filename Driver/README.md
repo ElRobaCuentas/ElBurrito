@@ -64,8 +64,12 @@ Android-only y no está probada en iOS.
 |--------|---------|
 | Metro dev server | `npm start` |
 | Compilar Android | `npm run android` |
-| Tests | `npm test` |
+| Tests | `npm test -- --runInBand --ci` |
 | Lint | `npm run lint` |
+
+La suite estándar es `npm test -- --runInBand --ci` (9 suites, 120 pruebas).
+`jest.config.js` contiene las excepciones de transformación para React Native y
+las dependencias ESM; no requiere flags adicionales.
 
 ## Estructura del Código
 
@@ -98,7 +102,7 @@ UserApp (vía listener propio)
 ```
 
 Para el detalle del payload y la estructura del nodo de tracking,
-consultar el [esquema Firebase](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/FIREBASE_SCHEMA.md).
+consultar el [esquema Firebase](../docs/FIREBASE_SCHEMA.md).
 
 ## Estado de Implementación
 
@@ -115,19 +119,18 @@ consultar el [esquema Firebase](https://github.com/ElRobaCuentas/BurritoDocs/blo
 
 ## Documentación Relacionada
 
-La documentación compartida vive en [BurritoDocs](https://github.com/ElRobaCuentas/BurritoDocs),
-la carpeta hermana `docs/` en `C:\Movil`. El reporte de recuperación de
-compilación pertenece a este repositorio y conserva el contexto histórico
-del incidente, no una certificación de builds actuales.
+La documentación compartida vive en `../docs/`, dentro del monorepo. El
+reporte de recuperación de compilación pertenece a este componente y conserva
+el contexto histórico del incidente, no una certificación de builds actuales.
 
 | Documento | Propósito |
 |-----------|-----------|
-| [Versionado y publicación](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/VERSIONADO_Y_PUBLICACION.md) | Procedimiento previsto de entregas y actualizaciones mediante APK privada. |
+| [Versionado y publicación](../docs/VERSIONADO_Y_PUBLICACION.md) | Procedimiento previsto de entregas y actualizaciones mediante APK privada. |
 | [Recuperación de compilación](docs/build-recovery-report.md) | Incidente de julio de 2026 y workaround de geolocation. |
-| [Arquitectura](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/ARCHITECTURE.md) | Flujo de datos y ciclo de vida del tracking. |
-| [Esquema Firebase](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/FIREBASE_SCHEMA.md) | Nodos y payloads de la RTDB. |
+| [Arquitectura](../docs/ARCHITECTURE.md) | Flujo de datos y ciclo de vida del tracking. |
+| [Esquema Firebase](../docs/FIREBASE_SCHEMA.md) | Nodos y payloads de la RTDB. |
 | [AGENTS.md](AGENTS.md) | Convenciones e instrucciones para asistentes IA. |
-| [Roadmap](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/ROADMAP.md) | Trabajo planificado después del MVP. |
-| [Diagnóstico](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/TROUBLESHOOTING.md) | Problemas conocidos. |
-| [Decisiones](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/DECISIONS.md) | Decisiones de arquitectura (ADR). |
-| [Bugs resueltos](https://github.com/ElRobaCuentas/BurritoDocs/tree/main/BUGS_RESUELTOS) | Historial de correcciones. |
+| [Roadmap](../docs/ROADMAP.md) | Trabajo planificado después del MVP. |
+| [Diagnóstico](../docs/TROUBLESHOOTING.md) | Problemas conocidos. |
+| [Decisiones](../docs/DECISIONS.md) | Decisiones de arquitectura (ADR). |
+| [Bugs resueltos](../docs/BUGS_RESUELTOS/) | Historial de correcciones. |

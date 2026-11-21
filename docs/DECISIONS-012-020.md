@@ -1,0 +1,493 @@
+# ADR-012–020: evolución de plataformas, administración y tracking
+
+[Volver al documento principal](DECISIONS.md).
+
+### ADR-012: DriverApp implementada únicamente para Android
+
+**Estado:** Aceptada.
+
+**Contexto:**
+
+La DriverApp necesita un Foreground Service nativo para mantener la
+transmisión GPS activa en segundo plano. Este servicio depende de APIs
+exclusivas de Android.
+
+**Decisión:**
+
+La DriverApp está diseñada y probada exclusivamente para Android. No
+se invierte tiempo en compatibilidad iOS. La estructura del proyecto
+incluye configuración iOS por herencia del template de React Native,
+pero no está soportada ni probada.
+
+**Alternativas consideradas:**
+
+- Invertir en iOS con equivalente de Background Modes: descartado por
+  el costo de desarrollo y mantenimiento para un MVP universitario.
+
+**Consecuencias:**
+
+- Los conductores deben usar dispositivos Android. La universidad ya
+  dispone de teléfonos Android dedicados en los buses.
+- El proyecto iOS en DriverApp existe pero no debe considerarse
+  funcional.
+- Si en el futuro se requiere iOS, deberá implementarse con
+  `react-native-background-fetch` u otra estrategia de background
+  modes.
+
+**Referencias:** ARCHITECTURE.md (sección 9), Driver/README.md.
+
+---
+
+### ADR-013: Geofencing con Punto Cero Dinámico
+
+**Estado:** Pendiente (post-MVP).
+
+**Contexto:**
+
+Se requiere automatizar el conteo de vueltas y el ciclo de vida de los
+recorridos sin forzar al conductor a interactuar con la pantalla
+mientras conduce.
+
+**Decisión definida:**
+
+Implementar un Punto Cero Dinámico calculado en el dispositivo mediante
+la fórmula de Haversine con un umbral de detección de 40 metros. La
+función `calculateDistance()` existe en
+`User/src/features/map/utils/geo.ts` y se usa para calcular distancias
+en el store; no implementa geofencing ni un Punto Cero Dinámico.
+
+**Por qué esta dirección:**
+
+- El campus de la UNMSM sufre cambios estructurales constantes
+  (obras, eventos), lo que invalida coordenadas fijas.
+- El umbral de 40 metros absorbe el error de ±10–15m del efecto
+  multipath en el campus.
+- Un radio menor (20m) provocaba cierres falsos por imprecisión del
+  GPS. Un radio mayor podría causar cierres prematuros.
+
+**Precisión de vigencia:** el radio original de 40 m y la histéresis
+40/80 m registrada en ROADMAP.md son antecedentes de diseño que todavía
+deben reconciliarse. La evidencia de la prueba de 20 m no está
+identificada en este documento. No se fija aquí un parámetro definitivo.
+
+**Dependencia:** requiere tracking consolidado; ver ROADMAP.md (prerrequisitos de tracking y dependencia T4.2 de T4.3).
+
+**Referencias:** ROADMAP.md (T4.3).
+
+---
+
+### ADR-014: Backend propio
+
+**Estado:** Pendiente (visión de largo plazo, sin ejecución aprobada).
+
+**Contexto:**
+
+A medida que el sistema crezca, Firebase RTDB puede volverse
+insuficiente para lógica de negocio compleja, reglas de seguridad
+dinámicas o integración con servicios externos.
+
+**Decisión definida:**
+
+Incorporar un backend propio (Node.js o similar) para centralizar
+lógica, reglas de negocio y servir como intermediario entre las apps
+y la base de datos.
+
+**Dependencia:** sin fecha estimada. Visión de largo plazo.
+
+**Referencias:** ROADMAP.md (Visión futura sin aprobación de ejecución).
+
+---
+
+### ADR-015: Dashboard Web de Monitoreo y Analítica
+
+**Estado:** Pendiente; alcance parcialmente cubierto por AdminWeb.
+
+**Contexto:**
+
+Al momento de la decisión no existía una interfaz web para visualizar la
+flota completa, acceder a estadísticas operativas, reportes diarios,
+métricas de recorridos ni administración avanzada.
+
+**Decisión definida:**
+
+Desarrollar una aplicación web independiente que consuma los datos de
+Firebase RTDB (o del backend propio, cuando exista) para proporcionar:
+
+- Mapa de flota completa con todos los buses activos.
+- Reportes diarios y semanales de recorridos.
+- Métricas de tiempos de espera, ocupación, rutas más usadas.
+- Administración avanzada de conductores, buses y asignaciones
+  (cubierta por AdminWeb/ADR-025).
+- Analítica histórica.
+
+**Evolución (ADR-025):** AdminWeb ya cubre la administración de
+conductores, buses y asignaciones. El mapa de flota completa, los
+reportes, las métricas y la analítica histórica siguen pendientes. La
+dependencia respecto de ADR-014 no está definida: este ADR admite
+consumir RTDB directamente o un backend futuro.
+
+**Dependencia:** sin fecha estimada. Visión de largo plazo.
+
+**Referencias:** ROADMAP.md (Visión futura sin aprobación de ejecución).
+
+---
+
+### ADR-016: Migración a listener multi-bus con fallback al primer bus activo
+
+**Estado:** Aceptada.
+
+**Contexto:**
+
+El sistema inició con un único bus de prueba. La DriverApp escribía a
+`/ubicacion_burrito` (legacy) y la UserApp escuchaba ese mismo path.
+Al expandir la flota, se necesitaba que la UserApp recibiera ubicaciones
+de todos los buses simultáneamente, no solo de uno.
+
+**Decisión:**
+
+Migrar el listener de RTDB de `/ubicacion_burrito` a `/ubicacion_buses`.
+El store de Zustand cambió de `location: BurritoLocation | null` a
+`locations: Record<string, BurritoLocation>`, indexado por placa.
+Cada bus tiene su propio filtro de deduplicación y clasificación
+moving/stopped/offline independiente.
+
+Para no afectar la UI antes del render multi-marcador (T4.4), los
+componentes de mapa (`Map.tsx`, `MapBranding.tsx`) derivan la ubicación
+a mostrar seleccionando el primer bus activo con timestamp más reciente.
+Este fallback es temporal y será reemplazado por marcadores individuales
+por bus en T4.4.
+
+**Alternativas consideradas:**
+
+- Mantener `/ubicacion_burrito` legacy y agregar un segundo listener:
+  descartado. Habría duplicación de suscripciones y el store tendría dos
+  fuentes de verdad parcialmente solapadas.
+- Migrar directamente a render multi-marcador en el mismo cambio:
+  descartado por `User/AGENTS.md` §5.6 (no expandir alcance). El cambio
+  se dividió en lógica de datos (T3.1) y renderizado (T4.4).
+
+**Consecuencias:**
+
+- La UserApp ahora escucha un solo path (`/ubicacion_buses`) que contiene
+  todos los buses activos.
+- El nodo legacy `/ubicacion_burrito` queda huérfano. La DriverApp ya no
+  escribe allí. Puede eliminarse en una limpieza futura de la RTDB.
+- El filtro de deduplicación ahora itera por cada placa individual, con
+  su propia referencia de timestamp.
+- La UI sigue mostrando un solo marcador (fallback al primer bus activo)
+  hasta T4.4.
+- Se actualizaron 5 archivos: `map_service.ts` (path + callback),
+  `burritoLocationStore.ts` (estructura), `MapScreen.tsx` (prop),
+  `Map.tsx`, `MapBranding.tsx` (derivación de primer bus activo).
+
+**Referencias:** ARCHITECTURE.md (sección 4 y 5), FIREBASE_SCHEMA.md
+(secciones 3 y 7), ROADMAP.md (prerrequisito T3.1 y tarea T4.4).
+
+---
+
+### ADR-017: Migración del panel admin a DriverApp + autorización por auth.uid
+
+**Estado:** Sustituida parcialmente por ADR-025; la autorización por
+`auth.uid`/`/administradores` sigue vigente.
+
+**Contexto:**
+
+La UserApp (El Burrito) se atasca en el spinner de Mapbox cuando la
+base de datos está limpia (sin asignaciones activas). El spinner es
+intencional y no se modifica. El deadlock real es de arquitectura: el
+Panel de Gestión vivía en la UserApp y solo se alcanzaba por el drawer
+que el spinner bloqueaba — sin asignaciones → la DriverApp no transmite
+→ la UserApp nunca recibe datos → spinner infinito.
+
+Además, el modelo de autorización admin basado en `rol` dentro de
+`/usuarios/{uid}` era vulnerable: la regla de escritura del propio
+usuario sobre su nodo permitía auto-asignarse `rol: 'admin'`.
+
+**Decisión:**
+
+1. Migrar el módulo admin (`features/admin/`) completo de la UserApp a
+   la DriverApp. La UserApp queda como cliente exclusivo de estudiantes.
+2. Crear un nuevo nodo `/administradores/{auth.uid}` como fuente única
+   de verdad de autorización admin. La mera existencia de la clave
+   (`snapshot.exists()`) define que el UID es administrador. No se usa
+   ni se lee un campo `rol`.
+3. El enrutador de DriverApp consulta `existeAdministrador(user.uid)`
+   post-login para decidir si renderiza el AdminNavigator o envía al
+   conductor a SendCoordinates.
+4. Las reglas de RTDB se reescriben para usar el predicado
+   `root.child('administradores').child(auth.uid).exists()` en lugar de
+   `root.child('usuarios').child(auth.uid).child('rol').val() === 'admin'`.
+5. El nodo `/administradores` tiene `.write: false` — solo se puebla
+   manualmente desde Firebase Console.
+
+**Alternativas consideradas:**
+
+- Modelo por email (`auth.token.email.replace('@burritodriver.com', '')`
+  como clave en `/administradores`): descartado por ser explotable
+  mediante registro público con email arbitrario.
+- Mantener `/usuarios/{uid}/rol` como fuente admin: descartado por ser
+  auto-escribible.
+- Custom Claims de Firebase Auth: descartado por requerir Admin SDK o
+  Cloud Functions (no hay backend propio).
+
+**Consecuencias:**
+
+- La UserApp ya no tiene dependencia del panel admin. Su único propósito
+  es mostrar el mapa al estudiante.
+- La DriverApp ahora tiene dos modos de operación: admin (panel de
+  gestión) y conductor (tracking).
+- El administrador se identifica por su Auth UID, no por DNI ni email.
+  El bootstrap requiere crear la cuenta Auth → copiar UID → poblar
+  `/administradores/{uid}` manualmente.
+- El campo `rol` en `/usuarios/{uid}` queda inerte como legado, siempre
+  con valor `'estudiante'`.
+- Se agregaron 6 archivos nuevos en DriverApp, se modificaron 3 archivos
+  en DriverApp, se eliminaron 5 archivos en UserApp, se modificaron 3
+  archivos en UserApp.
+
+**Nota de transición (ADR-025):** la migración del panel a la DriverApp
+descrita aquí fue reemplazada por la migración a **AdminWeb**. La
+autorización por `/administradores/{auth.uid}` (puntos 2 y 4) sigue vigente
+y se conserva; lo que cambió es la aplicación que aloja el panel
+administrativo. El punto 5 (`.write: false` sobre `/administradores`)
+también evolucionó: el permiso vigente permite que un administrador
+existente cree otros administradores desde AdminWeb (`createAdmin()`),
+y solo el primer administrador se crea en Consola (bootstrap).
+
+**Referencias:** ARCHITECTURE.md (§3.1, AdminWeb; antecedente histórico
+en §3), FIREBASE_SCHEMA.md (secciones 4, 9), MVP.md (los identificadores
+originales TA.1–TA.4 ya no están vigentes), ADR-025.
+
+---
+
+### ADR-018: Corrección de inicialización asíncrona de SecondaryApp
+
+**Estado:** Aceptada históricamente; implementación sustituida por ADR-025.
+
+**Contexto:**
+
+Durante la migración del panel admin a la DriverApp (ADR-017), la
+función `createChofer()` en `admin_service.ts` fallaba con el error:
+`"firebase.auth(app)" arg expects a FirebaseApp instance or undefined`.
+
+La causa era que `firebase.initializeApp()` en `@react-native-firebase/app`
+v23.8.8 retorna `Promise<ReactNativeFirebase.FirebaseApp>`, no el objeto
+`FirebaseApp` directamente. El código original asignaba el resultado sin
+`await`:
+
+```typescript
+secondaryApp = firebase.initializeApp(config, 'SecondaryApp');
+// secondaryApp = Promise ❌, no FirebaseApp
+```
+
+Posteriormente, `auth(secondaryApp)` ejecutaba un duck-type check interno
+del SDK (`namespace.ts:163-168`) que verificaba `'name' in _app`. Una
+Promise no tiene propiedad `name`, por lo que el check fallaba.
+
+**Decisión:**
+
+Agregar `await` a la llamada de `initializeApp()` y tipar correctamente
+la variable `secondaryApp`:
+
+```typescript
+let secondaryApp: ReactNativeFirebase.FirebaseApp;
+try {
+  secondaryApp = firebase.app('SecondaryApp');
+} catch (e) {
+  secondaryApp = await firebase.initializeApp(config, 'SecondaryApp');
+}
+```
+
+**Alternativas consideradas:**
+
+- Mantener `any` y confiar en el try/catch para reintentar: descartado
+  porque enmascara el error de tipos.
+- Usar `.then()` en lugar de `await`: equivalente funcional pero menos
+  legible en un flujo ya async.
+
+**Consecuencias:**
+
+- `secondaryApp` recibe correctamente un `FirebaseApp` en lugar de una
+  Promise.
+- El duck-type check de `auth()` pasa exitosamente.
+- La creación de conductores funciona en el primer intento (ya no requiere
+  un segundo intento gracias al registro síncrono en `APP_REGISTRY`).
+- TypeScript ahora detectaría el error si se omitiera el `await` (la
+  variable está tipada como `FirebaseApp`, no como `any`).
+- Se modificó 1 archivo (`admin_service.ts`), 3 líneas en total.
+
+**Vigencia:** esta corrección pertenece al módulo administrativo móvil que
+usaba React Native Firebase. AdminWeb usa el SDK JS y apps temporales
+(ADR-025); el problema de la Promise de `initializeApp()` de
+`@react-native-firebase/app` no se traslada automáticamente a ese SDK.
+
+**Referencias:** ARCHITECTURE.md (§3.1, AdminWeb; antecedente histórico en
+§3), TROUBLESHOOTING.md (§5, Autenticación), admin_service.ts, ADR-025.
+
+---
+
+### ADR-019: Heartbeat de presencia en la DriverApp (T4.1)
+
+**Estado:** Aceptada.
+
+**Contexto:**
+
+El GPS publica vía `watchPosition` con `distanceFilter: 2` e
+`interval: 3000`. Cuando el bus está quieto (semáforo, paradero), el
+GPS no emite callbacks con la misma frecuencia: se observaron pausas
+reales de 13–26 s y una de ~36 s. En la UserApp, una pausa de ese
+tamaño hace que el bus cruce el umbral de expiración (C4.6,
+`BUS_STALE_AFTER_MS = 30000`) y desaparezca del mapa aunque el
+servicio siga vivo. Además, el watchdog C3 usaba los pulsos GPS como
+señal de vida: con el bus estacionado podía reiniciar el servicio en
+falso.
+
+El problema no era el umbral de la UserApp sino la falta de garantía
+de publicación periódica desde el Driver.
+
+**Decisión:**
+
+Implementar un heartbeat de presencia de **8 s**
+(`HEARTBEAT_INTERVAL_MS = 8000`) dentro de `locationTask`
+(`SendCoordinates.tsx`). El heartbeat escribe en RTDB la **última
+posición conocida** solo si no hubo otra escritura reciente, y emite
+`PRO_LOCATION_PULSE` (pre-write) igual que el GPS, de modo que el
+watchdog C3 mide "servicio vivo" y no "GPS activo".
+
+Una única función `writeLocation(coords)` es responsable de escribir
+en RTDB; tanto el callback del GPS como el heartbeat la usan. Se
+evita así que dos caminos de escritura diverjan con el tiempo.
+
+**Separación conceptual adoptada:**
+
+```
+Presencia  → heartbeat del Driver (publica periódico)
+Movimiento → desplazamiento entre posiciones publicadas
+Expiración → C4.6 en la UserApp (timestamp demasiado viejo)
+```
+
+El `timestamp` mantiene su nombre y pasa a significar "última
+actualización publicada por el Driver", no "momento del fix GPS". Se
+captura al intentar publicar, antes de la confirmación del SDK; no
+identifica el momento del fix ni un ACK de RTDB.
+
+**Alternativas consideradas:**
+
+- Subir `BUS_STALE_AFTER_MS` en la UserApp: descartado, no ataca la
+  causa. El problema está aguas arriba, en la periodicidad del Driver.
+- Heartbeat con segunda ruta de escritura separada: descartado, dos
+  caminos de escritura divergen; se impone un único `writeLocation`.
+- `onDisconnect` de Firebase: postergado (ver ADR-010).
+
+**Consecuencias:**
+
+- Un bus estacionado se mantiene visible (timestamp fresco) y pasa a
+  `stopped` por movimiento (C4.6) en vez de `offline` por expiración.
+- El watchdog C3 ya no reinicia el servicio con bus quieto.
+- Costo de batería mínimo: una escritura extra cada 8 s solo cuando el
+  GPS no escribió.
+- **Validación:** dos sesiones de campo registraron deltas de
+  8003–8005 ms y la corrección se integró históricamente en `99eafa0`
+  (`BUGS_RESUELTOS/driverapp.md`, CASO 019). Esto acredita el latido con
+  GPS quieto en esa prueba; no acredita una jornada completa ni elimina
+  el límite I10 (reutilización de un fix anterior).
+
+**Referencias:** ARCHITECTURE.md (sección 5 y 8), FIREBASE_SCHEMA.md
+(sección 3), ROADMAP.md (prerrequisito T4.1),
+BUGS_RESUELTOS/driverapp.md (CASO 019), Driver commit `99eafa0`
+(merge `2f41cd1`).
+
+---
+
+### ADR-020: C4.6 — Estrategia C experimental para MOVIMIENTO/PARADERO
+
+**Estado:** EXPERIMENTAL — pendiente de validación en campo. NO es una
+decisión definitiva.
+
+**Contexto:**
+
+La medición interna de calibración (20/08/2026, ~5 min, 61 parejas)
+reveló dos hechos que invalidan los enfoques simples:
+
+1. **Speed congelada:** durante una parada real de 73 s, el GPS del
+   Motorola mantuvo `speed = 2.78 m/s` en RTDB (nunca bajó a 0), porque
+   el heartbeat escribe la última posición conocida. La estrategia B
+   (speed sola) fracasa: en simulación dejó 58 de 60 lecturas como
+   EN MOVIMIENTO durante la parada.
+2. **Coordenadas congeladas:** con el bus quieto, la posición publicada
+   no varió (jitter 0), pero el timestamp seguía fresco por el
+   heartbeat (cadencia moda 3 s).
+
+Además, la cadencia GPS real es variable (moda 3 s, con lag gaps de
+hasta 21 s), por lo que un umbral fijo de desplazamiento (estrategia A,
+8 m) no puede distinguir "avanza 2 m en 3 s" (casi detenido) de "jitter
+GPS en parada".
+
+**Decisión (provisional, sujeta a la prueba de campo):**
+
+- **Definición de producto:** EN PARADERO = vehículo físicamente
+  detenido. Un vehículo lento (incluso 1 km/h con desplazamiento real)
+  es EN MOVIMIENTO. Prohibido usar umbrales semánticos de velocidad
+  ("menos de X km/h = parado"). Sin esperas artificiales largas
+  (10/15/30 s).
+- **Estrategia C** (implementada en UserApp, módulo
+  `src/features/map/utils/movement.ts`):
+
+  ```
+  vCalc = dist / (dtMs/1000)
+  evidence = vCalc > 1 m/s  OR  (speed > 2 m/s AND dist > 2 m)
+  ```
+
+  - `vCalc` combina distancia y tiempo: un bus a 10 km/h entre fixes
+    de 3 s produce vCalc ~2.8 > 1 → evidencia.
+  - `speed` es señal complementaria y **condicional**: solo cuenta si
+    hubo desplazamiento real (dist > 2 m), descartando la speed
+    congelada del heartbeat.
+  - **Memoria/histeresis mínima:** evidencia → EN MOVIMIENTO inmediato;
+    sin evidencia se cuentan parejas consecutivas y solo tras 2
+    (`STOP_CONFIRM_PAIRS = 2`) se pasa a EN PARADERO.
+- **Parámetros EXPERIMENTALES (CALIBRACIÓN PENDIENTE):** 1 m/s, 2 m/s,
+  2 m, 2 parejas. Ninguno es valor definitivo; se ajustarán con los
+  datos de la prueba de campo. No documentarlos como definitivos.
+- **8 m (`MOVEMENT_THRESHOLD_M`, estrategia A) queda fuera de la
+  decisión en vivo.** Se conserva únicamente para comparación offline
+  A vs C, tests y simulación sobre los mismos datos.
+- **Plumbing de speed:** la UserApp ahora recibe `speed` del snapshot
+  de RTDB (`speed?: number`, `speed: entry.speed ?? 0`). Sin cambios
+  en DriverApp ni en el esquema Firebase (el campo ya existía).
+- **Offline independiente:** la expiración (30 s, `isActive`) no se
+  mezcla con MOVIMIENTO/PARADERO; la estrategia C solo decide entre
+  esos dos estados con datos utilizables.
+- **Diagnóstico temporal:** `CALIB_LOG_ENABLED` registra por cada
+  actualización `{placa, dist, dtMs, vCalc, speed, evidence,
+  previousStatus, status, transition, weakCount}`. Se elimina al
+  terminar la evaluación; no es logging de producción.
+
+**Alternativas consideradas y descartadas (con evidencia de la
+calibración):**
+
+- Estrategia A (umbral fijo 8 m): 5 transiciones en la prueba interna
+  contra 2 reales (falsos PARADERO/MOVIMIENTO por cadencia variable).
+- Estrategia B (speed sola): 58/60 EN MOVIMIENTO durante la parada de
+  73 s por speed congelada.
+
+**Limitación conocida y aceptada (a medir en campo):**
+
+- A ~1 km/h entre fixes de 3 s (dist ~0.83 m), vCalc ~0.28 < 1 y
+  speed < 2 m/s → la estrategia C NO detecta movimiento. Es el caso
+  que la prueba de campo debe responder si se puede o no resolver.
+
+**Consecuencias:**
+
+- La UserApp distingue semánticamente vehículo detenido (EN PARADERO)
+  de vehículo lento (EN MOVIMIENTO) solo si la señal GPS lo permite;
+  el resultado final depende de la prueba de campo.
+- Cualquier ajuste de parámetros posterior a la prueba se documentará
+  aquí y se marcará como VALIDADO solo con evidencia de campo.
+
+**Referencias:** ARCHITECTURE.md (sección 5), FIREBASE_SCHEMA.md
+(sección 3), TROUBLESHOOTING.md (Ubicación congelada), ROADMAP.md,
+AGENTS.md (UserApp, sección 9).
+
+---
+

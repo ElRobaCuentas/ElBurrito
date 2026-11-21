@@ -4,7 +4,10 @@
 
 > **Registro histórico de julio de 2026.** Las rutas, ramas, copias y resultados
 > de compilación describen aquel incidente; no certifican el estado actual.
-> La raíz del proyecto en el workspace actual es `C:\Movil\Driver`.
+> Las rutas anteriores, incluidas `C:\ProyectosMovil\BurritoDriverApp` y
+> `C:\Movil\Driver`, corresponden a distintas etapas; hoy el componente vive
+> en `Driver/`, dentro del monorepo. Las rutas absolutas de
+> este informe se conservan como evidencia histórica.
 > Las correcciones documentales posteriores se indican sin borrar la evidencia
 > histórica. No ejecutar las tareas pendientes antiguas sin revisar su vigencia.
 

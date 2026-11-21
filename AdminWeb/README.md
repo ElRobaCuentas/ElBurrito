@@ -81,7 +81,7 @@ como una denegación de permisos.
 
 El primer administrador se crea manualmente en Firebase Console (cuenta
 Auth y nodo RTDB). Los siguientes se crean desde el panel. El flujo técnico
-completo se mantiene en la [arquitectura compartida](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/ARCHITECTURE.md).
+completo se mantiene en la [arquitectura compartida](../docs/ARCHITECTURE.md).
 
 ## Módulos del panel
 
@@ -101,7 +101,7 @@ completo se mantiene en la [arquitectura compartida](https://github.com/ElRobaCu
 - Al crear no se comprueba que el bus esté libre; sí se bloquea su eliminación si tiene una asignación activa o futura.
 
 Los contratos de nodos, campos y permisos se mantienen en el
-[esquema Firebase](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/FIREBASE_SCHEMA.md),
+[esquema Firebase](../docs/FIREBASE_SCHEMA.md),
 sin duplicarlos en este README.
 
 Desactivar un conductor conserva su cuenta e historial: no cancela sus
@@ -146,7 +146,7 @@ la URL que imprima Vite si ese puerto está ocupado.
 
 El monitor vive en `monitor/` y se ejecuta aparte del panel. Su MVP quedó
 implementado, desplegado y validado operativamente el **18/11/2026**. El
-[documento principal de PULSO](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/PULSO.md)
+[documento principal de PULSO](../docs/PULSO.md)
 explica funcionamiento, indicadores, límites y evidencia; aquí se mantienen los
 procedimientos para desarrollar, probar y operar sus componentes.
 
@@ -284,7 +284,7 @@ correspondencia de los archivos publicados con `dist/`, rewrite `/pulso`, CORS y
 rechazo de consultas sin autorización. Verificar además con sesión administrativa;
 no registrar tokens ni URLs autenticadas. `/evaluate` debe seguir bloqueado en
 remoto. Las referencias de publicación y compatibilidad de rollback están en
-[PULSO §8](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/PULSO.md#8-operación-en-producción).
+[PULSO §8](../docs/PULSO.md#8-operación-en-producción).
 
 ### Mantenimiento de la vigilancia
 
@@ -334,14 +334,13 @@ npm run lint           # ejecuta Oxlint
 
 ## Documentación relacionada
 
-La documentación compartida está en [BurritoDocs](https://github.com/ElRobaCuentas/BurritoDocs)
-(`C:\Movil\docs` en el workspace):
+La documentación compartida está en `../docs/` dentro del monorepo:
 
-- [Versionado y publicación](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/VERSIONADO_Y_PUBLICACION.md): política del MVP e identificación de despliegues de Central y PULSO.
-- [Arquitectura](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/ARCHITECTURE.md): flujos e implementación entre aplicaciones.
-- [PULSO](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/PULSO.md): referencia técnica y operativa del monitor y validación de su MVP.
-- [Esquema Firebase](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/FIREBASE_SCHEMA.md): nodos, payloads y permisos.
-- [Decisiones](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/DECISIONS.md): criterios arquitectónicos.
-- [Diagnóstico](https://github.com/ElRobaCuentas/BurritoDocs/blob/main/TROUBLESHOOTING.md): problemas conocidos y limitaciones.
+- [Versionado y publicación](../docs/VERSIONADO_Y_PUBLICACION.md): política del MVP e identificación de despliegues de Central y PULSO.
+- [Arquitectura](../docs/ARCHITECTURE.md): flujos e implementación entre aplicaciones.
+- [PULSO](../docs/PULSO.md): referencia técnica y operativa del monitor y validación de su MVP.
+- [Esquema Firebase](../docs/FIREBASE_SCHEMA.md): nodos, payloads y permisos.
+- [Decisiones](../docs/DECISIONS.md): criterios arquitectónicos.
+- [Diagnóstico](../docs/TROUBLESHOOTING.md): problemas conocidos y limitaciones.
 
 Las instrucciones específicas para asistentes se mantienen en [AGENTS.md](AGENTS.md).

@@ -11,6 +11,77 @@
 > Operativo mientras esté vigente. Permanece activa hasta que el usuario indique
 > expresamente retirarla.
 
+# CONTEXTO DEL MONOREPO
+
+La raíz del repositorio contiene `User/`, `Driver/`, `AdminWeb/`, `docs/` y
+`FirebaseLab/` bajo una única raíz Git. Cada tarea debe indicar el componente
+afectado.
+
+- Los comandos de la app (`npm`, Gradle, tests) se ejecutan dentro de su carpeta.
+- Los comandos Git se ejecutan desde la raíz del monorepo.
+- Las reglas comunes están en `AGENTS.md`; las tres aplicaciones y `docs/`
+  tienen además su propio `AGENTS.md`.
+- Las aplicaciones conservan dependencias, versiones y publicación
+  independientes. El procedimiento de entregas está en
+  `docs/VERSIONADO_Y_PUBLICACION.md`.
+
+---
+
+# Preparación de una tarea
+
+El ciclo colaborativo es **actualizar main → recibir contexto → rama → Plan →
+implementación → pruebas y documentación → revisión humana del PR → integración**.
+La [guía de incorporación](docs/INCORPORACION.md) prepara el equipo; este documento
+define el trabajo cotidiano.
+
+Los pasos con `origin` y pull requests requieren el remoto privado publicado y
+acceso confirmado. Durante la migración se habilitan después de la fase 7;
+documentarlos no autoriza ejecutarlos ni configurar remotos en fases anteriores.
+
+## Actualizar y abrir la rama
+
+Desde la raíz del monorepo, comprobar `git status --short`. Si hay cambios,
+identificar su dueño antes de continuar: no descartarlos ni usar stash
+automáticamente. En un árbol limpio y con las operaciones autorizadas:
+
+```powershell
+git switch main
+if ($LASTEXITCODE -ne 0) { throw 'No se pudo cambiar a main.' }
+git pull --ff-only origin main
+if ($LASTEXITCODE -ne 0) { throw 'No se pudo actualizar main; revisar la divergencia.' }
+.\scripts\engram-team.ps1 Receive
+if (-not $?) { throw 'Falló la recepción de memoria; revisar antes de continuar.' }
+$branch = Read-Host 'Rama acordada, por ejemplo fix/user-txx'
+git switch -c $branch
+if ($LASTEXITCODE -ne 0) { throw 'No se pudo crear la rama.' }
+```
+
+No usar reset o force-push para resolver una divergencia. Si la recepción está
+prohibida, omitirla expresamente y comunicar qué contexto falta. `Receive` apunta
+a la base habitual; no configura Cloud ni actualiza Git. Confirmar que el agente
+consulta esa misma base y resuelve `ecosistema-el-burrito` antes de recuperar notas.
+
+Actualizar la rama con los cambios pertinentes de `main` antes de pedir la
+revisión final; resolver conflictos y repetir las pruebas afectadas. El
+[cierre](FLUJO_VERIFICACION_Y_CIERRE.md#revisión-humana-e-integración-del-pr)
+define las condiciones para integrar. Una rama rechazada o abandonada no debe
+convertirse en fuente de memoria compartida de decisiones vigentes.
+
+## Elegir el agente
+
+| Agente | Uso | Límite |
+|--------|-----|--------|
+| Plan (`plan`) | Analizar impacto, fuentes, riesgos y estrategia. | En este repo no edita, no usa terminal y no delega. La preparación Git la hace el desarrollador o Build autorizado. |
+| Build (`build`) | Implementar el plan aprobado, verificar y corregir dentro del alcance. | No ampliar la tarea ni publicar por iniciativa propia. |
+| Gentle-Orchestrator (`gentle-orchestrator`) | Coordinar una tarea compleja y sus unidades de trabajo cuando el usuario lo solicite. | Invocación manual; conserva las restricciones, la aprobación humana y los pasos de revisión. |
+
+Cambiar de agente no amplía la autorización. En trabajo coordinado, registrar
+responsable, alcance y evidencias por unidad; el coordinador debe comprobar el
+resultado integrado. Las instrucciones automáticas de Gentle AI no sustituyen
+las reglas del repositorio ni una prohibición de commits o sincronización.
+
+---
+
 # ETAPA 1 — ANÁLISIS (PLAN)
 
 Objetivo:
@@ -251,324 +322,35 @@ y recién vuelve a escribir código.
 
 ---
 
+**[Flujo de trabajo: verificación y cierre](FLUJO_VERIFICACION_Y_CIERRE.md)**
+
 # ETAPA 4 — VERIFICACIÓN TÉCNICA Y CONTRACTUAL
 
-En esta etapa se verifica el cambio.
-
-No se programa.
-
-No se modifican archivos.
-
-No se actualiza documentación.
-
-Es una revisión técnica y contractual, independiente de la implementación.
-
----
+[Consultar sección](FLUJO_VERIFICACION_Y_CIERRE.md#etapa-4--verificación-técnica-y-contractual).
 
 ## Prompt guía
 
-```
-Revisa únicamente la tarea TXX.
-
-No modifiques código.
-
-Realiza una auditoría completa.
-
-Primero identifica qué archivos fueron modificados.
-
-Después determina qué documentación estaba relacionada con esos archivos.
-
-Con base en ello verifica específicamente:
-
-1. Que se respetó AGENTS.md.
-
-2. Que no se violó ningún ADR.
-
-3. Que no se modificaron paths RTDB sin actualizar FIREBASE_SCHEMA.
-
-4. Que no se rompió la arquitectura descrita en ARCHITECTURE.
-
-5. Que la implementación sigue alineada con MVP.md (alcance y cierre) o ROADMAP.md (planificación posterior), según corresponda.
-
-6. Que no reaparecen bugs documentados.
-
-7. Que no hay:
-
-- console.log
-
-- TODO
-
-- código muerto
-
-- imports innecesarios
-
-- duplicación
-
-- malas prácticas
-
-8. Ejecuta:
-
-npm run typecheck
-
-npm run lint
-
-npm test
-
-(si existen)
-
-Finalmente indica:
-
-✔ Qué está correcto.
-
-⚠ Qué debería corregirse.
-
-❌ Qué impide considerar lista la tarea.
-```
-
----
-
-Esta verificación es específica.
-
-No genérica.
-
-Depende de la tarea.
-
-No es igual revisar MultiBus que revisar Login.
-
----
+[Consultar sección](FLUJO_VERIFICACION_Y_CIERRE.md#prompt-guía).
 
 # ETAPA 5 — CORRECCIÓN (si existe)
 
-Si la verificación encontró errores
-
-↓
-
-Volver a Build
-
-↓
-
-Corregir solamente esos problemas
-
-↓
-
-Volver a la verificación
-
----
+[Consultar sección](FLUJO_VERIFICACION_Y_CIERRE.md#etapa-5--corrección-si-existe).
 
 # ETAPA 6 — DOCUMENTACIÓN
 
-Aquí recién entra documentación.
-
-Se actualizan únicamente archivos Markdown.
-
-Nunca código.
-
-Aplica la pausa temporal vigente indicada al inicio de este documento antes de leer o actualizar documentación.
-
----
+[Consultar sección](FLUJO_VERIFICACION_Y_CIERRE.md#etapa-6--documentación).
 
 ## Prompt guía
 
-```
-La implementación terminó correctamente.
-
-No modifiques código.
-
-Analiza qué documentación quedó desactualizada debido a esta tarea.
-
-Para cada documento explica por qué debe actualizarse.
-
-Después actualiza únicamente esos documentos.
-
-Respeta el estilo existente.
-
-No agregues información innecesaria.
-
-Si un documento no cambió, explica por qué no requiere actualización.
-```
-
----
-
-Por ejemplo.
-
-```
-ARCHITECTURE
-
-↓
-
-Se agregó un nuevo flujo
-
-↓
-
-Actualizar
-```
-
----
-
-```
-MVP.md (tarea del MVP) / ROADMAP.md (trabajo posterior)
-
-↓
-
-La tarea pasó de pendiente a completada
-
-↓
-
-Actualizar el estado únicamente en el documento dueño de la tarea
-```
-
----
-
-```
-DECISIONS
-
-↓
-
-No hubo decisiones nuevas
-
-↓
-
-No modificar
-```
-
----
-
-Así todo queda consistente.
-
----
+[Consultar sección](FLUJO_VERIFICACION_Y_CIERRE.md#prompt-guía-1).
 
 # ETAPA 7 — EVALUACIÓN ARQUITECTÓNICA (SOLO CUANDO SEA NECESARIO)
 
-No se evalúa arquitectura todos los días.
-
-Solo cuando aparece una decisión importante.
-
----
-
-Ejemplos
-
-✔ Migrar a Firestore
-
-✔ Cambiar Zustand
-
-✔ Agregar Backend
-
-✔ Nueva arquitectura
-
-✔ Cambiar autenticación
-
-✔ Monorepo
-
-✔ Dashboard Web
-
-✔ Offline First
-
-✔ Nueva estrategia GPS
-
----
+[Consultar sección](FLUJO_VERIFICACION_Y_CIERRE.md#etapa-7--evaluación-arquitectónica-solo-cuando-sea-necesario).
 
 ## Prompt guía
 
-```
-Quiero evaluar una decisión arquitectónica.
-
-No implementes nada.
-
-Analiza:
-
-- ventajas
-
-- desventajas
-
-- riesgos
-
-- impacto técnico
-
-- impacto sobre la documentación
-
-- ADR afectados
-
-- alternativas
-
-- recomendación final
-
-No escribas código.
-```
-
-```
-                NUEVA TAREA
-                     │
-                     ▼
-            ┌────────────────┐
-            │      PLAN      │
-            └────────────────┘
-                     │
-    impacto • riesgos • arquitectura
-     documentación • estrategia
-                     │
-           decisión del desarrollador
-                     │
-                     ▼
-            ┌────────────────┐
-            │     BUILD      │
-            └────────────────┘
-                     │
-         lee AGENTS correspondiente
-                     │
-                     ▼
- lee la documentación indicada por PLAN
-                     │
-                     ▼
-      explica restricciones encontradas
-                     │
-                     ▼
-           implementa únicamente
-           la tarea solicitada
-                     │
-                     ▼
-            SELF REVIEW (Build)
-           (NO modifica código)
-                     │
-                     ▼
-            ┌────────────────┐
-            │  VERIFICACIÓN  │
-            └────────────────┘
-                     │
-    typecheck • lint • tests • auditoría
-                     │
-          ¿hay problemas encontrados?
-              │                 │
-             Sí                No
-              │                 │
-              ▼                 ▼
-      volver a BUILD      ┌────────────────┐
-      corregir errores    │ DOCUMENTACIÓN  │
-                          └────────────────┘
-                                   │
-                     actualiza únicamente
-                       documentación (.md)
-                                   │
-                                   ▼
-                        ¿hubo decisión
-                       arquitectónica?
-                           │        │
-                          Sí       No
-                           │        │
-                           ▼        ▼
-                 ┌──────────────────────┐
-                 │ EVALUACIÓN           │
-                 │ ARQUITECTÓNICA       │
-                 └──────────────────────┘
-                           │
-                    evaluación de ADRs
-                     y arquitectura
-                            │
-                            ▼
-                        git commit
-                            │
-                            ▼
-                        FIN TAREA
-```
+[Consultar sección](FLUJO_VERIFICACION_Y_CIERRE.md#prompt-guía-2).
 
 # Ciclo Operativo del MVP
 
@@ -577,8 +359,8 @@ Este será el procedimiento oficial de trabajo durante toda la etapa del MVP.
 A partir de ahora, absolutamente todas las tareas activas deberán seguir este ciclo.
 
 1. Abrir `MVP.md`.
-2. Elegir únicamente la siguiente tarea pendiente según el order operativo del backlog (ver `MVP.md` §2 "Backlog pendiente").
-3. Crear una sesión nueva dedicada exclusivamente a esa tarea.
+2. Acordar responsable y siguiente tarea según el orden operativo del backlog (ver `MVP.md` §2 "Backlog pendiente").
+3. Completar la preparación anterior y crear una sesión dedicada a la tarea, en su rama.
 4. Auditar únicamente el alcance de esa tarea.
 5. Implementar la solución respetando el tipo de tarea (A, B o C).
 6. Ejecutar las revisiones y pruebas que correspondan según el tipo de tarea.
@@ -586,9 +368,11 @@ A partir de ahora, absolutamente todas las tareas activas deberán seguir este c
    - si bloquean el MVP, crear subtareas dentro del mismo bloque (por ejemplo C4.1, C4.2);
    - si no bloquean el MVP, registrarlos como Post-MVP.
 8. Cuando la tarea esté terminada:
-   - actualizar la documentación técnica correspondiente (`docs/BUGS_RESUELTOS/` o `docs/DECISIONS.md`) solo si el cambio lo requiere;
-   - realizar el commit correspondiente;
-   - cambiar el estado de la tarea en `MVP.md` a Terminado.
+   - actualizar los documentos afectados según `AGENTS.md` §7, respetando la pausa documental;
+   - preparar aprendizajes técnicos para revisión humana si corresponde, sin exportar la base histórica;
+   - realizar únicamente los commits y operaciones remotas autorizados, y solicitar revisión del PR;
+   - registrar la integración en `main` y recién entonces dar por cerrada la tarea en el backlog;
+   - si un PR marca una tarea como terminada, entender esa marca como propuesta hasta su integración.
 9. Continuar únicamente con la siguiente tarea pendiente del backlog.
 
 ## Reglas
@@ -604,7 +388,10 @@ A partir de ahora, absolutamente todas las tareas activas deberán seguir este c
 
 ## Regla de una sola tarea activa
 
-Mientras una tarea permanezca en estado "En progreso", no podrá iniciarse otra tarea del backlog.
+Cada desarrollador mantiene una sola tarea activa por sesión y rama. La
+secuencia del MVP sigue siendo la acordada: otro integrante no toma una tarea
+dependiente aún bloqueada. El trabajo independiente en paralelo requiere
+responsables y alcance coordinados, sin cambiar el orden del backlog por cuenta propia.
 
 La siguiente tarea solo podrá comenzar cuando la anterior esté:
 
@@ -612,7 +399,10 @@ La siguiente tarea solo podrá comenzar cuando la anterior esté:
 - probada;
 - documentada;
 - con la documentación técnica correspondiente actualizada, solo si el cambio lo requiere;
-- con commit realizado;
-- marcada como Terminado.
+- revisada por otro desarrollador e integrada mediante PR en `main`;
+- con el resultado de integración y el estado de cierre registrados en el backlog.
+
+Si una restricción impide documentar, hacer commit o integrar, entregar el estado
+parcial verificable y el pendiente; no declarar la tarea cerrada.
 
 Esta disciplina evita el cambio constante de contexto: ramas olvidadas, tareas pausadas y documentación desactualizada. Con ella, el proyecto avanza de forma predecible y el backlog siempre refleja el estado real del desarrollo.

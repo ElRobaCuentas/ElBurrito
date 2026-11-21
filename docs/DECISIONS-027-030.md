@@ -1,0 +1,244 @@
+# ADR-027–030: asignaciones, diagnóstico y recepción
+
+[Volver al documento principal](DECISIONS.md).
+
+### ADR-027: Asignaciones con múltiples turnos informativos y un solo bus por conductor/fecha
+
+**Estado:** Aceptada.
+
+**Contexto:**
+
+El modelo original de `/asignaciones` representaba un conductor, un bus y,
+opcionalmente, un único par `horaInicio`/`horaFin`. La operación real puede
+requerir varios intervalos en la misma jornada (por ejemplo, mañana y tarde),
+pero la DriverApp solo necesita saber **qué bus** tiene asignado el conductor
+para la fecha; los horarios son información administrativa y no controlan el
+tracking. Además, cambiar de bus dentro de una misma asignación introduciría
+una relación N:N que la DriverApp actual no sabe interpretar.
+
+**Decisión:**
+
+1. Una asignación activa sigue siendo **una por conductor + fecha** y tiene
+   **un solo `busId`**.
+2. Se agrega `turnos: [{ inicio, fin }]` como fuente de verdad, con minutos
+   desde medianoche (0–1439).
+3. Se exige mínimo un turno; `inicio < fin`; mismo día calendario (sin cruzar
+   medianoche); sin solapamientos; orden cronológico. Consecutivos y separados
+   están permitidos.
+4. `horaInicio`/`horaFin` se conservan como espejo del primer turno para
+   compatibilidad con registros viejos. No hay migración masiva.
+5. Editar turnos actualiza el mismo `asignacionId`; no crea otra asignación.
+6. Los turnos no inician ni detienen el tracking ni modifican la autorización
+   del conductor. La DriverApp sigue leyendo solo `busId`/`fecha`/`activo`.
+7. El alta sigue validando exclusividad por conductor + fecha y **no** valida
+   que el bus esté libre. La protección de buses se aplica al eliminar un bus
+   con asignación activa o futura.
+
+**Alternativas consideradas:**
+
+- Crear un registro por turno: descartado; rompe la exclusividad y obliga a la
+  DriverApp a elegir entre varios registros.
+- Guardar horarios como strings `HH:MM`: descartado; el modelo existente usa
+  minutos numéricos y así se evitan conversiones y comparaciones frágiles.
+- Permitir un bus distinto por turno: descartado para esta fase; requiere un
+  modelo N:N y cambios en DriverApp.
+- Hacer que DriverApp use los turnos para iniciar/detener el tracking:
+  descartado; el control del recorrido sigue siendo manual (ADR-026).
+
+**Consecuencias:**
+
+- AdminWeb renderiza y edita varios turnos dentro de una sola tarjeta.
+- Las asignaciones antiguas se leen como un turno usando `horaInicio`/`horaFin`.
+- Las reglas RTDB actuales aceptan `turnos` porque no validan campos hijos.
+- Si en el futuro se requiere cambiar de bus durante la jornada, habrá que
+  diseñar otra fase con cambios en el modelo y en DriverApp.
+
+**Referencias:** ARCHITECTURE.md (sección AdminWeb), FIREBASE_SCHEMA.md
+(`/asignaciones`), AdminWeb/AGENTS.md (§6.5 y §6.14),
+ADR-024, ADR-026, ADR-028 (I08 en BurritoDriverApp).
+
+---
+
+### ADR-028: Validación diaria y respaldo offline acotado de la asignación en BurritoDriverApp
+
+**Estado:** Aceptada.
+
+**Contexto:**
+
+I08 exige que la DriverApp valide que el conductor tiene un bus asignado
+para el día calendario `America/Lima`, y que el bus usado al iniciar sea el
+vigente. La validación ocurre al montar la pantalla, pero entre esa lectura
+y el INICIAR puede pasar tiempo o cambiar el registro; el backend también
+puede cancelar o reasignar. A la vez, una pérdida de red justo antes de
+iniciar no debería dejar al conductor sin operar si ya contaba con una
+asignación validada, sin que la app invente validaciones que no puede
+observar. Un timeout aislado no distingue caída de red de permisos,
+índices o errores reales.
+
+**Decisión:**
+
+1. La lectura de `/asignaciones` es por `choferId` y la fecha se resuelve en
+   `America/Lima` **en el momento de la consulta**, no al montar.
+2. Al presionar INICIAR se revalida la asignación. Una respuesta válida
+   reemplaza la anterior; una respuesta conocida como ausente, cancelada,
+   duplicada, de otro conductor o inválida bloquea el inicio y revoca el
+   respaldo previo.
+3. Si la consulta falla por red y `.info/connected` reporta desconexión,
+   se puede iniciar con un **respaldo en memoria** de la asignación ya
+   validada, solo si coincide el conductor y la fecha. El respaldo vive en
+   un `useRef` de la pantalla de tracking; no se persiste en disco, no
+   sobrevive al proceso y no sustituye la identidad de
+   `trackingIntent.run`.
+4. Un timeout o un error sin desconexión confirmada no habilita el respaldo.
+5. La identidad del recorrido se fija en `trackingIntent.run =
+   { driverDni, busId }`; GPS, heartbeat y parada la conservan aunque la
+   pantalla se remonte o la asignación cambie.
+6. `turnos` sigue siendo informativo: no inicia ni detiene el tracking
+   (ADR-027).
+7. La etiqueta «Servicio de ubicación activo» describe el servicio Android
+   local; no confirma publicación en RTDB ni agrega un indicador de
+   conectividad en esta fase.
+
+**Alternativas consideradas:**
+
+- Persistir el respaldo en disco: descartado; un respaldo de otro día o una
+  cancelación ocurrida offline quedaría vigente hasta que se validara.
+- Aceptar cualquier timeout como desconexión: descartado; oculta errores de
+  permisos, índices o reglas y convierte un fallo real en inicio permitido.
+- Consultar solo al montar y no revalidar: descartado; el bus usado podría
+  no ser el vigente y una cancelación no se detectaría antes de iniciar.
+- Agregar NetInfo o un monitor de conectividad: descartado para esta fase;
+  `.info/connected` cubre la comprobación puntual sin nuevas dependencias.
+- Usar los turnos para habilitar el tracking: descartado (ADR-026, ADR-027).
+
+**Consecuencias:**
+
+- El conductor puede iniciar offline con una asignación previamente
+  validada; si el administrador la canceló durante la desconexión, la app
+  no puede saberlo hasta reconectar y la operación puede continuar.
+- El respaldo en memoria no cubre reinicio del proceso ni cambio de día.
+- La consulta usa los datos disponibles del SDK; una respuesta del SDK no
+  certifica que el servidor haya confirmado la asignación más reciente.
+- `.info/connected` debe referenciarse sin barra inicial; la variante
+  `/…` lanza excepción en el SDK instalado (ver
+  `BUGS_RESUELTOS/driverapp.md`, CASO 021).
+- El inicio offline es una ruta soportada; su cobertura física se limitó a
+  un escenario sin desplazamiento y a la suite automatizada.
+
+**Referencias:** ARCHITECTURE.md (§8, ciclo de vida y notas I08),
+FIREBASE_SCHEMA.md (`/asignaciones`), TROUBLESHOOTING.md (§4),
+BUGS_RESUELTOS/driverapp.md (CASO 021), ADR-003, ADR-026, ADR-027.
+
+---
+
+### ADR-029: Minimización de datos personales en diagnóstico y limpieza del UID de Crashlytics
+
+**Estado:** Aceptada.
+
+**Contexto:**
+
+El panel técnico de la DriverApp mostraba el nombre del conductor, su DNI
+completo cuando faltaba el perfil y un prefijo del DNI al iniciar el motor.
+Esos datos no aportaban diagnóstico operativo y quedaban visibles en pantalla.
+Además, Crashlytics recibía el UID al autenticarse, pero conservaba el último
+identificador cuando Firebase Authentication informaba usuario nulo, incluso
+en un equipo compartido. Los objetos de error y los stack traces sí tienen
+valor para diagnosticar fallos del MVP y no debían eliminarse en bloque.
+
+**Decisión:**
+
+1. Retirar nombre, DNI y prefijo del DNI de los tres mensajes del panel; usar
+   textos sin datos personales y conservar el nivel del registro.
+2. Mantener la identidad interna del recorrido: `uidChofer` sigue viajando en
+   las opciones del servicio aunque `locationTask` ya no lo imprima.
+3. Solicitar `setUserId(uid)` cuando Auth entrega un usuario y
+   `setUserId('')` cuando entrega `null`, incluido el arranque sin sesión.
+4. No bloquear la navegación ni el estado autenticado por la actualización de
+   Crashlytics; contener localmente sus fallos síncronos y asíncronos.
+5. Conservar los diagnósticos operativos y los objetos de error con sus stack
+   traces. No introducir sanitización general en esta fase.
+6. No agregar reintentos, persistencia ni una cola de sincronización de
+   `setUserId` para el MVP.
+
+**Alternativas consideradas:**
+
+- Eliminar el panel de diagnóstico: descartado; GPS, asignaciones, heartbeat y
+  parada lo necesitan para el piloto.
+- Mostrar un hash o un prefijo del DNI como identificador técnico: descartado;
+  sigue vinculado a una persona y no aporta diagnóstico.
+- Sanitizar todos los errores antes de registrarlos: descartado por ahora;
+  eliminaría contexto útil sin evidencia de filtración concreta.
+- Bloquear la navegación hasta confirmar `setUserId`: descartado; acoplaría la
+  autenticación a un SDK auxiliar.
+- Encolar las actualizaciones de `setUserId`: descartado para el MVP; el orden
+  de solicitudes sigue el orden de los eventos de Auth y no se detectó una
+  carrera que lo justifique.
+
+**Consecuencias:**
+
+- El panel y la telemetría reducen la exposición de datos personales sin
+  cambiar el tracking ni la identidad interna del recorrido.
+- La limpieza de Crashlytics no elimina reportes históricos y no garantiza por
+  sí sola que el SDK nativo la aplique ni que los reportes se reciban.
+- Los errores conservados podrían contener datos sensibles según su origen;
+  requieren una evaluación separada.
+- El orden de finalización nativa de `setUserId` no está garantizado; las
+  pruebas solo cubren el orden de solicitudes y el comportamiento observable.
+
+**Referencias:** ARCHITECTURE.md (§7, servicios externos; §9, límites),
+BUGS_RESUELTOS/driverapp.md (CASO 022), ADR-026, Driver commit `4a05e41`.
+
+---
+
+### ADR-030: Tolerancia de cinco minutos para timestamps futuros de recepción (I06-B)
+
+**Estado original (03/11/2026):** aceptada por el usuario; implementada y
+probada localmente, pendiente de integración/publicación al corte de esa
+fase.
+
+**Estado actual:** integrada en `main` (`011a4b6`) y en la referencia
+disponible de `origin/main`. La validación física prolongada y la
+publicación APK no se acreditan aquí.
+
+**Contexto:** el 30/10 se decidió conservar los respaldos para campos ausentes
+(I06-A), validar valores explícitamente incorrectos y diferir timestamps
+futuros. La auditoría reprodujo una fecha de mañana aceptada por el receptor
+que impedía aceptar publicaciones posteriores correctas por deduplicación.
+No son dos defectos nuevos: I06-A sigue siendo una limitación aceptada y
+I06-B era un riesgo pendiente ahora reproducido.
+
+**Decisión:** en `MapService`, rechazar timestamps explícitos mayores que
+`receivedAt + 300_000` (ms), capturando la hora local una vez por snapshot.
+El límite exacto se acepta. El usuario autorizó cinco minutos para tolerar
+desfase entre relojes; no es un umbral derivado de los 8 s del heartbeat.
+La latencia de red vuelve antigua una publicación, no futura.
+Se conserva íntegramente el respaldo de timestamp y coordenadas ausentes.
+La validación se aplica también a detenciones; los datos rechazados no
+entran al store ni renuevan la caducidad. No cambian GPS, heartbeat,
+watchdog, estrategia de movimiento ni filtro de orden temporal.
+
+**Alternativas consideradas:** 60 s sin justificación (descartado);
+normalizar fechas excesivamente futuras a «ahora» (descartado porque
+inventaría frescura); sincronizar con reloj de servidor o cambiar el emisor
+(fuera del alcance mínimo autorizado); mantener el comportamiento anterior
+(descartado antes de la jornada prolongada).
+
+**Consecuencias:** evita envenenar el store con fechas como «mañana».
+No garantiza sincronización de relojes ni resuelve saltos hacia atrás dentro
+del margen. Un adelanto aceptado puede prolongar frescura/bloquear datos
+por hasta el margen; un reloj receptor atrasado puede descartar publicaciones
+legítimas. Un desfase persistente mayor puede impedir recibir incluso una
+detención, dejando la última posición hasta su caducidad existente. Se
+requiere un proceso actualizado; no se sanea retroactivamente un store
+anterior. La aceptación operativa de ~8 h sigue pendiente.
+
+**Verificación:** once pruebas nuevas (límites inclusivo/+1 ms, +24 h,
+activos/inactivos, aislamiento entre placas, I06-A y dos secuencias del
+pipeline real servicio → store). User 124/124 en diez suites; TypeScript
+aprobado y lint sin deuda nueva (21 errores/50 warnings globales previos).
+
+**Referencias:** ARCHITECTURE.md §5 y §9; FIREBASE_SCHEMA.md §3;
+BUGS_RESUELTOS/userapp.md (CASO 019); MVP.md §1; User commit `011a4b6`.
+
+---
+

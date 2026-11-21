@@ -59,11 +59,11 @@ No se inicia una nueva tarea mientras la actual no haya finalizado completamente
 ## 1. Estado actual
 
 - El núcleo del MVP está operativo y tiene pruebas físicas parciales; **no se acredita una jornada completa de ~8 h**.
-- Integrado en `main`: Driver I07 `9faaaf9`, I08 `67fa362` e I11 `4a05e41`; User I04 `5bc3a83` e I06-B `011a4b6`; AdminWeb I08 `80a52bd` y foco de `Modal.tsx` `5e66d46`. Los remotos están sincronizados.
+- Integrado en `main` del monorepo: Driver I07 `9faaaf9`, I08 `67fa362` e I11 `4a05e41`; User I04 `5bc3a83` e I06-B `011a4b6`; AdminWeb I08 `80a52bd` y foco de `Modal.tsx` `5e66d46`. Los remotos de los repositorios anteriores son evidencia histórica; el monorepo todavía no tiene remoto.
 - Última regresión registrada: User 124/124 pruebas en 10 suites; Driver 120/120 en 9 suites. No sustituye la prueba de jornada.
 - I06-A permanece aceptada. I09, I10 y P06 están fuera del alcance de cierre del MVP; su planificación vive en `docs/ROADMAP.md` (Tareas postergadas).
 - **Riesgo vigente del piloto — W12:** desactivar un conductor no revoca su autorización de escritura RTDB. Es la semántica aceptada de elegibilidad futura (ADR-024), no una detención en caliente. La revisión antes de producción está en `docs/ROADMAP.md` (Condiciones de pre-release y publicación).
-- B2 (`dc58daf`) está aislado en su rama de emuladores; no es requisito del MVP.
+- B2 (`dc58daf`) está aislado fuera de `main`; su rama pertenece al repositorio anterior de AdminWeb y no forma parte del monorepo. No es requisito del MVP.
 - Deploy de AdminWeb posterior al foco `5e66d46`: no reverificado.
 - **Pendientes de cierre: T1.**
 
