@@ -1,5 +1,10 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "instructions": ["AGENTS.md"],
-  "share": "disabled"
+  "share": "disabled",
+  "agent": {
+    "plan": {
+      "permission": { "edit": "deny", "bash": "deny", "task": "deny" }
+    }
+  }
 }
