@@ -1,0 +1,90 @@
+{
+  "project": "ecosistema-el-burrito",
+  "batch_id": "ecosystem-baseline-2026-11-21",
+  "notes": [
+    {
+      "title": "Monorepo con aplicaciones independientes",
+      "type": "architecture",
+      "topic_key": "team/architecture/monorepo",
+      "content": "**Qué**: User/ contiene El Burrito para estudiantes; Driver/ contiene BurritoDriverApp para conductores; AdminWeb/ contiene Central; docs/ reúne documentación compartida y FirebaseLab/ es un laboratorio local. Comparten una raíz Git, pero cada app conserva package.json, dependencias, comandos y versión propios.\n**Por qué**: Compartir historial y contratos no implica unificar runtimes ni publicaciones.\n**Dónde**: Ejecutar Git en la raíz y npm/Gradle en la carpeta correspondiente. Los prefijos de carpeta BurritoUserApp/ y BurritoDriverApp/ son obsoletos; los nombres de producto siguen siendo válidos.",
+      "sources": ["AGENTS.md", "docs/ARCHITECTURE.md", "docs/VERSIONADO_Y_PUBLICACION.md"]
+    },
+    {
+      "title": "Tracking directo por RTDB y separación de responsabilidades",
+      "type": "architecture",
+      "topic_key": "team/architecture/tracking",
+      "content": "**Qué**: BurritoDriverApp produce GPS y publica en /ubicacion_buses/{busId}; El Burrito escucha la colección mediante MapService y canaliza el estado por Zustand. AdminWeb administra conductores, buses y asignaciones. Firebase Auth identifica; las reglas RTDB autorizan.\n**Por qué**: El pipeline del mapa no necesita un backend intermedio propio. La UI no reemplaza las reglas. PULSO es un observador separado, no un eslabón del mapa.\n**Dónde**: MapService.subscribeToBusLocations libera su listener mediante la función de limpieza. Mantener los listeners fuera de los componentes visuales y consultar FIREBASE_SCHEMA antes de cambiar contratos. ADR-004, ADR-005 y ADR-007 siguen vigentes.",
+      "sources": ["docs/ARCHITECTURE.md", "docs/DECISIONS.md", "User/src/features/map/services/map_service.ts", "User/AGENTS.md", "docs/FIREBASE_SCHEMA.md"]
+    },
+    {
+      "title": "Desarrollo y pruebas de El Burrito",
+      "type": "pattern",
+      "topic_key": "team/development/user",
+      "content": "**Qué**: User/ usa React Native CLI 0.83.1 y Android; no Expo ni soporte iOS configurado. Metro se inicia con npm start y Android con npm run android.\n**Verificación**: Desde User/: npm test -- --runInBand --ci, npx tsc --noEmit y npm run lint. No existe un script npm typecheck. Consultar docs/LINT_DEBT.md para distinguir deuda preexistente de regresiones. No interpretar una compilación como validación física del mapa.\n**Límites**: La recepción es multi-bus, pero el mapa muestra una unidad a la vez. ADR-020 mantiene la estrategia C como experimental; no presentar su calibración como definitiva. La configuración local y los valores de entorno se obtienen por el canal privado correspondiente, nunca desde memorias compartidas.",
+      "sources": ["User/README.md", "User/AGENTS.md", "User/package.json", "docs/DECISIONS.md", "docs/LINT_DEBT.md"]
+    },
+    {
+      "title": "BurritoDriverApp: pruebas y límites del tracking Android",
+      "type": "pattern",
+      "topic_key": "team/development/driver",
+      "content": "**Qué**: Driver/ es conductor-only y Android-only. Desde Driver/: npm start, npm run android, npm test -- --runInBand --ci y npm run lint. Jest ya incorpora las excepciones de transformación requeridas; no agregar flags históricos por costumbre.\n**Por qué**: El foreground service de ubicación exige coherencia entre manifiesto, permisos y opciones JS. Una validación en emulador no acredita GPS real ni continuidad física.\n**Límites**: DETENER RECORRIDO y cerrar sesión son acciones distintas. No hay onDisconnect; una terminación anormal puede dejar actividad declarada. El watchdog no cubre un proceso muerto. No introducir colas de posiciones antiguas ni otra ruta de escritura. Los turnos administrativos no controlan el servicio GPS.",
+      "sources": ["Driver/README.md", "Driver/AGENTS.md", "Driver/package.json", "Driver/jest.config.js", "docs/ARCHITECTURE.md", "docs/DECISIONS.md"]
+    },
+    {
+      "title": "AdminWeb: autorización, pruebas y asignaciones",
+      "type": "discovery",
+      "topic_key": "team/development/adminweb",
+      "content": "**Qué**: Desde AdminWeb/: npm run dev inicia Vite, npm run lint ejecuta Oxlint y npm run build ejecuta tsc -b más vite build. No hay script separado de typecheck.\n**Contratos**: El auth gate consulta /administradores/{uid}; PERMISSION_DENIED deniega acceso, mientras timeout o red deben permitir reintentar. No interpretar un servicio inaccesible como falta de rol.\n**Límites**: createAsignacion valida conductor/fecha y turnos, pero no reserva atómicamente ni comprueba exclusividad del bus. Los turnos son informativos. Desactivar un conductor no cancela sus asignaciones ni detiene el tracking. La administración de cuentas usa una app Auth temporal para preservar la sesión actual.",
+      "sources": ["AdminWeb/README.md", "AdminWeb/AGENTS.md", "AdminWeb/package.json", "AdminWeb/src/features/admin/services/admin_check.ts", "AdminWeb/src/features/admin/services/admin_service.ts"]
+    },
+    {
+      "title": "PULSO: observación persistida, no diagnóstico integral",
+      "type": "architecture",
+      "topic_key": "team/pulso/observability",
+      "content": "**Qué**: El Worker de PULSO comprueba RTDB periódicamente y guarda estado, observaciones sanitizadas e incidentes en D1. La API administrativa autoriza con Firebase y lee D1. Central consulta registros; Actualizar no evalúa el tracking ni dispara el cron.\n**Por qué**: Una publicación reciente puede provenir del heartbeat y no prueba un fix GPS nuevo ni movimiento. Un incidente informa síntomas observados, no su causa exacta.\n**Límites**: La interrupción se abre cuando la antigüedad supera tres minutos durante vigilancia activa. La recuperación exige dos publicaciones recientes válidas con timestamps crecientes. El inicio observado no equivale necesariamente al botón INICIAR. El cierre documentado del MVP de PULSO no cierra por sí solo el MVP general.",
+      "sources": ["docs/PULSO.md", "docs/ARCHITECTURE.md", "AdminWeb/monitor/worker/src/index.ts", "AdminWeb/monitor/worker/src/pulsoRead.ts", "AdminWeb/src/features/pulso/screen/PulsoScreen.tsx"]
+    },
+    {
+      "title": "PULSO local: procesos, pruebas y puertos separados",
+      "type": "pattern",
+      "topic_key": "team/pulso/local-development",
+      "content": "**Qué**: El sandbox usa identidades ficticias y modo pulso-local. Emuladores, Worker y Vite son procesos distintos. Desde AdminWeb/: npm run emulators:pulso, npm run dev:pulso, npm run test:pulso y npm run test:pulso:integration. Desde monitor/worker/: npm run typecheck, npm test y npm run test:api:integration. Consultar el README para aplicar migraciones locales y preparar fixtures.\n**Aprendido**: Un proxy /api/pulso con 502 puede indicar que falta el Worker local, no un fallo de la pantalla. Vite normal no conecta automáticamente con el laboratorio. Las integraciones API/pantalla preparan su entorno y deben ejecutarse secuencialmente con sus puertos libres. La integración histórica RTDB es distinta y queda omitida sin su activación explícita; omitida no significa aprobada.",
+      "sources": ["AdminWeb/README.md", "AdminWeb/package.json", "AdminWeb/monitor/worker/package.json", "AdminWeb/vite.config.ts"]
+    },
+    {
+      "title": "FirebaseLab: control local de permisos sin producción",
+      "type": "pattern",
+      "topic_key": "team/testing/firebase-lab",
+      "content": "**Qué**: FirebaseLab/ ejecuta Auth y RTDB Emulator con el proyecto demo-el-burrito-i03i04 y datos ficticios. Desde esa carpeta: npm test para reglas, npm run test:integration para login local y npm run test:all para ambas. npm run b2 crea un escenario interactivo ficticio y reemplaza la raíz del RTDB Emulator.\n**Por qué**: authenticatedContext prueba reglas con una identidad simulada; no acredita login real. La integración Auth/RTDB sí ejercita ese login local.\n**Límites**: Las candidatas I03/I04 versionadas no acreditan reglas desplegadas. No ejecutar deploy ni reutilizar datos o credenciales reales. Los runners validan configuración y puertos; las suites corren secuencialmente. Un comando sin los emuladores requeridos debe fallar, sin fallback a producción.",
+      "sources": ["FirebaseLab/README.md", "FirebaseLab/package.json", "FirebaseLab/lab.js"]
+    },
+    {
+      "title": "Versionar entregas independientes, no cada compilación",
+      "type": "decision",
+      "topic_key": "team/releases/versioning",
+      "content": "**Qué**: User y Driver mantienen SemVer y versionCode independientes, editados manualmente en android/app/build.gradle. package.json.version es independiente durante el MVP. Los tags nuevos del monorepo son user-vX.Y.Z y driver-vX.Y.Z; no recrear ni mover tags históricos.\n**Procedimiento**: Preparar, compilar, verificar identidad y firma, calcular SHA-256, respaldar la copia exacta, registrar tag anotado y GitHub Release, distribuir y confirmar resultado. User utiliza AAB para Play; Driver APK privada. Firmar o compilar no acredita instalación ni disponibilidad en Play.\n**Límites**: Actualizar Driver fuera de la jornada activa; no durante un relevo. Integrar los hotfixes después en main. No agregar CI/CD de publicación ni automatización de versiones sin un cambio de alcance aprobado.",
+      "sources": ["docs/VERSIONADO_Y_PUBLICACION.md", "User/README.md", "Driver/README.md"]
+    },
+    {
+      "title": "Central y PULSO: publicación y recuperación compatibles",
+      "type": "pattern",
+      "topic_key": "team/releases/web-pulso",
+      "content": "**Qué**: Central y PULSO se identifican por commit e IDs de Hosting/Workers, sin exigir nuevo SemVer ni tags. Son publicaciones separadas.\n**Orden**: Migración compatible de D1, Worker, comprobación y finalmente Hosting. El dry-run no publica ni migra. Conservar evidencia del origen, destino y resultado; no deducir un commit a partir de fechas.\n**Recuperación**: Un rollback del Worker no revierte D1. Revisar compatibilidad antes de volver a una versión anterior; no borrar columnas, estado o incidentes para forzar compatibilidad. Las referencias históricas de despliegue no prueban el estado remoto actual. Cualquier publicación o cambio operativo requiere autorización específica.",
+      "sources": ["docs/VERSIONADO_Y_PUBLICACION.md", "docs/PULSO.md", "AdminWeb/README.md"]
+    },
+    {
+      "title": "Metodología: alcance acotado y evidencia verificable",
+      "type": "pattern",
+      "topic_key": "team/workflow/methodology",
+      "content": "**Qué**: Plan analiza impacto y fuentes; Build implementa el alcance autorizado. Consultar el AGENTS.md raíz y el del componente antes de cambiarlo. Mantener UI, comentarios y documentación en español e identificadores en inglés. Usar Conventional Commits cuando se autoricen commits.\n**Por qué**: Un resultado histórico no certifica una ejecución actual. Diferenciar código integrado, pruebas automatizadas, compilación, instalación y validación física. No expandir tareas con refactors ni cambios de configuración no pedidos.\n**Referencias**: MVP.md define alcance y estado; ROADMAP define trabajo posterior. FIREBASE_SCHEMA registra contratos; ARCHITECTURE, flujos; DECISIONS, decisiones. FLUJO_DE_TRABAJO mantiene una pausa temporal antes de la etapa de actualización documental: respetar su texto vigente, no asumir que desapareció.",
+      "sources": ["AGENTS.md", "FLUJO_DE_TRABAJO.md", "FLUJO_VERIFICACION_Y_CIERRE.md", "MVP.md", "docs/ROADMAP.md"]
+    },
+    {
+      "title": "Migración: preservar evidencia y distinguir entorno de código",
+      "type": "learning",
+      "topic_key": "team/migration/lessons",
+      "content": "**Qué**: La migración reunió los componentes bajo una única raíz Git y preservó los historiales seleccionados. Las rutas operativas actuales son User/, Driver/, AdminWeb/, docs/ y FirebaseLab/. Las referencias polyrepo en ADR y bugs pueden ser evidencia histórica, no instrucciones actuales.\n**Aprendido**: Una configuración ignorada no viaja con Git; cada equipo debe preparar su entorno sin incluir secretos en la memoria compartida. La igualdad de árboles de fuentes no acredita igualdad de configuración privada ni de despliegues. Los fallos del arnés de validación deben separarse de los fallos del producto.\n**Aplicación**: Verificar scripts actuales antes de repetir flags antiguos; Jest Driver ya tiene su transformación configurada. Para PULSO, diferenciar proxy, Worker y emuladores. Esta nota sintetiza aprendizajes técnicos; no traslada conversaciones, sesiones originales ni inventarios privados.",
+      "sources": ["AGENTS.md", "docs/AGENTS.md", "docs/ARCHITECTURE.md", "Driver/jest.config.js", "Driver/README.md", "AdminWeb/README.md"]
+    }
+  ]
+}

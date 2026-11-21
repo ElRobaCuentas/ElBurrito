@@ -32,7 +32,12 @@ node_modules/
 /.agents/
 /skills-lock.json
 /.atl/
-/.engram/
+/.engram/*
+!/.engram/config.json
+!/.engram/manifest.json
+!/.engram/chunks/
+/.engram/chunks/*
+!/.engram/chunks/*.jsonl.gz
 /.opencode/
 /.gentle-ai-default-agent.json
 .codegraph/
