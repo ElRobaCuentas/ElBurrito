@@ -22,12 +22,16 @@ solicitados.
 | Iniciar Metro | `npm start` |
 | Compilar Android | `npm run android` |
 | Lint | `npm run lint` |
-| Tests | `npm test` |
+| Tests | `npm test -- --runInBand --ci` |
 | Logs Android | `adb logcat \| grep RNBackground` |
 | Formatear | `npx prettier --write <file>` |
 
 Prettier: `singleQuote`, `arrowParens: 'avoid'`, `trailingComma: 'all'`.
 No hay script de typecheck ni archivo `.env`.
+
+La suite estándar es `npm test -- --runInBand --ci` (9 suites, 120 pruebas).
+`jest.config.js` contiene las excepciones de transformación para React Native y
+las dependencias ESM; no requiere flags adicionales.
 
 ---
 
