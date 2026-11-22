@@ -1,9 +1,11 @@
-# <img src="assets/readme-title.gif" alt="EL BURRITO" width="640">
+# <img src="../docs/assets/readme-title.gif" alt="El Burrito" width="640">
 
 El Burrito permite a los estudiantes de la Universidad Nacional Mayor de
 San Marcos (UNMSM) consultar dónde está el bus universitario mientras
 esperan en el campus. Muestra en el mapa la ubicación que transmite el
 conductor, junto con la ruta y los paraderos.
+
+Conoce los demás productos en el [README principal](../README.md).
 
 ## Qué permite hacer
 
