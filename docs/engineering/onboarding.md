@@ -44,8 +44,8 @@ git status --short
 ```
 
 Confirmar una raíz Git con `User/`, `Driver/`, `AdminWeb/`, `docs/`,
-`FirebaseLab/` y `scripts/`. Leer [AGENTS.md](../AGENTS.md) y el
-[flujo de trabajo](../FLUJO_DE_TRABAJO.md) antes de pedir cambios a un agente.
+`FirebaseLab/` y `scripts/`. Leer [AGENTS.md](../../AGENTS.md) y el
+[flujo de trabajo](workflow.md) antes de pedir cambios a un agente.
 
 ## 2. Herramientas y versiones de referencia
 
@@ -95,7 +95,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Revisar JAVA_HOME.' }
 
 Usar esa terminal para Gradle; revisar también el Gradle JDK de Android Studio.
 Los runners de Firebase seleccionan Java 21 para sus hijos según los
-[requisitos de FirebaseLab](../FirebaseLab/README.md#requisitos).
+[requisitos de FirebaseLab](../../FirebaseLab/README.md#requisitos).
 Si la instalación de Android Studio tiene otra ruta, resolver ese bloqueo con el
 responsable antes de ejecutar pruebas; no modificar el runner durante el onboarding.
 
@@ -181,7 +181,7 @@ Buscar, por ejemplo, «Monorepo con aplicaciones independientes» y contrastar s
 No importar la base histórica de otro integrante ni volver a publicar el lote
 inicial. Repetir `Receive` no duplica un chunk ya procesado. No activar Cloud ni
 sincronización automática. Para aportar conocimiento nuevo, seguir la
-[publicación curada](../FLUJO_VERIFICACION_Y_CIERRE.md#memorias-técnicas-compartidas).
+[publicación curada](verification-and-closure.md#memorias-técnicas-compartidas).
 
 ## 5. Qué se comparte y qué debe prepararse localmente
 
@@ -197,15 +197,15 @@ sincronización automática. Para aportar conocimiento nuevo, seguir la
 No hace falta distribuir claves release para incorporarse. Si una compilación
 local exige material reservado, registrar el bloqueo y consultarlo; no cambiar
 la firma ni copiar claves para eludirlo. La
-[política de publicación](VERSIONADO_Y_PUBLICACION.md) define la entrega, no esta guía.
+[política de publicación](versioning-and-releases.md) define la entrega, no esta guía.
 
 ### Preparar cada aplicación
 
-- **User:** seguir [configuración y ejecución](../User/README.md#configuración-y-ejecución)
+- **User:** seguir [configuración y ejecución](../../User/README.md#configuración-y-ejecución)
   para Firebase Android y los nombres de variables Mapbox/Google.
-- **Driver:** seguir [setup](../Driver/README.md#setup); no requiere `.env`.
+- **Driver:** seguir [setup](../../Driver/README.md#setup); no requiere `.env`.
 - **AdminWeb:** completar solo los nombres previstos en
-  [variables de entorno](../AdminWeb/README.md#variables-de-entorno). Sus `VITE_*`
+  [variables de entorno](../../AdminWeb/README.md#variables-de-entorno). Sus `VITE_*`
   llegan al bundle; no colocar secretos de servidor.
 - **FirebaseLab y PULSO local:** utilizar cuentas y datos ficticios. El modo
   `pulso-local` no carga el `.env` operativo. Abrir AdminWeb normalmente no lo
@@ -247,11 +247,11 @@ fuente de comandos y fixtures; no se duplican aquí sus pasos completos.
 
 | Componente | Entrada de ejecución y verificación | Resultado que comprobar |
 |------------|------------------------------------|------------------------|
-| User | [Desarrollo local](../User/README.md#desarrollo-local) y [comandos](../User/README.md#comandos-de-desarrollo) | Metro y Android; tests, tipos y lint distinguiendo la [deuda conocida](LINT_DEBT.md). User no tiene script npm `typecheck`. |
-| Driver | [Scripts](../Driver/README.md#scripts) y [requisitos de plataforma](../Driver/README.md#requisitos-de-plataforma) | Metro, Android y suite Jest estándar; no reutilizar flags históricos. Un emulador no acredita GPS físico ni continuidad del servicio. |
-| AdminWeb | [Desarrollo](../AdminWeb/README.md#desarrollo) y [linting](../AdminWeb/README.md#linting) | Vite, lint y build; el build incluye tipos. El acceso real requiere un usuario autorizado; no deducir el rol por tener código. |
-| FirebaseLab | [Regresión de reglas](../FirebaseLab/README.md#ejecutar-la-regresión-de-reglas) e [integración Auth/RTDB](../FirebaseLab/README.md#integración-de-auth-y-rtdb) | Fixtures locales, reglas y login; el runner inicia y cierra emuladores y rechaza puertos ocupados. |
-| PULSO | [Desarrollo con memoria y Central](../AdminWeb/README.md#desarrollo-local-con-memoria-y-central) y [pruebas](../AdminWeb/README.md#pruebas-y-comprobaciones-previas) | Emuladores, Worker y Vite separados; integraciones API/pantalla con sus fixtures, tipos y tests del Worker. Actualizar solo consulta D1. |
+| User | [Desarrollo local](../../User/README.md#desarrollo-local) y [comandos](../../User/README.md#comandos-de-desarrollo) | Metro y Android; tests, tipos y lint distinguiendo la [deuda conocida](../diagnostics/lint-debt.md). User no tiene script npm `typecheck`. |
+| Driver | [Scripts](../../Driver/README.md#scripts) y [requisitos de plataforma](../../Driver/README.md#requisitos-de-plataforma) | Metro, Android y suite Jest estándar; no reutilizar flags históricos. Un emulador no acredita GPS físico ni continuidad del servicio. |
+| AdminWeb | [Desarrollo](../../AdminWeb/README.md#desarrollo) y [linting](../../AdminWeb/README.md#linting) | Vite, lint y build; el build incluye tipos. El acceso real requiere un usuario autorizado; no deducir el rol por tener código. |
+| FirebaseLab | [Regresión de reglas](../../FirebaseLab/README.md#ejecutar-la-regresión-de-reglas) e [integración Auth/RTDB](../../FirebaseLab/README.md#integración-de-auth-y-rtdb) | Fixtures locales, reglas y login; el runner inicia y cierra emuladores y rechaza puertos ocupados. |
+| PULSO | [Desarrollo con memoria y Central](../../AdminWeb/README.md#desarrollo-local-con-memoria-y-central) y [pruebas](../../AdminWeb/README.md#pruebas-y-comprobaciones-previas) | Emuladores, Worker y Vite separados; integraciones API/pantalla con sus fixtures, tipos y tests del Worker. Actualizar solo consulta D1. |
 
 No iniciar todo a la vez: User y Driver requieren sesiones Metro separadas según
 la app elegida. Las integraciones API/pantalla de PULSO comparten puertos y se
@@ -267,8 +267,8 @@ la incorporación.
 ## 8. Primera tarea y confirmación de incorporación
 
 1. Acordar una tarea pequeña, responsable y criterios de aceptación; consultar
-   `MVP.md` y los bloqueos antes de elegirla. Una prueba de setup no cierra el MVP.
-2. Seguir la [preparación de una tarea](../FLUJO_DE_TRABAJO.md#preparación-de-una-tarea):
+   `../planning/mvp.md` y los bloqueos antes de elegirla. Una prueba de setup no cierra el MVP.
+2. Seguir la [preparación de una tarea](workflow.md#preparación-de-una-tarea):
    árbol limpio, `main` actualizado, memoria recibida y rama propia.
 3. Usar Plan para el análisis y Build después de aprobarlo. Invocar
    Gentle-Orchestrator solo si se solicita coordinación explícita. Las credenciales
@@ -277,7 +277,7 @@ la incorporación.
    el mismo PR. Si aparece conocimiento útil, proponer una síntesis para revisión;
    no exportar automáticamente todas las notas de la sesión.
 5. Pedir revisión a otro desarrollador y seguir el
-   [cierre e integración](../FLUJO_VERIFICACION_Y_CIERRE.md#revisión-humana-e-integración-del-pr).
+   [cierre e integración](verification-and-closure.md#revisión-humana-e-integración-del-pr).
    Un commit local no es una tarea integrada y un PR no autoriza un despliegue.
 
 La incorporación queda confirmada cuando el integrante puede recuperar contexto,

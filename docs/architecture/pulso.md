@@ -13,12 +13,12 @@ GPS de BurritoDriverApp ni una herramienta de diagnóstico integral del teléfon
 
 **Estado del MVP:** implementado, desplegado y validado operativamente el
 **18/11/2026** para `AHK-459`. La evidencia y sus límites están en §9. Este cierre
-no acredita el cierre del MVP general de El Burrito, definido en `../MVP.md`.
+no acredita el cierre del MVP general de El Burrito, definido en `../planning/mvp.md`.
 
 Esta es la referencia de funcionamiento, alcance y validación. La integración
-general vive en [ARCHITECTURE §3.2](ARCHITECTURE.md#32-pulso-monitor-de-seguimiento),
+general vive en [ARCHITECTURE §3.2](overview.md#32-pulso-monitor-de-seguimiento),
 los procedimientos técnicos en el [README de AdminWeb](https://github.com/ElRobaCuentas/AdminWeb/blob/main/README.md#monitor-pulso-local-y-despliegue-remoto)
-y la planificación posterior en [ROADMAP](ROADMAP.md#21-evolución-de-pulso-posterior-al-mvp).
+y la planificación posterior en [ROADMAP](../planning/roadmap.md#21-evolución-de-pulso-posterior-al-mvp).
 
 ## 2. Alcance del MVP
 
@@ -33,7 +33,7 @@ y la planificación posterior en [ROADMAP](ROADMAP.md#21-evolución-de-pulso-pos
 El adaptador acepta los seis campos actuales: `isActive`, `timestamp`, `latitude`,
 `longitude`, `heading` y `speed`. Distingue campos ausentes e inválidos y no deriva
 telemetría adicional. El contrato del productor pertenece a
-[FIREBASE_SCHEMA §2](FIREBASE_SCHEMA.md#ubicacion_busesplaca).
+[FIREBASE_SCHEMA §2](firebase-schema.md#ubicacion_busesplaca).
 
 El `timestamp` es de publicación, no del fix GPS original. El heartbeat puede
 republicar la última posición: publicación reciente no prueba una medición nueva
@@ -432,5 +432,5 @@ Más telemetría podría separar mejor publicación y medición; supervisión ex
 podría cubrir el fallo del monitor. Ambas requieren diseño, alcance y validación
 propios, no se obtienen habilitando únicamente una etiqueta del evaluador.
 La clasificación de estas posibilidades, su postergación y cualquier aprobación
-futura pertenecen a [ROADMAP §2.1](ROADMAP.md#21-evolución-de-pulso-posterior-al-mvp).
+futura pertenecen a [ROADMAP §2.1](../planning/roadmap.md#21-evolución-de-pulso-posterior-al-mvp).
 No son compromisos, prioridades ni requisitos adicionales del MVP cerrado.

@@ -4,7 +4,7 @@
 
 Esta app es un **productor de GPS Android**: captura coordenadas y las escribe
 en Firebase RTDB. Las reglas comunes están en `../AGENTS.md` y el procedimiento
-en `../FLUJO_DE_TRABAJO.md`; consultalos antes de modificar código. Si no están
+en `../docs/engineering/workflow.md`; consultalos antes de modificar código. Si no están
 disponibles, informalo y no asumas que fueron cargados.
 
 Un error silencioso aquí no produce un crash: el bus simplemente desaparece del
@@ -48,7 +48,7 @@ index.js → DriverApp.tsx (auth gate)
 | `firebase_service.ts` | Escritura RTDB |
 
 La app consulta `/asignaciones` y escribe en `/ubicacion_buses/{busId}`. Ciclo
-completo: `../docs/ARCHITECTURE.md` §8; payloads: `../docs/FIREBASE_SCHEMA.md`.
+completo: `../docs/architecture/overview.md` §8; payloads: `../docs/architecture/firebase-schema.md`.
 
 Ciclo: login → `fetchAssignment` → `startProcess` → permisos Android →
 `BackgroundJob.start` → `locationTask` → `updateBusLocation` → `stopProcess`.
@@ -61,7 +61,7 @@ Ciclo: login → `fetchAssignment` → `startProcess` → permisos Android →
 
 - **No modifiques** `locationTask` sin entender el ciclo: corre dentro del
   `BackgroundJob` y sus errores dejan el tracking inoperativo sin aviso en la
-  UI. Leé `../docs/ARCHITECTURE.md` §8 antes.
+  UI. Leé `../docs/architecture/overview.md` §8 antes.
 - **No confíes** en un cierre limpio: no hay `onDisconnect`. DETENER RECORRIDO es
   la única fuente de verdad para `isActive: false`. Si el proceso muere de forma
   anormal, `isActive` puede quedar en `true`; el watchdog reintenta dentro del

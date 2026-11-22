@@ -2,8 +2,8 @@
 
 > **Documento operativo del MVP: qué falta, cómo se cierra y qué sigue.**
 > Lo ya resuelto (tareas terminadas, bugs, seguridad, robustez) está en
-> **`docs/BUGS_RESUELTOS/`** y **`docs/DECISIONS.md`**; la evidencia de cambios, en Git. El detalle técnico profundo vive en `docs/`
-> (`BUGS_RESUELTOS/`, `DECISIONS.md`, `FIREBASE_SCHEMA.md`). La planificación posterior al MVP vive en **`docs/ROADMAP.md`**.
+> **`../diagnostics/resolved-bugs/`** y **`../adr/README.md`**; la evidencia de cambios, en Git. El detalle técnico profundo vive en `docs/`
+> (`../diagnostics/resolved-bugs/`, `../adr/README.md`, `../architecture/firebase-schema.md`). La planificación posterior al MVP vive en **`roadmap.md`**.
 
 ---
 
@@ -50,7 +50,7 @@ Cada tarea del backlog se clasifica por tipo; el flujo a aplicar depende del tip
 | **B — Tarea normal** | Corregir `keepAlive`, arreglar `existeAdministrador`, timeout | Auditar → Implementar → Self Review → Compilar → Prueba manual → Commit |
 | **C — Cambio arquitectónico** | MultiBus, Dashboard Web, Control de turnos, Geofencing | Auditar → Diseñar → Implementar → Self Review → Review externo → Correcciones → Compilar → Testing → Actualizar documentación → Revisión arquitectura → Commit |
 
-Los detalles y prompts de cada etapa viven en `FLUJO_DE_TRABAJO.md`.
+Los detalles y prompts de cada etapa viven en `../engineering/workflow.md`.
 
 No se inicia una nueva tarea mientras la actual no haya finalizado completamente.
 
@@ -61,8 +61,8 @@ No se inicia una nueva tarea mientras la actual no haya finalizado completamente
 - El núcleo del MVP está operativo y tiene pruebas físicas parciales; **no se acredita una jornada completa de ~8 h**.
 - Integrado en `main` del monorepo: Driver I07 `9faaaf9`, I08 `67fa362` e I11 `4a05e41`; User I04 `5bc3a83` e I06-B `011a4b6`; AdminWeb I08 `80a52bd` y foco de `Modal.tsx` `5e66d46`. Los remotos de los repositorios anteriores son evidencia histórica; el monorepo todavía no tiene remoto.
 - Última regresión registrada: User 124/124 pruebas en 10 suites; Driver 120/120 en 9 suites. No sustituye la prueba de jornada.
-- I06-A permanece aceptada. I09, I10 y P06 están fuera del alcance de cierre del MVP; su planificación vive en `docs/ROADMAP.md` (Tareas postergadas).
-- **Riesgo vigente del piloto — W12:** desactivar un conductor no revoca su autorización de escritura RTDB. Es la semántica aceptada de elegibilidad futura (ADR-024), no una detención en caliente. La revisión antes de producción está en `docs/ROADMAP.md` (Condiciones de pre-release y publicación).
+- I06-A permanece aceptada. I09, I10 y P06 están fuera del alcance de cierre del MVP; su planificación vive en `roadmap.md` (Tareas postergadas).
+- **Riesgo vigente del piloto — W12:** desactivar un conductor no revoca su autorización de escritura RTDB. Es la semántica aceptada de elegibilidad futura (ADR-024), no una detención en caliente. La revisión antes de producción está en `roadmap.md` (Condiciones de pre-release y publicación).
 - B2 (`dc58daf`) está aislado fuera de `main`; su rama pertenece al repositorio anterior de AdminWeb y no forma parte del monorepo. No es requisito del MVP.
 - Deploy de AdminWeb posterior al foco `5e66d46`: no reverificado.
 - **Pendientes de cierre: T1.**
@@ -71,8 +71,8 @@ No se inicia una nueva tarea mientras la actual no haya finalizado completamente
 
 ## 2. Backlog pendiente
 
-> Las tareas terminadas y su evidencia están en `docs/BUGS_RESUELTOS/`,
-> `docs/DECISIONS.md` y el historial de Git. Aquí solo se listan las tareas pendientes o futuras del MVP.
+> Las tareas terminadas y su evidencia están en `../diagnostics/resolved-bugs/`,
+> `../adr/README.md` y el historial de Git. Aquí solo se listan las tareas pendientes o futuras del MVP.
 
 Criterio único de prioridad: **¿esta tarea acerca o aleja el objetivo del MVP?**
 
@@ -140,7 +140,7 @@ El MVP se considera cerrado cuando:
 | Cobertura de tests por porcentaje | Solo proteger flujos críticos |
 
 Esta tabla delimita el alcance del MVP. Los identificadores, estados y
-dependencias de planificación futura están únicamente en `docs/ROADMAP.md`.
+dependencias de planificación futura están únicamente en `roadmap.md`.
 
 ---
 
@@ -148,11 +148,11 @@ dependencias de planificación futura están únicamente en `docs/ROADMAP.md`.
 
 Nada del Post-MVP podrá iniciarse mientras el MVP no esté cerrado oficialmente (ver §3).
 
-`docs/ROADMAP.md` es la fuente de planificación posterior: funcionalidades,
+`roadmap.md` es la fuente de planificación posterior: funcionalidades,
 dependencias, tareas postergadas, condiciones de pre-release y publicación,
 deuda técnica y visión futura sin aprobación de ejecución. Las condiciones de
 pre-release se conservan separadas de las ampliaciones post-MVP.
-El inventario detallado de lint sigue en `docs/LINT_DEBT.md`.
+El inventario detallado de lint sigue en `../diagnostics/lint-debt.md`.
 
 ---
 
@@ -163,8 +163,8 @@ Este documento refleja el estado **real** del proyecto.
 Si el código cambia:
 
 1. Primero cambia el código.
-2. Luego se actualiza `MVP.md`.
+2. Luego se actualiza `mvp.md`.
 
 Nunca al revés.
 
-Cuando una tarea del MVP se **termina**, se registra su evidencia en `docs/BUGS_RESUELTOS/` o `docs/DECISIONS.md` según corresponda, y se retira de la sección de backlog pendiente de este documento. El estado del trabajo posterior se actualiza en `docs/ROADMAP.md`, sin duplicarlo aquí. El historial de cambios queda en Git.
+Cuando una tarea del MVP se **termina**, se registra su evidencia en `../diagnostics/resolved-bugs/` o `../adr/README.md` según corresponda, y se retira de la sección de backlog pendiente de este documento. El estado del trabajo posterior se actualiza en `roadmap.md`, sin duplicarlo aquí. El historial de cambios queda en Git.

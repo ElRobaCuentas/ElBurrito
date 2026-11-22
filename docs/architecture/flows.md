@@ -1,6 +1,6 @@
 # Arquitectura: flujos, componentes y servicios
 
-[Volver al documento principal](ARCHITECTURE.md).
+[Volver al documento principal](overview.md).
 
 ## 5. Comunicación y Flujo de Datos
 
@@ -88,7 +88,7 @@ la flota. `Map.tsx` y `MapBranding.tsx`:
 3. Seleccionan la primera entrada.
 
 No buscan una alternativa fresca ni eligen un bus arbitrario. El render
-multi-marcador completo sigue pendiente (ROADMAP T4.4).
+multi-marcador completo sigue pendiente (`../planning/roadmap.md`, T4.4).
 
 La caducidad de 30 s se evalúa cada 2 s y cambia el estado del bus a `offline`
 cuando `!isActive` o cuando la edad del timestamp alcanza el umbral. Ese estado
@@ -109,7 +109,7 @@ lo contrasta con la sesión vigente antes de crear un hijo mediante
 `push().set()`, con `ServerValue.TIMESTAMP`. Las reglas publicadas exigen
 creación con UID propio y rating entero 1–5; deniegan editar o borrar
 comentarios. Los permisos de conductores y asignaciones se detallan en
-`FIREBASE_SCHEMA.md` §9.
+`firebase-schema.md` §9.
 
 ### 5.5 Autenticación de El Burrito
 
@@ -156,7 +156,7 @@ createAdmin:
     → /administradores/{uid}
 ```
 
-Los payloads completos, reglas e índices están en `FIREBASE_SCHEMA.md`. Las
+Los payloads completos, reglas e índices están en `firebase-schema.md`. Las
 validaciones y limitaciones del panel están en §3.1.
 
 ## 6. Componentes Principales

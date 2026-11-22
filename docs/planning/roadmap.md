@@ -3,13 +3,13 @@
 ## 1. Propósito y límites
 
 Fuente principal de planificación posterior al MVP del Ecosistema El Burrito.
-`../MVP.md` conserva el alcance, estado, pendientes de cierre, criterios de
+`mvp.md` conserva el alcance, estado, pendientes de cierre, criterios de
 aceptación y exclusiones del MVP. Aquí viven las dependencias y estados del
 trabajo futuro, las tareas postergadas y las condiciones de pre-release.
 
 La planificación post-MVP, las postergaciones, las obligaciones de publicación
 y las ideas sin aprobación de ejecución son categorías distintas. El historial
-y la evidencia de tareas completadas están en `DECISIONS.md`, `BUGS_RESUELTOS/`
+y la evidencia de tareas completadas están en `../adr/README.md`, `../diagnostics/resolved-bugs/`
 y Git; no se repiten como backlog.
 
 ## 2. Planificación post-MVP
@@ -27,16 +27,16 @@ La propuesta histórica de caducidad a los 60 s no es trabajo pendiente.
 
 | Tarea | Proyecto | Estado | Depende de | Alcance y validación |
 |-------|----------|--------|------------|---------------------|
-| T4.2 — Control de turnos y creación de `/recorridos` | BurritoDriverApp | Parcial | T4.1 | INICIAR/DETENER ya existen; falta registrar `/recorridos` (FIREBASE_SCHEMA §7). No equivale a los turnos informativos de I08 (ADR-027). |
+| T4.2 — Control de turnos y creación de `/recorridos` | BurritoDriverApp | Parcial | T4.1 | INICIAR/DETENER ya existen; falta registrar `/recorridos` (`../architecture/firebase-schema.md` §7). No equivale a los turnos informativos de I08 (ADR-027). |
 | T4.4 — Render multi-bus completo | El Burrito | Pendiente | T3.2 | ShapeSource + SymbolLayer por cada bus activo. |
 | T4.5 — Monitor de flota | AdminWeb | Pendiente | T4.4 | Sección «Flota en servicio ahora». |
 | T4.6 — Estadísticas de recorridos | El Burrito | Pendiente | T4.2 | StatsScreen con métricas de recorridos. |
 | T4.3 — Geofencing | BurritoDriverApp | Pendiente | T4.2 | Punto Cero Dinámico (ADR-013), máquina de estados con Haversine e histéresis 40/80 m. La validación real depende de la implementación; ajustar radios contra multipath de edificios en campus. |
 | T5.2 — Smoothing | El Burrito | Pendiente | T4.4 | Interpolación (moving average / Kalman ligero). El ajuste fino depende de la implementación y de datos reales del circuito en campus. |
 | T5.1 — Calibración de paraderos | El Burrito | Pendiente | Presencia en Campus UNMSM | Coordenadas GPS reales de los 10 paraderos. Sin otra dependencia funcional documentada. |
-| PULSO — Vigilancia automática | AdminWeb (monitor) | Terminada | — | Implementada y desplegada en producción; validada operativamente el 18/11/2026 para AHK-459: interrupción, persistencia sin duplicados, recuperación, detención y ausencia de incidentes posteriores. Evidencia y alcance en [PULSO §9](PULSO.md#9-validación-operativa-del-mvp). |
+| PULSO — Vigilancia automática | AdminWeb (monitor) | Terminada | — | Implementada y desplegada en producción; validada operativamente el 18/11/2026 para AHK-459: interrupción, persistencia sin duplicados, recuperación, detención y ausencia de incidentes posteriores. Evidencia y alcance en [PULSO §9](../architecture/pulso.md#9-validación-operativa-del-mvp). |
 | PULSO — Notificaciones de incidentes | AdminWeb (monitor) | Pospuesta | PULSO — Vigilancia automática | Fuera del MVP cerrado; canal sin elegir y ejecución no autorizada. Ver §2.1. |
-| PULSO — Integración con Central | AdminWeb | Terminada | — | API administrativa, pantalla y refresco implementados y publicados. Inicio y duración observados validados el 18/11/2026 mediante observación continuada; prueba 3 sin ejecución independiente completa. Los límites de la evidencia se conservan en [PULSO §9](PULSO.md#9-validación-operativa-del-mvp); los procedimientos técnicos, en el README de AdminWeb. |
+| PULSO — Integración con Central | AdminWeb | Terminada | — | API administrativa, pantalla y refresco implementados y publicados. Inicio y duración observados validados el 18/11/2026 mediante observación continuada; prueba 3 sin ejecución independiente completa. Los límites de la evidencia se conservan en [PULSO §9](../architecture/pulso.md#9-validación-operativa-del-mvp); los procedimientos técnicos, en el README de AdminWeb. |
 
 **Entornos de trabajo:** Bloque A (Casa/Calle) = implementación y pruebas GPS
 locales con un Motorola, BurritoDriverApp en segundo plano y El Burrito en primer
@@ -51,9 +51,9 @@ con 6 tests unitarios (T2.2), disponible para T4.3 y T5.2.
 
 El MVP de PULSO está implementado, desplegado y validado operativamente el
 18/11/2026. Su cierre no completa el MVP general de El Burrito ni sus criterios
-de jornada completa, que siguen en `../MVP.md`.
+de jornada completa, que siguen en `mvp.md`.
 
-**Limitaciones conocidas:** las de [PULSO §10](PULSO.md#10-limitaciones-y-evolución-futura)
+**Limitaciones conocidas:** las de [PULSO §10](../architecture/pulso.md#10-limitaciones-y-evolución-futura)
 son límites aceptados de telemetría y observabilidad, no nuevos bugs encontrados
 en las ocho pruebas ni tareas comprometidas para corregirlos.
 
@@ -76,8 +76,8 @@ de planificación se mantendrán aquí.
 
 | Tarea | Decisión vigente | Referencia |
 |-------|------------------|------------|
-| I09 — Autorización GPS por asignación | Postergada; no condiciona I03/I08. | FIREBASE_SCHEMA §9 |
-| I10 — Heartbeat/antigüedad del fix GPS | Postergada; conservar comportamiento aprobado. | ARCHITECTURE §8.3 |
+| I09 — Autorización GPS por asignación | Postergada; no condiciona I03/I08. | `../architecture/firebase-schema.md` §9 |
+| I10 — Heartbeat/antigüedad del fix GPS | Postergada; conservar comportamiento aprobado. | `../architecture/overview.md` §8.3 |
 | P06 — Perfil incompatible | Postergada; no reabrir automáticamente. La fuente original `correciones_piloto_pruebas.md` fue retirada; no es un enlace vigente. | Decisión preservada del registro anterior de ROADMAP.md (Git). |
 | Mantenimiento — Eliminar registro legacy `com.burritouserapp` (`b9b8149c`) en Firebase Console | No bloqueante; limpieza post-MVP. No afecta T1. | Firebase Console |
 
@@ -95,7 +95,7 @@ no las convierte en requisitos idénticos ni permite dar una por cumplida con la
 | W12 — `toggleChoferStatus` no limpia `choferes_uids` | Hoy `activo:false` NO revoca la autorización de escritura RTDB. La semántica aceptada del MVP es elegibilidad futura, no revocación GPS en caliente (ADR-024). | **Revisar antes de producción**; no implica aprobar una revocación inmediata descartada para el MVP. |
 
 **Discrepancia previa de S3:** se conserva la exigencia de rotación antes de
-Play Store, pero `TROUBLESHOOTING.md` §10 registra que no se ha decidido rotar
+Play Store, pero `../diagnostics/troubleshooting.md` §10 registra que no se ha decidido rotar
 la clave y que se reevaluará ante evidencia de compromiso o cambios de riesgo.
 Esta redistribución no resuelve esa contradicción ni da por autorizada o
 cumplida la rotación; conserva la condición de Play Store y deja la discrepancia
@@ -111,7 +111,7 @@ pendiente de decisión expresa.
 | Backoff para reconexión RTDB (`goOffline`/`goOnline` por AppState) | Tolerancia adicional a gaps. |
 
 No se les asigna una fecha, obligación de publicación o prioridad nueva.
-El inventario de lint y sus condiciones de revisión están en `LINT_DEBT.md`.
+El inventario de lint y sus condiciones de revisión están en `../diagnostics/lint-debt.md`.
 
 ## 6. Visión futura sin aprobación de ejecución
 

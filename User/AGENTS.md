@@ -4,7 +4,7 @@
 
 App pública de estudiantes (React Native): mapa y tracking. Las reglas comunes
 del ecosistema están en `../AGENTS.md` y el procedimiento en
-`../FLUJO_DE_TRABAJO.md`; consultalos antes de modificar código. Si no están
+`../docs/engineering/workflow.md`; consultalos antes de modificar código. Si no están
 disponibles, informalo y no asumas que fueron cargados. Este archivo cubre solo
 lo particular de esta app.
 
@@ -52,8 +52,8 @@ stores, no en componentes React:
 | `drawerStore` | Efímera |
 
 RTDB que toca la app: lectura `/ubicacion_buses`, escritura `/comentarios` y
-`/usuarios/{uid}`. Payloads y flujo: `../docs/FIREBASE_SCHEMA.md` y
-`../docs/ARCHITECTURE.md` §4–§5.
+`/usuarios/{uid}`. Payloads y flujo: `../docs/architecture/firebase-schema.md` y
+`../docs/architecture/overview.md` §4–§5.
 
 Nombres: stores `useXStore`, servicios `XService`, componentes PascalCase.
 TypeScript en `strict: true`; estilos con `StyleSheet.create` al final del
@@ -90,7 +90,7 @@ archivo.
 ### 4.4 Ciclo de tracking
 
 - **No modifiques** el flujo `startTracking → listener RTDB → dedup → store` sin
-  actualizar `../docs/ARCHITECTURE.md` §5.
+  actualizar `../docs/architecture/overview.md` §5.
 - Es el corazón del sistema: cualquier cambio afecta cómo la app recibe
   ubicaciones. Trabajá dentro de `MapService.subscribeToBusLocation()` y
   `burritoLocationStore`.
@@ -103,7 +103,7 @@ archivo.
 
 ### 4.6 Paths de RTDB
 
-- **No cambies** un path de RTDB sin actualizar `../docs/FIREBASE_SCHEMA.md`.
+- **No cambies** un path de RTDB sin actualizar `../docs/architecture/firebase-schema.md`.
 - Es la fuente de verdad: si el path cambia y el documento no, el próximo
   desarrollador escribirá en nodos inexistentes.
 
@@ -113,7 +113,7 @@ archivo.
   dependencia aumenta el bundle y el riesgo de incompatibilidad con RN 0.83.1 +
   Firebase 23.8.x.
 - Si la incorporación implica una decisión arquitectónica, registrala en
-  `../docs/DECISIONS.md`. Las dependencias rutinarias no requieren un ADR.
+  `../docs/adr/README.md`. Las dependencias rutinarias no requieren un ADR.
 
 ### 4.8 Comentarios de advertencia
 
@@ -125,8 +125,8 @@ archivo.
 ### 4.9 Trabajo futuro
 
 - **No implementes** funcionalidades clasificadas como post-MVP en
-  `../docs/ROADMAP.md` ni tareas del backlog sin autorización explícita.
-- `ROADMAP.md` no impone una secuencia numérica: cada tarea depende solo de lo
+  `../docs/planning/roadmap.md` ni tareas del backlog sin autorización explícita.
+- `../docs/planning/roadmap.md` no impone una secuencia numérica: cada tarea depende solo de lo
   que allí se indica. No adelantes trabajo por número de fase.
 
 ### 4.10 Variables de entorno
@@ -169,7 +169,7 @@ Las pruebas de `__tests__/` son contratos contra regresiones silenciosas:
   no elimines la cobertura.
 - Las tablas `test.each` son contratos ejecutables. El estado vigente del
   movimiento en vivo (estrategia C, C4.6) y la calibración pendiente están en
-  `../docs/ARCHITECTURE.md` §5.3 y ADR-020.
+  `../docs/architecture/overview.md` §5.3 y ADR-020.
 
 ---
 
@@ -177,7 +177,7 @@ Las pruebas de `__tests__/` son contratos contra regresiones silenciosas:
 
 - `npx tsc --noEmit` sin errores.
 - `npm run lint`: tu cambio no debe agregar hallazgos. La deuda preexistente
-  (21 errores / 50 advertencias) está en `../docs/LINT_DEBT.md` y no se corrige
+  (21 errores / 50 advertencias) está en `../docs/diagnostics/lint-debt.md` y no se corrige
   dentro de otra tarea.
 - `npm test` pasa.
 - Sin `TODO` ni `console.log` temporales.

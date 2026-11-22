@@ -5,7 +5,7 @@
 Panel administrativo web (SPA): gestiona conductores, buses, asignaciones
 diarias y administradores sobre Firebase (Auth + Realtime Database). No captura
 GPS ni dibuja el mapa. Las reglas comunes están en `../AGENTS.md` y el
-procedimiento en `../FLUJO_DE_TRABAJO.md`; consultalos antes de modificar
+procedimiento en `../docs/engineering/workflow.md`; consultalos antes de modificar
 código. Si no están disponibles, informalo y no asumas que fueron cargados.
 
 Un error aquí no produce un crash visible: deja cuentas de autenticación
@@ -50,8 +50,8 @@ src/main.tsx → App.tsx (auth gate)
 | `src/shared/config/env.ts` | Validación de las `VITE_FIREBASE_*` al iniciar |
 
 Rutas: `/` (Asignaciones), `/choferes`, `/buses`, `/admins`; `/asignaciones`
-redirige a `/`; `*` → `/`. Detalles: `../docs/ARCHITECTURE.md` (sección AdminWeb) y
-`../docs/FIREBASE_SCHEMA.md`.
+redirige a `/`; `*` → `/`. Detalles: `../docs/architecture/overview.md` (sección AdminWeb) y
+`../docs/architecture/firebase-schema.md`.
 
 Estilos: CSS propio con tokens en `src/styles/` (importado por `index.css`);
 tema claro con cian `#00AEEF`, gris `#F5F5F5`, blanco y texto `#222222`. Lint con

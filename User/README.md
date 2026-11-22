@@ -144,11 +144,11 @@ del monorepo:
 
 | Documento | Contenido |
 |-----------|-----------|
-| [Versionado y publicación](../docs/VERSIONADO_Y_PUBLICACION.md) | Procedimiento oficial de entregas Android, firmas, artefactos y distribución. |
-| [Arquitectura](../docs/ARCHITECTURE.md) | Componentes y flujo de datos entre aplicaciones. |
-| [Esquema Firebase](../docs/FIREBASE_SCHEMA.md) | Nodos y payloads de Realtime Database. |
-| [Diagnóstico](../docs/TROUBLESHOOTING.md) | Limitaciones y problemas conocidos. |
-| [Decisiones](../docs/DECISIONS.md) | Decisiones de arquitectura e historial técnico. |
-| [Roadmap](../docs/ROADMAP.md) | Trabajo planificado después del MVP. |
-| [Bugs resueltos](../docs/BUGS_RESUELTOS/) | Registro de correcciones por aplicación. |
-| [Deuda de lint](../docs/LINT_DEBT.md) | Hallazgos preexistentes y criterios para distinguir cambios nuevos. |
+| [Versionado y publicación](../docs/engineering/versioning-and-releases.md) | Procedimiento oficial de entregas Android, firmas, artefactos y distribución. |
+| [Arquitectura](../docs/architecture/overview.md) | Componentes y flujo de datos entre aplicaciones. |
+| [Esquema Firebase](../docs/architecture/firebase-schema.md) | Nodos y payloads de Realtime Database. |
+| [Diagnóstico](../docs/diagnostics/troubleshooting.md) | Limitaciones y problemas conocidos. |
+| [Decisiones](../docs/adr/README.md) | Decisiones de arquitectura e historial técnico. |
+| [Roadmap](../docs/planning/roadmap.md) | Trabajo planificado después del MVP. |
+| [Bugs resueltos](../docs/diagnostics/resolved-bugs/) | Registro de correcciones por aplicación. |
+| [Deuda de lint](../docs/diagnostics/lint-debt.md) | Hallazgos preexistentes y criterios para distinguir cambios nuevos. |

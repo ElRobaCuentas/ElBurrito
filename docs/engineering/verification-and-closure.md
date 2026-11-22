@@ -1,6 +1,6 @@
 # Flujo de trabajo: verificación y cierre
 
-[Volver al documento principal](FLUJO_DE_TRABAJO.md).
+[Volver al documento principal](workflow.md).
 
 # ETAPA 4 — VERIFICACIÓN TÉCNICA Y CONTRACTUAL
 
@@ -35,15 +35,15 @@ Después determina qué documentación estaba relacionada con esos archivos.
 
 Con base en ello verifica específicamente:
 
-1. Que se respetó AGENTS.md.
+1. Que se respetó ../../AGENTS.md.
 
 2. Que no se violó ningún ADR.
 
-3. Que no se modificaron paths RTDB sin actualizar FIREBASE_SCHEMA.
+3. Que no se modificaron paths RTDB sin actualizar ../architecture/firebase-schema.md.
 
-4. Que no se rompió la arquitectura descrita en ARCHITECTURE.
+4. Que no se rompió la arquitectura descrita en ../architecture/overview.md.
 
-5. Que la implementación sigue alineada con MVP.md (alcance y cierre) o ROADMAP.md (planificación posterior), según corresponda.
+5. Que la implementación sigue alineada con ../planning/mvp.md (alcance y cierre) o ../planning/roadmap.md (planificación posterior), según corresponda.
 
 6. Que no reaparecen bugs documentados.
 
@@ -114,12 +114,12 @@ Se actualizan únicamente archivos Markdown.
 
 Nunca código.
 
-Aplicar la [pausa temporal vigente](FLUJO_DE_TRABAJO.md) antes de entrar en esta
+Aplicar la [pausa temporal vigente](workflow.md) antes de entrar en esta
 etapa. Una solicitud explícitamente documental aprobada permite trabajar en su
 alcance; no elimina la pausa para intervenciones futuras.
 
 La documentación pertinente forma parte de cada tarea y del mismo PR que cambia
-su contrato. Usar la matriz de `AGENTS.md` §7, sin duplicar procedimientos de los
+su contrato. Usar la matriz de `../../AGENTS.md` §7, sin duplicar procedimientos de los
 README. Si no cambia ningún contrato, explicar por qué no hace falta actualizar.
 Mantener cada documento activo en un máximo de 500 líneas; enlazar un complemento
 si es necesario, preservando referencias e historial.
@@ -151,7 +151,7 @@ Si un documento no cambió, explica por qué no requiere actualización.
 Por ejemplo.
 
 ```
-ARCHITECTURE
+../architecture/overview.md
 
 ↓
 
@@ -165,7 +165,7 @@ Actualizar
 ---
 
 ```
-MVP.md (tarea del MVP) / ROADMAP.md (trabajo posterior)
+../planning/mvp.md (tarea del MVP) / ../planning/roadmap.md (trabajo posterior)
 
 ↓
 
@@ -179,7 +179,7 @@ Actualizar el estado únicamente en el documento dueño de la tarea
 ---
 
 ```
-DECISIONS
+../adr/README.md
 
 ↓
 
@@ -335,14 +335,14 @@ No escribas código.
 ## Memorias técnicas compartidas
 
 La base habitual conserva contexto de trabajo. Git comparte únicamente síntesis
-revisadas mediante [engram-team.ps1](scripts/engram-team.ps1), con Engram **3.7.0**.
+revisadas mediante [engram-team.ps1](../../scripts/engram-team.ps1), con Engram **3.7.0**.
 No usar `engram sync` directamente sobre la base habitual ni los flags `--all`
 o `--include-prompts`. `scope: personal` no protege los resúmenes de sesiones.
 
 1. Proponer solo decisiones vigentes, causas de bugs, convenciones o aprendizajes
    reproducibles. Contrastar código y documentación; no copiar conversaciones,
    prompts, credenciales, rutas personales ni sesiones originales.
-2. Crear un lote JSON con la estructura de [engram-initial.json](scripts/engram-initial.json):
+2. Crear un lote JSON con la estructura de [engram-initial.json](../../scripts/engram-initial.json):
    `project`, `batch_id` nuevo y `notes` con `title`, `type`, `topic_key`, `content`
    y `sources` relativas a archivos existentes. Escribir una síntesis por tema,
    con razón, alcance y límites; no clonar todo el lote inicial para una nota nueva.
@@ -387,7 +387,7 @@ o `--include-prompts`. `scope: personal` no protege los resúmenes de sesiones.
    significado de notas contradictorias; el merge de Git no decide cuál es vigente.
 
 Después de actualizar `main`, los demás reciben según la
-[preparación de una tarea](FLUJO_DE_TRABAJO.md#preparación-de-una-tarea).
+[preparación de una tarea](workflow.md#preparación-de-una-tarea).
 No importar desde ramas ajenas pendientes: SQLite no se revierte al cambiar de
 rama. Reimportar el mismo chunk no lo duplica. `gentle-ai sync` actualiza
 configuración de agentes, no mueve memorias. El lote inicial se recibe, no se
@@ -410,6 +410,6 @@ vuelve a publicar como parte de la incorporación.
   las copias locales antes de la próxima tarea. Si cambió el candidato durante
   la revisión, verificar el candidato final, no reutilizar evidencia incompatible.
 - Una integración no publica Android, Hosting, Workers ni reglas Firebase.
-  Seguir [Versionado y publicación](docs/VERSIONADO_Y_PUBLICACION.md) únicamente
+  Seguir [Versionado y publicación](versioning-and-releases.md) únicamente
   cuando exista una entrega autorizada.
 

@@ -102,7 +102,7 @@ UserApp (vía listener propio)
 ```
 
 Para el detalle del payload y la estructura del nodo de tracking,
-consultar el [esquema Firebase](../docs/FIREBASE_SCHEMA.md).
+consultar el [esquema Firebase](../docs/architecture/firebase-schema.md).
 
 ## Estado de Implementación
 
@@ -125,12 +125,12 @@ el contexto histórico del incidente, no una certificación de builds actuales.
 
 | Documento | Propósito |
 |-----------|-----------|
-| [Versionado y publicación](../docs/VERSIONADO_Y_PUBLICACION.md) | Procedimiento previsto de entregas y actualizaciones mediante APK privada. |
+| [Versionado y publicación](../docs/engineering/versioning-and-releases.md) | Procedimiento previsto de entregas y actualizaciones mediante APK privada. |
 | [Recuperación de compilación](docs/build-recovery-report.md) | Incidente de julio de 2026 y workaround de geolocation. |
-| [Arquitectura](../docs/ARCHITECTURE.md) | Flujo de datos y ciclo de vida del tracking. |
-| [Esquema Firebase](../docs/FIREBASE_SCHEMA.md) | Nodos y payloads de la RTDB. |
+| [Arquitectura](../docs/architecture/overview.md) | Flujo de datos y ciclo de vida del tracking. |
+| [Esquema Firebase](../docs/architecture/firebase-schema.md) | Nodos y payloads de la RTDB. |
 | [AGENTS.md](AGENTS.md) | Convenciones e instrucciones para asistentes IA. |
-| [Roadmap](../docs/ROADMAP.md) | Trabajo planificado después del MVP. |
-| [Diagnóstico](../docs/TROUBLESHOOTING.md) | Problemas conocidos. |
-| [Decisiones](../docs/DECISIONS.md) | Decisiones de arquitectura (ADR). |
-| [Bugs resueltos](../docs/BUGS_RESUELTOS/) | Historial de correcciones. |
+| [Roadmap](../docs/planning/roadmap.md) | Trabajo planificado después del MVP. |
+| [Diagnóstico](../docs/diagnostics/troubleshooting.md) | Problemas conocidos. |
+| [Decisiones](../docs/adr/README.md) | Decisiones de arquitectura (ADR). |
+| [Bugs resueltos](../docs/diagnostics/resolved-bugs/) | Historial de correcciones. |

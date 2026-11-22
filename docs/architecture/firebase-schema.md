@@ -319,7 +319,7 @@ lectura permanece denegada.
 
 - `/recorridos` no tiene productores ni consumidores en el código inspeccionado.
   Depende de geofencing/control de turnos; no debe tratarse como nodo activo.
-- I09 (restringir tracking al bus asignado) está postergada en `ROADMAP.md` §3.
+- I09 (restringir tracking al bus asignado) está postergada en `../planning/roadmap.md` §3.
 - `/ubicacion_burrito` es legacy: fuera de reglas y pendiente de limpieza en
   Consola. No se usa para tracking.
 
@@ -392,13 +392,13 @@ esta auditoría.
 | Nivel | Fuente | Alcance |
 |-------|--------|---------|
 | **a. Contrato de datos** | Código de las tres apps | Rutas, campos, operaciones y validaciones de cliente |
-| **b. Candidata local** | `../FirebaseLab/rules/i03-i04.rules.json` | Reglas de laboratorio; no es un espejo versionado de producción |
+| **b. Candidata local** | `../../FirebaseLab/rules/i03-i04.rules.json` | Reglas de laboratorio; no es un espejo versionado de producción |
 | **c. Permisos efectivos** | Firebase Console | Fuente autoritativa; no inspeccionada en esta auditoría |
 
 La candidata local tiene SHA-256
 `0BFAC5C2D900F6900B3E975D6CEFA7A34DBC38DCF6929A4D5C4FD2BA283359C2`.
 FirebaseLab forma parte del monorepo; su laboratorio es independiente de las
-apps y no se ejecuta en producción. `../FirebaseLab/firebase.json`
+apps y no se ejecuta en producción. `../../FirebaseLab/firebase.json`
 apunta inicialmente a `database.rules.json`; la candidata completa es un
 archivo separado que debe seleccionarse explícitamente en las pruebas. Por tanto, **no se puede afirmar que esa candidata sea la
 política activa**.
@@ -480,17 +480,17 @@ puntos. No se conserva como contrato vigente; sirve solo como antecedente.
 
 | Documento | Relación |
 |-----------|----------|
-| `ARCHITECTURE.md` | Propósito, flujo de datos, ciclo de tracking y topología |
-| `TROUBLESHOOTING.md` | Incidentes de persistencia, paths y tracking |
-| `DECISIONS.md` | ADR-003, ADR-019, ADR-023 a ADR-028 y ADR-030 |
-| `../AdminWeb/README.md` | Panel, auth admin y convenciones de correo |
-| `../Driver/README.md` | Setup, permisos Android y tracking |
-| `../User/README.md` | Setup, entorno y lectura de tracking |
-| `ROADMAP.md` | Fases y tareas post-MVP; I09 es una referencia, no un requisito actual |
-| `BUGS_RESUELTOS/` | Historial de bugs de RTDB y tracking |
-| `../FirebaseLab/rules/i03-i04.rules.json` | Candidata local; no certifica producción |
+| `overview.md` | Propósito, flujo de datos, ciclo de tracking y topología |
+| `../diagnostics/troubleshooting.md` | Incidentes de persistencia, paths y tracking |
+| `../adr/README.md` | ADR-003, ADR-019, ADR-023 a ADR-028 y ADR-030 |
+| `../../AdminWeb/README.md` | Panel, auth admin y convenciones de correo |
+| `../../Driver/README.md` | Setup, permisos Android y tracking |
+| `../../User/README.md` | Setup, entorno y lectura de tracking |
+| `../planning/roadmap.md` | Fases y tareas post-MVP; I09 es una referencia, no un requisito actual |
+| `../diagnostics/resolved-bugs/` | Historial de bugs de RTDB y tracking |
+| `../../FirebaseLab/rules/i03-i04.rules.json` | Candidata local; no certifica producción |
 
 Firebase Console es la fuente autoritativa de las reglas efectivas. No existe
 un volcado versionado de producción en este repositorio. Un cambio de path o
-de contrato debe sincronizar `ARCHITECTURE.md` y los READMEs/AGENTS de las
+de contrato debe sincronizar `overview.md` y los READMEs/AGENTS de las
 apps afectadas.

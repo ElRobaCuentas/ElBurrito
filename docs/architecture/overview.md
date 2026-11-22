@@ -3,8 +3,8 @@
 Documento de la arquitectura implementada del Ecosistema El Burrito. Describe
 componentes, responsabilidades, comunicación, estado local, ciclo de vida del
 tracking y límites observables. Los contratos completos de datos viven en
-`FIREBASE_SCHEMA.md`; las decisiones y su razonamiento, en `DECISIONS.md`; la
-evidencia histórica, en `BUGS_RESUELTOS/`.
+`firebase-schema.md`; las decisiones y su razonamiento, en `../adr/README.md`; la
+evidencia histórica, en `../diagnostics/resolved-bugs/`.
 
 ## Índice
 
@@ -166,7 +166,7 @@ src/main.tsx → src/App.tsx
 Mientras está en `checking` no muestra "No autorizado". Una denegación de
 reglas equivale a `denied`: el SDK la entrega como `PERMISSION_DENIED` o como
 el mensaje exacto `Permission denied` sin `code`
-(`BUGS_RESUELTOS/adminweb.md`); un timeout o fallo de red va a `error` con
+(`../diagnostics/resolved-bugs/adminweb.md`); un timeout o fallo de red va a `error` con
 reintento o cierre de sesión.
 
 `existeAdministrador` usa `get()` y retorna `snapshot.exists()`. Es la fuente
@@ -184,7 +184,7 @@ drawer móvil, muestra la identidad del admin y la expone vía
 El efecto de apertura de `Modal.tsx` depende solo de `open`: enfoca el diálogo
 y bloquea el scroll hasta cerrar o desmontar. Escape se registra en otro efecto
 con `[open, onClose]` para usar el callback vigente sin robar el foco al editar
-inputs (corrección 03/11/2026; ver `BUGS_RESUELTOS/adminweb.md`). Los cambios B2
+inputs (corrección 03/11/2026; ver `../diagnostics/resolved-bugs/adminweb.md`). Los cambios B2
 de emuladores se preservan en `test/b2-adminweb-emulator` (`dc58daf`), fuera de
 `main`.
 
@@ -241,10 +241,10 @@ existente; la API autoriza mediante Firebase y lee D1, sin evaluar ni consultar
 el tracking. El refresco del navegador y el cron son procesos independientes.
 Se conservan modos locales de comprobación manual y programada para desarrollo.
 
-La referencia principal es [PULSO.md](PULSO.md): funcionamiento, estados e
+La referencia principal es [pulso.md](pulso.md): funcionamiento, estados e
 incidentes (§3–5), memoria y migraciones (§6), indicadores y datos antiguos (§7),
 operación (§8), evidencia del MVP (§9) y límites (§10). Los contratos RTDB siguen
-en `FIREBASE_SCHEMA.md`; los comandos de desarrollo, pruebas y despliegue, en el
+en `firebase-schema.md`; los comandos de desarrollo, pruebas y despliegue, en el
 [README de AdminWeb](https://github.com/ElRobaCuentas/AdminWeb/blob/main/README.md#monitor-pulso-local-y-despliegue-remoto).
 
 #### 3.2.1 Despliegue remoto e integración con Central (vigilancia activa)
@@ -255,10 +255,10 @@ memoria D1; Central usa la API remota. Fue validado operativamente el
 detención e inicio/duración observados.
 
 La configuración, las referencias de publicación y la integridad de migraciones
-están consolidadas en [PULSO §8](PULSO.md#8-operación-en-producción); las ocho
-pruebas, en [§9](PULSO.md#9-validación-operativa-del-mvp). Las limitaciones no son
+están consolidadas en [PULSO §8](pulso.md#8-operación-en-producción); las ocho
+pruebas, en [§9](pulso.md#9-validación-operativa-del-mvp). Las limitaciones no son
 fallos atribuidos a esas pruebas. La evolución posterior pertenece a
-[ROADMAP §2.1](ROADMAP.md#21-evolución-de-pulso-posterior-al-mvp), sin dar por cerrado
+[ROADMAP §2.1](../planning/roadmap.md#21-evolución-de-pulso-posterior-al-mvp), sin dar por cerrado
 el MVP general del ecosistema.
 
 ## 4. Arquitectura de BurritoUserApp
@@ -291,7 +291,7 @@ StackNavigator (root)
 El gating de autenticación es declarativo según `isLoggedIn`. No existen rutas
 administrativas ni gating por `rol === 'admin'`. El módulo admin fue eliminado
 de la app; la evolución está documentada en ADR-025 y en el historial de
-`BUGS_RESUELTOS/adminweb.md`.
+`../diagnostics/resolved-bugs/adminweb.md`.
 
 ### Stores de Zustand
 
@@ -332,148 +332,148 @@ cualquier listener o consumo en toda la aplicación.
 
 La estructura de archivos relevante está centralizada en §6.
 
-**[Arquitectura: flujos, componentes y servicios](ARCHITECTURE-FLOWS.md)**
+**[Arquitectura: flujos, componentes y servicios](flows.md)**
 
 ## 5. Comunicación y Flujo de Datos
 
-[Consultar sección](ARCHITECTURE-FLOWS.md#5-comunicación-y-flujo-de-datos).
+[Consultar sección](flows.md#5-comunicación-y-flujo-de-datos).
 
 ### 5.1 Pipeline de tracking
 
-[Consultar sección](ARCHITECTURE-FLOWS.md#51-pipeline-de-tracking).
+[Consultar sección](flows.md#51-pipeline-de-tracking).
 
 ### 5.2 Recepción RTDB: snapshots completos e I06
 
-[Consultar sección](ARCHITECTURE-FLOWS.md#52-recepción-rtdb-snapshots-completos-e-i06).
+[Consultar sección](flows.md#52-recepción-rtdb-snapshots-completos-e-i06).
 
 ### 5.3 Estado visual, multi-bus y caducidad
 
-[Consultar sección](ARCHITECTURE-FLOWS.md#53-estado-visual-multi-bus-y-caducidad).
+[Consultar sección](flows.md#53-estado-visual-multi-bus-y-caducidad).
 
 ### 5.4 Feedback de El Burrito
 
-[Consultar sección](ARCHITECTURE-FLOWS.md#54-feedback-de-el-burrito).
+[Consultar sección](flows.md#54-feedback-de-el-burrito).
 
 ### 5.5 Autenticación de El Burrito
 
-[Consultar sección](ARCHITECTURE-FLOWS.md#55-autenticación-de-el-burrito).
+[Consultar sección](flows.md#55-autenticación-de-el-burrito).
 
 ### 5.6 Flujo administrativo
 
-[Consultar sección](ARCHITECTURE-FLOWS.md#56-flujo-administrativo).
+[Consultar sección](flows.md#56-flujo-administrativo).
 
 ## 6. Componentes Principales
 
-[Consultar sección](ARCHITECTURE-FLOWS.md#6-componentes-principales).
+[Consultar sección](flows.md#6-componentes-principales).
 
 ### BurritoDriverApp
 
-[Consultar sección](ARCHITECTURE-FLOWS.md#burritodriverapp).
+[Consultar sección](flows.md#burritodriverapp).
 
 ### AdminWeb
 
-[Consultar sección](ARCHITECTURE-FLOWS.md#adminweb).
+[Consultar sección](flows.md#adminweb).
 
 ### El Burrito
 
-[Consultar sección](ARCHITECTURE-FLOWS.md#el-burrito).
+[Consultar sección](flows.md#el-burrito).
 
 ## 7. Servicios Externos
 
-[Consultar sección](ARCHITECTURE-FLOWS.md#7-servicios-externos).
+[Consultar sección](flows.md#7-servicios-externos).
 
 ### Firebase
 
-[Consultar sección](ARCHITECTURE-FLOWS.md#firebase).
+[Consultar sección](flows.md#firebase).
 
 ### Mapbox
 
-[Consultar sección](ARCHITECTURE-FLOWS.md#mapbox).
+[Consultar sección](flows.md#mapbox).
 
 ### Google Sign-In
 
-[Consultar sección](ARCHITECTURE-FLOWS.md#google-sign-in).
+[Consultar sección](flows.md#google-sign-in).
 
 ### react-native-dotenv
 
-[Consultar sección](ARCHITECTURE-FLOWS.md#react-native-dotenv).
+[Consultar sección](flows.md#react-native-dotenv).
 
-**[Arquitectura: ciclo de tracking y límites](ARCHITECTURE-TRACKING.md)**
+**[Arquitectura: ciclo de tracking y límites](tracking.md)**
 
 ## 8. Ciclo de Vida del Tracking
 
-[Consultar sección](ARCHITECTURE-TRACKING.md#8-ciclo-de-vida-del-tracking).
+[Consultar sección](tracking.md#8-ciclo-de-vida-del-tracking).
 
 ### 8.1 Carga inicial de la asignación
 
-[Consultar sección](ARCHITECTURE-TRACKING.md#81-carga-inicial-de-la-asignación).
+[Consultar sección](tracking.md#81-carga-inicial-de-la-asignación).
 
 ### 8.2 Secuencia de INICIAR
 
-[Consultar sección](ARCHITECTURE-TRACKING.md#82-secuencia-de-iniciar).
+[Consultar sección](tracking.md#82-secuencia-de-iniciar).
 
 ### 8.3 GPS, heartbeat y watchdog
 
-[Consultar sección](ARCHITECTURE-TRACKING.md#83-gps-heartbeat-y-watchdog).
+[Consultar sección](tracking.md#83-gps-heartbeat-y-watchdog).
 
 ### 8.4 DETENER
 
-[Consultar sección](ARCHITECTURE-TRACKING.md#84-detener).
+[Consultar sección](tracking.md#84-detener).
 
 ### 8.5 Cerrar sesión y relevos
 
-[Consultar sección](ARCHITECTURE-TRACKING.md#85-cerrar-sesión-y-relevos).
+[Consultar sección](tracking.md#85-cerrar-sesión-y-relevos).
 
 ### 8.6 Identidad I08 y respaldo offline
 
-[Consultar sección](ARCHITECTURE-TRACKING.md#86-identidad-i08-y-respaldo-offline).
+[Consultar sección](tracking.md#86-identidad-i08-y-respaldo-offline).
 
 ### 8.7 I07: idempotencia, restauración y HeadlessJS
 
-[Consultar sección](ARCHITECTURE-TRACKING.md#87-i07-idempotencia-restauración-y-headlessjs).
+[Consultar sección](tracking.md#87-i07-idempotencia-restauración-y-headlessjs).
 
 ### 8.8 Persistencia y estado de la UI
 
-[Consultar sección](ARCHITECTURE-TRACKING.md#88-persistencia-y-estado-de-la-ui).
+[Consultar sección](tracking.md#88-persistencia-y-estado-de-la-ui).
 
 ## 9. Consideraciones de Implementación y Límites
 
-[Consultar sección](ARCHITECTURE-TRACKING.md#9-consideraciones-de-implementación-y-límites).
+[Consultar sección](tracking.md#9-consideraciones-de-implementación-y-límites).
 
 ### 9.1 Android 14 y foreground service
 
-[Consultar sección](ARCHITECTURE-TRACKING.md#91-android-14-y-foreground-service).
+[Consultar sección](tracking.md#91-android-14-y-foreground-service).
 
 ### 9.2 Multi-bus, caducidad y deuda pendiente
 
-[Consultar sección](ARCHITECTURE-TRACKING.md#92-multi-bus-caducidad-y-deuda-pendiente).
+[Consultar sección](tracking.md#92-multi-bus-caducidad-y-deuda-pendiente).
 
 ### 9.3 Geofencing y Haversine
 
-[Consultar sección](ARCHITECTURE-TRACKING.md#93-geofencing-y-haversine).
+[Consultar sección](tracking.md#93-geofencing-y-haversine).
 
 ### 9.4 Índices de RTDB
 
-[Consultar sección](ARCHITECTURE-TRACKING.md#94-índices-de-rtdb).
+[Consultar sección](tracking.md#94-índices-de-rtdb).
 
 ### 9.5 Compatibilidad iOS
 
-[Consultar sección](ARCHITECTURE-TRACKING.md#95-compatibilidad-ios).
+[Consultar sección](tracking.md#95-compatibilidad-ios).
 
 ### 9.6 Productores y simulación
 
-[Consultar sección](ARCHITECTURE-TRACKING.md#96-productores-y-simulación).
+[Consultar sección](tracking.md#96-productores-y-simulación).
 
 ## 10. Referencias
 
 | Documento | Relación |
 |-----------|----------|
-| `FIREBASE_SCHEMA.md` | Estructura detallada de nodos, payloads, reglas e índices de RTDB. |
-| `DECISIONS.md` | Decisiones de arquitectura (ADR) con razonamiento técnico. |
-| `ROADMAP.md` | Planificación posterior al MVP y dependencias. |
-| `../MVP.md` | Operación del piloto, aceptación de jornada y supuestos de relevo. |
-| `TROUBLESHOOTING.md` | Incidentes, diagnóstico y soluciones operativas. |
-| `BUGS_RESUELTOS/` | Historial de bugs resueltos y evidencia de validación. |
-| `../Driver/README.md` | Setup, requisitos y funcionalidad de BurritoDriverApp. |
-| `../User/README.md` | Setup, requisitos y funcionalidad de El Burrito. |
-| `../AdminWeb/README.md` | Setup, requisitos y funcionalidad del panel administrativo. |
+| `firebase-schema.md` | Estructura detallada de nodos, payloads, reglas e índices de RTDB. |
+| `../adr/README.md` | Decisiones de arquitectura (ADR) con razonamiento técnico. |
+| `../planning/roadmap.md` | Planificación posterior al MVP y dependencias. |
+| `../planning/mvp.md` | Operación del piloto, aceptación de jornada y supuestos de relevo. |
+| `../diagnostics/troubleshooting.md` | Incidentes, diagnóstico y soluciones operativas. |
+| `../diagnostics/resolved-bugs/` | Historial de bugs resueltos y evidencia de validación. |
+| `../../Driver/README.md` | Setup, requisitos y funcionalidad de BurritoDriverApp. |
+| `../../User/README.md` | Setup, requisitos y funcionalidad de El Burrito. |
+| `../../AdminWeb/README.md` | Setup, requisitos y funcionalidad del panel administrativo. |

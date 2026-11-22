@@ -68,125 +68,125 @@ funcionalidad planificada en implementada.
 
 ## 4. Decisiones
 
-**[ADR-003–011: fundamentos del ecosistema](DECISIONS-003-011.md)**
+**[ADR-003–011: fundamentos del ecosistema](adr-003-011.md)**
 
 ### ADR-003: Desactivación de persistencia local en Firebase
 
-[Consultar sección](DECISIONS-003-011.md#adr-003-desactivación-de-persistencia-local-en-firebase).
+[Consultar sección](adr-003-011.md#adr-003-desactivación-de-persistencia-local-en-firebase).
 
 ### ADR-004: Arquitectura serverless directa (sin backend intermedio)
 
-[Consultar sección](DECISIONS-003-011.md#adr-004-arquitectura-serverless-directa-sin-backend-intermedio).
+[Consultar sección](adr-003-011.md#adr-004-arquitectura-serverless-directa-sin-backend-intermedio).
 
 ### ADR-005: Manejo de estado con Zustand en lugar de Context o Redux
 
-[Consultar sección](DECISIONS-003-011.md#adr-005-manejo-de-estado-con-zustand-en-lugar-de-context-o-redux).
+[Consultar sección](adr-003-011.md#adr-005-manejo-de-estado-con-zustand-en-lugar-de-context-o-redux).
 
 ### ADR-006: Separación del ecosistema en dos aplicaciones independientes
 
-[Consultar sección](DECISIONS-003-011.md#adr-006-separación-del-ecosistema-en-dos-aplicaciones-independientes).
+[Consultar sección](adr-003-011.md#adr-006-separación-del-ecosistema-en-dos-aplicaciones-independientes).
 
 ### ADR-007: Comunicación desacoplada mediante Firebase Realtime Database
 
-[Consultar sección](DECISIONS-003-011.md#adr-007-comunicación-desacoplada-mediante-firebase-realtime-database).
+[Consultar sección](adr-003-011.md#adr-007-comunicación-desacoplada-mediante-firebase-realtime-database).
 
 ### ADR-008: Foreground Service como requisito obligatorio de plataforma
 
-[Consultar sección](DECISIONS-003-011.md#adr-008-foreground-service-como-requisito-obligatorio-de-plataforma).
+[Consultar sección](adr-003-011.md#adr-008-foreground-service-como-requisito-obligatorio-de-plataforma).
 
 ### ADR-009: Autenticación segmentada por roles
 
-[Consultar sección](DECISIONS-003-011.md#adr-009-autenticación-segmentada-por-roles).
+[Consultar sección](adr-003-011.md#adr-009-autenticación-segmentada-por-roles).
 
 ### ADR-010: Gestión manual del ciclo de vida del tracking
 
-[Consultar sección](DECISIONS-003-011.md#adr-010-gestión-manual-del-ciclo-de-vida-del-tracking).
+[Consultar sección](adr-003-011.md#adr-010-gestión-manual-del-ciclo-de-vida-del-tracking).
 
 ### ADR-011: Instancia secundaria de Firebase Auth para CRUD admin
 
-[Consultar sección](DECISIONS-003-011.md#adr-011-instancia-secundaria-de-firebase-auth-para-crud-admin).
+[Consultar sección](adr-003-011.md#adr-011-instancia-secundaria-de-firebase-auth-para-crud-admin).
 
-**[ADR-012–020: evolución de plataformas, administración y tracking](DECISIONS-012-020.md)**
+**[ADR-012–020: evolución de plataformas, administración y tracking](adr-012-020.md)**
 
 ### ADR-012: DriverApp implementada únicamente para Android
 
-[Consultar sección](DECISIONS-012-020.md#adr-012-driverapp-implementada-únicamente-para-android).
+[Consultar sección](adr-012-020.md#adr-012-driverapp-implementada-únicamente-para-android).
 
 ### ADR-013: Geofencing con Punto Cero Dinámico
 
-[Consultar sección](DECISIONS-012-020.md#adr-013-geofencing-con-punto-cero-dinámico).
+[Consultar sección](adr-012-020.md#adr-013-geofencing-con-punto-cero-dinámico).
 
 ### ADR-014: Backend propio
 
-[Consultar sección](DECISIONS-012-020.md#adr-014-backend-propio).
+[Consultar sección](adr-012-020.md#adr-014-backend-propio).
 
 ### ADR-015: Dashboard Web de Monitoreo y Analítica
 
-[Consultar sección](DECISIONS-012-020.md#adr-015-dashboard-web-de-monitoreo-y-analítica).
+[Consultar sección](adr-012-020.md#adr-015-dashboard-web-de-monitoreo-y-analítica).
 
 ### ADR-016: Migración a listener multi-bus con fallback al primer bus activo
 
-[Consultar sección](DECISIONS-012-020.md#adr-016-migración-a-listener-multi-bus-con-fallback-al-primer-bus-activo).
+[Consultar sección](adr-012-020.md#adr-016-migración-a-listener-multi-bus-con-fallback-al-primer-bus-activo).
 
 ### ADR-017: Migración del panel admin a DriverApp + autorización por auth.uid
 
-[Consultar sección](DECISIONS-012-020.md#adr-017-migración-del-panel-admin-a-driverapp--autorización-por-authuid).
+[Consultar sección](adr-012-020.md#adr-017-migración-del-panel-admin-a-driverapp--autorización-por-authuid).
 
 ### ADR-018: Corrección de inicialización asíncrona de SecondaryApp
 
-[Consultar sección](DECISIONS-012-020.md#adr-018-corrección-de-inicialización-asíncrona-de-secondaryapp).
+[Consultar sección](adr-012-020.md#adr-018-corrección-de-inicialización-asíncrona-de-secondaryapp).
 
 ### ADR-019: Heartbeat de presencia en la DriverApp (T4.1)
 
-[Consultar sección](DECISIONS-012-020.md#adr-019-heartbeat-de-presencia-en-la-driverapp-t41).
+[Consultar sección](adr-012-020.md#adr-019-heartbeat-de-presencia-en-la-driverapp-t41).
 
 ### ADR-020: C4.6 — Estrategia C experimental para MOVIMIENTO/PARADERO
 
-[Consultar sección](DECISIONS-012-020.md#adr-020-c46--estrategia-c-experimental-para-movimientoparadero).
+[Consultar sección](adr-012-020.md#adr-020-c46--estrategia-c-experimental-para-movimientoparadero).
 
-**[ADR-021–026: experiencia, autorización y gestión operativa](DECISIONS-021-026.md)**
+**[ADR-021–026: experiencia, autorización y gestión operativa](adr-021-026.md)**
 
 ### ADR-021: Splash nativo único (react-native-bootsplash) en lugar de AnimatedSplash
 
-[Consultar sección](DECISIONS-021-026.md#adr-021-splash-nativo-único-react-native-bootsplash-en-lugar-de-animatedsplash).
+[Consultar sección](adr-021-026.md#adr-021-splash-nativo-único-react-native-bootsplash-en-lugar-de-animatedsplash).
 
 ### ADR-022: Desactivación de la funcionalidad "Seguir Bus" en la UserApp
 
-[Consultar sección](DECISIONS-021-026.md#adr-022-desactivación-de-la-funcionalidad-seguir-bus-en-la-userapp).
+[Consultar sección](adr-021-026.md#adr-022-desactivación-de-la-funcionalidad-seguir-bus-en-la-userapp).
 
 ### ADR-023: Autorización de escritura en `/ubicacion_buses` por vínculo uid→DNI (`/choferes_uids`)
 
-[Consultar sección](DECISIONS-021-026.md#adr-023-autorización-de-escritura-en-ubicacion_buses-por-vínculo-uiddni-choferes_uids).
+[Consultar sección](adr-021-026.md#adr-023-autorización-de-escritura-en-ubicacion_buses-por-vínculo-uiddni-choferes_uids).
 
 ### ADR-024: Auditoría mínima en `/asignaciones` (`createdAt` epoch + `createdBy` UID) y semántica de "desactivar"
 
-[Consultar sección](DECISIONS-021-026.md#adr-024-auditoría-mínima-en-asignaciones-createdat-epoch--createdby-uid-y-semántica-de-desactivar).
+[Consultar sección](adr-021-026.md#adr-024-auditoría-mínima-en-asignaciones-createdat-epoch--createdby-uid-y-semántica-de-desactivar).
 
 ### ADR-025: Migración de la administración a AdminWeb y separación de dominios de correo por rol
 
-[Consultar sección](DECISIONS-021-026.md#adr-025-migración-de-la-administración-a-adminweb-y-separación-de-dominios-de-correo-por-rol).
+[Consultar sección](adr-021-026.md#adr-025-migración-de-la-administración-a-adminweb-y-separación-de-dominios-de-correo-por-rol).
 
 ### ADR-026: Separación de "Detener recorrido" y "Cerrar sesión"
 
-[Consultar sección](DECISIONS-021-026.md#adr-026-separación-de-detener-recorrido-y-cerrar-sesión).
+[Consultar sección](adr-021-026.md#adr-026-separación-de-detener-recorrido-y-cerrar-sesión).
 
-**[ADR-027–030: asignaciones, diagnóstico y recepción](DECISIONS-027-030.md)**
+**[ADR-027–030: asignaciones, diagnóstico y recepción](adr-027-030.md)**
 
 ### ADR-027: Asignaciones con múltiples turnos informativos y un solo bus por conductor/fecha
 
-[Consultar sección](DECISIONS-027-030.md#adr-027-asignaciones-con-múltiples-turnos-informativos-y-un-solo-bus-por-conductorfecha).
+[Consultar sección](adr-027-030.md#adr-027-asignaciones-con-múltiples-turnos-informativos-y-un-solo-bus-por-conductorfecha).
 
 ### ADR-028: Validación diaria y respaldo offline acotado de la asignación en BurritoDriverApp
 
-[Consultar sección](DECISIONS-027-030.md#adr-028-validación-diaria-y-respaldo-offline-acotado-de-la-asignación-en-burritodriverapp).
+[Consultar sección](adr-027-030.md#adr-028-validación-diaria-y-respaldo-offline-acotado-de-la-asignación-en-burritodriverapp).
 
 ### ADR-029: Minimización de datos personales en diagnóstico y limpieza del UID de Crashlytics
 
-[Consultar sección](DECISIONS-027-030.md#adr-029-minimización-de-datos-personales-en-diagnóstico-y-limpieza-del-uid-de-crashlytics).
+[Consultar sección](adr-027-030.md#adr-029-minimización-de-datos-personales-en-diagnóstico-y-limpieza-del-uid-de-crashlytics).
 
 ### ADR-030: Tolerancia de cinco minutos para timestamps futuros de recepción (I06-B)
 
-[Consultar sección](DECISIONS-027-030.md#adr-030-tolerancia-de-cinco-minutos-para-timestamps-futuros-de-recepción-i06-b).
+[Consultar sección](adr-027-030.md#adr-030-tolerancia-de-cinco-minutos-para-timestamps-futuros-de-recepción-i06-b).
 
 ## Referencias
 

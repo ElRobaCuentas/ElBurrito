@@ -49,7 +49,7 @@ Usar el entorno y las herramientas existentes, PowerShell 5.1 y la misma sesión
 para conservar las variables. Ejecutar paso a paso y detenerse ante cualquier error.
 
 1. Acordar alcance, responsable, versión y canal. Consultar las pruebas del
-   `AGENTS.md` de la app y [condiciones de publicación](ROADMAP.md#4-condiciones-de-pre-release-y-publicación).
+   `AGENTS.md` de la app y [condiciones de publicación](../planning/roadmap.md#4-condiciones-de-pre-release-y-publicación).
 2. Comprobar la rama candidata; no asumir que es `main`. Integrar los cambios
    funcionales y completar sus pruebas antes de preparar la versión.
 3. Consultar el máximo código en todos los canales de Play (User) o en entregas
@@ -268,11 +268,11 @@ de `monitor/src/` y `monitor/worker/`. No requieren nuevo SemVer ni GitHub Relea
 
 Asociar el SHA a la descripción del proveedor cuando sea posible; no inferirlo
 por fechas. Seguir los comandos y verificaciones del
-[README de AdminWeb](../AdminWeb/README.md#migraciones-y-publicación-en-producción):
+[README de AdminWeb](../../AdminWeb/README.md#migraciones-y-publicación-en-producción):
 **migración compatible → Worker → verificación → Hosting**. Conservar `STATE_VERSION`,
 validaciones y migraciones; `compatibility_date` identifica compatibilidad del
-runtime, no del producto. Validar combinaciones con [FIREBASE_SCHEMA.md](FIREBASE_SCHEMA.md)
-y la API vigente. Evidencia histórica: [PULSO §8](PULSO.md#8-operación-en-producción).
+runtime, no del producto. Validar combinaciones con [../architecture/firebase-schema.md](../architecture/firebase-schema.md)
+y la API vigente. Evidencia histórica: [PULSO §8](../architecture/pulso.md#8-operación-en-producción).
 
 ## 9. Hotfixes y recuperación
 
