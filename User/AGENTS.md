@@ -103,8 +103,9 @@ archivo.
 - **No introduzcas** librerías sin evaluar si lo existente alcanza. Cada
   dependencia aumenta el bundle y el riesgo de incompatibilidad con RN 0.83.1 +
   Firebase 23.8.x.
-- Si la incorporación implica una decisión arquitectónica, registrala en
-  `../docs/adr/README.md`. Las dependencias rutinarias no requieren un ADR.
+- Si la incorporación implica una decisión arquitectónica, sigue la
+  [regla de registro de ADR](../AGENTS.md#7-documentación-afectada).
+  Las dependencias rutinarias no requieren un ADR.
 
 ### 4.8 Comentarios de advertencia
 

@@ -105,7 +105,7 @@ Es la validación más importante del MVP: un conductor usa la aplicación duran
 - **Escenarios adicionales**: GPS apagado antes de iniciar; GPS apagado durante el tracking; cerrar y reabrir la app; recuperación del tracking; sin crashes.
 - **Ex-T3 — Permisos denegados**: POST_NOTIFICATIONS, FINE y BACKGROUND denegados individualmente; cada caso manejado sin crash.
 - **Ex-T4 — Pérdida de red en pleno tracking**: cortar la red con el recorrido activo y restaurarla; el bus reaparece en el mapa sin intervención (el heartbeat reintenta vía catch-reset).
-- **Ex-T2 — Ciclo completo UserApp en paralelo**: login email y Google (primera vez / recurrente / cancelado) → mapa con bus en vivo → drawer → logout; cerrar y reabrir la app (persistencia de sesión, recuperación del mapa); corte de internet con la app abierta → el bus pasa a OFFLINE/oculto por sí solo; regresión post-C4.6 (MOVIMIENTO/PARADERO) y post-rebranding (splash/logo/FAB único/maxBounds).
+- **Ex-T2 — Ciclo completo de El Burrito en paralelo**: login email y Google (primera vez / recurrente / cancelado) → mapa con bus en vivo → drawer → logout; cerrar y reabrir la app (persistencia de sesión, recuperación del mapa); corte de internet con la app abierta → el bus pasa a OFFLINE/oculto por sí solo; regresión post-C4.6 (MOVIMIENTO/PARADERO) y post-rebranding (splash/logo/FAB único/maxBounds).
 - **Hallazgo C**: evaluar CERRAR SESIÓN / revocación con servicio nativo vivo.
 - Fallos → subtareas de T1 únicamente si bloquean el MVP; de lo contrario → Post-MVP.
 
@@ -170,4 +170,4 @@ Si el código cambia:
 
 Nunca al revés.
 
-Cuando una tarea del MVP se **termina**, se registra su evidencia en `../diagnostics/resolved-bugs/` o `../adr/README.md` según corresponda, y se retira de la sección de backlog pendiente de este documento. El estado del trabajo posterior se actualiza en `roadmap.md`, sin duplicarlo aquí. El historial de cambios queda en Git.
+Cuando una tarea del MVP se **termina**, se registra su evidencia según la [matriz de documentación afectada](../../AGENTS.md#7-documentación-afectada) y se retira de la sección de backlog pendiente de este documento. El estado del trabajo posterior se actualiza en `roadmap.md`, sin duplicarlo aquí. El historial de cambios queda en Git.

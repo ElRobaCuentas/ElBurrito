@@ -153,3 +153,4 @@ Para otros temas, consultar el [mapa de documentación del monorepo](../docs/AGE
 | [Roadmap](../docs/planning/roadmap.md) | Trabajo planificado después del MVP. |
 | [Bugs resueltos](../docs/diagnostics/resolved-bugs/) | Registro de correcciones por aplicación. |
 | [Deuda de lint](../docs/diagnostics/lint-debt.md) | Hallazgos preexistentes y criterios para distinguir cambios nuevos. |
+| [AGENTS.md](AGENTS.md) | Instrucciones específicas para asistentes. |

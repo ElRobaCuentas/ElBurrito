@@ -130,7 +130,7 @@ para cambios reales; una inferencia no constituye una verificación.
 |---------------|-------------|
 | Un path o nodo de RTDB | `docs/architecture/firebase-schema.md` |
 | Un flujo o la arquitectura | `docs/architecture/overview.md`, `docs/architecture/flows.md` o `docs/architecture/tracking.md`, según corresponda |
-| Una decisión arquitectónica | Registro correspondiente en `docs/adr/` y su índice `docs/adr/README.md` |
+| Una decisión arquitectónica | Primero el registro correspondiente en `docs/adr/`; después su [índice](docs/adr/README.md) |
 | Un bug identificado | `docs/diagnostics/troubleshooting.md` |
 | Un bug corregido | `docs/diagnostics/resolved-bugs/` |
 | Una limitación del sistema | `docs/architecture/tracking.md` §9 / `docs/diagnostics/troubleshooting.md` |

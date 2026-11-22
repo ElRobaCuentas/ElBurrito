@@ -384,7 +384,7 @@ A partir de ahora, absolutamente todas las tareas activas deberán seguir este c
 - El backlog (`../planning/mvp.md`) es la única fuente oficial de trabajo durante esta etapa.
 - `workflow.md` define cómo se ejecutan las tareas.
 - `../planning/mvp.md` define qué tareas deben ejecutarse.
-- Los problemas resueltos y las decisiones técnicas se documentan en `../diagnostics/resolved-bugs/` o `../adr/README.md` solo cuando sea necesario.
+- Cuando corresponda documentar un bug resuelto o una decisión arquitectónica, seguir la [matriz de documentación afectada](../../AGENTS.md#7-documentación-afectada).
 
 ## Regla de una sola tarea activa
 

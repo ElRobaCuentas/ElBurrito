@@ -133,8 +133,9 @@ panel: el error aparece solo al abrir `/pulso`.
 
 ## Desarrollo
 
-```bash
-cd AdminWeb
+Desde `AdminWeb/`:
+
+```powershell
 npm install
 npm run dev
 ```
@@ -253,32 +254,63 @@ ejecución actual de las suites.
 
 Las migraciones `0001`, `0002` y `0003` ya están aplicadas en producción.
 Para mantenimiento futuro, revisar primero cuenta, entorno, binding, UUID y
-migraciones pendientes contra `wrangler.jsonc`. La [política y secuencia de publicación](../docs/engineering/versioning-and-releases.md#8-central-y-pulso)
-determina qué pasos ejecutar para cada entrega.
+migraciones pendientes contra `wrangler.jsonc`. Antes de ejecutar los pasos
+aplicables, seguir la [política de publicación y fijación del SHA](../docs/engineering/versioning-and-releases.md#8-central-y-pulso).
+Ejecutar cada comando junto con su comprobación y detener la secuencia ante un error.
 
-Desde `monitor/worker`, los comandos de referencia son:
+Para una entrega del Worker, desde `AdminWeb/monitor/worker`, verificar primero
+el empaquetado y las migraciones pendientes:
 
-```bash
+```powershell
 npx wrangler deploy --env production --dry-run
+if (-not $? -or $LASTEXITCODE -ne 0) { throw 'Falló el dry-run del Worker. No continuar.' }
 npx wrangler d1 migrations list pulso-memory-production --env production --remote
+if (-not $? -or $LASTEXITCODE -ne 0) { throw 'No se pudo consultar D1. No continuar.' }
+```
+
+El dry-run no publica ni migra D1 y no sustituye la inspección del destino remoto.
+Ejecutar el siguiente bloque solo si hay migraciones pendientes y autorizadas:
+
+```powershell
 npx wrangler d1 migrations apply pulso-memory-production --env production --remote
+if (-not $? -or $LASTEXITCODE -ne 0) { throw 'Falló la migración D1. No desplegar.' }
+```
+
+No borrar tablas ni repetir SQL de inicialización. Si se aplicó una migración,
+verificar integridad y conservación de datos antes de continuar; detenerse ante
+discrepancias. Publicar y observar el Worker:
+
+```powershell
 npx wrangler deploy --env production
+if (-not $? -or $LASTEXITCODE -ne 0) { throw 'Falló el despliegue del Worker. No continuar.' }
+```
+
+Con el despliegue confirmado, observar el Worker en una terminal aparte:
+
+```powershell
 npx wrangler tail --env production
 ```
 
-El dry-run no publica ni migra D1; no sustituye la inspección del destino remoto.
-Aplicar solo migraciones pendientes y autorizadas. No borrar tablas ni repetir
-SQL de inicialización. Verificar integridad y conservación de datos antes de
-continuar; no confundir una ejecución cron correcta con un incidente de fuente.
+`wrangler tail` es una observación manual, no una comprobación con código de
+salida: detenerlo con Ctrl+C al terminar es normal y su código de salida no se
+evalúa. En una entrega conjunta, no continuar a Hosting sin confirmar que el
+Worker responde a `/api/pulso` sin errores de configuración (por ejemplo, al
+abrir `/pulso` en CENTRAL con sesión administrativa y observar la respuesta en
+`wrangler tail`). Si no se puede confirmar el funcionamiento, detener el
+procedimiento y no publicar Hosting. No confundir una ejecución cron correcta
+con un incidente de fuente.
 
-Para el paso de publicación de Hosting, desde `AdminWeb/`:
+Para publicar Hosting, desde `AdminWeb/`, confirmar primero el proyecto de destino
+y el valor de `VITE_PULSO_API_ORIGIN` para la compilación de producción:
 
-```bash
+```powershell
 npm run build
+if (-not $? -or $LASTEXITCODE -ne 0) { throw 'Falló la compilación. No publicar Hosting ni reutilizar dist/.' }
 firebase deploy --only hosting --project burritounmsm
+if (-not $? -or $LASTEXITCODE -ne 0) { throw 'Falló el despliegue de Hosting. No dar la entrega por publicada.' }
 ```
 
-Confirmar `VITE_PULSO_API_ORIGIN`, el proyecto de destino, release finalizado,
+Confirmar que el release finalizó y verificar la
 correspondencia de los archivos publicados con `dist/`, rewrite `/pulso`, CORS y
 rechazo de consultas sin autorización. Verificar además con sesión administrativa;
 no registrar tokens ni URLs autenticadas. `/evaluate` debe seguir bloqueado en
@@ -294,15 +326,15 @@ fallos del monitor; una fuente inaccesible puede estar correctamente registrada.
 No ejecutar evaluaciones remotas ni alterar el bus para probar el monitor.
 
 Para suspender con autorización, cambiar en `env.production` de `wrangler.jsonc`
-`PULSO_SCHEDULE_ENABLED` a la cadena `"false"` y `triggers.crons` a `[]`; publicar
-el Worker con el procedimiento anterior y comprobar la propagación. El
-interruptor apagado devuelve `schedule-disabled` en el handler programado sin
+`PULSO_SCHEDULE_ENABLED` a la cadena `"false"` y `triggers.crons` a `[]`; integrar
+el cambio y publicar desde ese SHA con el procedimiento anterior. Comprobar la
+propagación. El interruptor apagado devuelve `schedule-disabled` en el handler programado sin
 evaluar ni persistir; omitir la clave `crons` no elimina triggers publicados.
 Los cambios de cron pueden tardar hasta 15 minutos. La API sigue leyendo D1 si su
 configuración y autorización son válidas; los registros se vuelven antiguos.
 
 No limpiar memoria, cerrar incidentes ni simular inactividad para apagar el cron.
-Para reanudar, restaurar ambos valores, publicar y verificar ejecuciones nuevas;
+Para reanudar, restaurar ambos valores, integrar el cambio, publicar y verificar ejecuciones nuevas;
 la memoria compatible conserva el período y los incidentes. Cambiar umbrales o
 `state_version` requiere revisar compatibilidad, no reinicializar automáticamente.
 Los parámetros y la retirada de triggers se describen también en la

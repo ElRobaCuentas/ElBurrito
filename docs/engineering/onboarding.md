@@ -173,7 +173,9 @@ Confirmar que esa es también la base usada por OpenCode; no apuntarlo a la base
 de publicación. Pedir al agente que consulte `mem_current_project`: debe
 informar el workspace correcto y `ecosistema-el-burrito`, no guardar notas para
 adivinar la identidad. El lote inicial de fase 6.3 contiene 12 síntesis técnicas.
-Buscar, por ejemplo, «Monorepo con aplicaciones independientes» y contrastar sus fuentes.
+Buscar, por ejemplo, «Monorepo con aplicaciones independientes» y contrastar sus
+fuentes. Las rutas del lote inicial reflejan la estructura anterior; para ubicar
+los documentos trasladados, consultar el [mapa vigente](../AGENTS.md#7-mapa-de-documentos).
 
 No importar la base histórica de otro integrante ni volver a publicar el lote
 inicial. Repetir `Receive` no duplica un chunk ya procesado. No activar Cloud ni
@@ -228,7 +230,7 @@ npm --prefix .\AdminWeb ci
 if ($LASTEXITCODE -ne 0) { throw 'Falló AdminWeb.' }
 npm --prefix .\AdminWeb\monitor\worker ci
 if ($LASTEXITCODE -ne 0) { throw 'Falló el Worker.' }
-npm --prefix .\FirebaseLab ci --cache .npm-cache --no-audit --no-fund
+npm --prefix .\FirebaseLab ci --cache (Join-Path $PWD.Path 'FirebaseLab\.npm-cache') --no-audit --no-fund
 if ($LASTEXITCODE -ne 0) { throw 'Falló FirebaseLab.' }
 ```
 
@@ -239,7 +241,7 @@ comprobar después que no aparecieron cambios de fuentes inesperados en Git.
 
 ## 7. Ejecutar y verificar los componentes
 
-Ejecutar cada procedimiento desde su carpeta. Los siguientes enlaces son la
+Respetar el directorio inicial indicado en cada procedimiento. Los siguientes enlaces son la
 fuente de comandos y fixtures; no se duplican aquí sus pasos completos.
 
 | Componente | Entrada de ejecución y verificación | Resultado que comprobar |

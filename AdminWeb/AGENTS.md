@@ -43,7 +43,7 @@ src/main.tsx → App.tsx (auth gate)
 | `src/shared/utils/dni.ts` | Normalización y validación de DNI (8 dígitos) |
 | `src/shared/config/env.ts` | Validación de las `VITE_FIREBASE_*` al iniciar |
 
-Rutas: `/` (Asignaciones), `/choferes`, `/buses`, `/admins`; `/asignaciones`
+Rutas: `/` (Asignaciones), `/choferes`, `/buses`, `/admins` y `/pulso`; `/asignaciones`
 redirige a `/`; `*` → `/`. Detalles: `../docs/architecture/overview.md` (sección CENTRAL) y
 `../docs/architecture/firebase-schema.md`.
 

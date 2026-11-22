@@ -178,7 +178,7 @@ Actualizar el estado únicamente en el documento dueño de la tarea
 ---
 
 ```
-../adr/README.md
+Registro correspondiente en ../adr/ y su índice
 
 ↓
 

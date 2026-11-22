@@ -51,6 +51,8 @@ Los comandos son para **futuras entregas autorizadas**, no para recrear `v1.2.0`
 Usar el entorno y las herramientas existentes, PowerShell 5.1 y la misma sesión
 para conservar las variables. Ejecutar paso a paso y detenerse ante cualquier error.
 
+### Preparar la versión Android
+
 1. Acordar alcance, responsable, versión y canal. Consultar las pruebas del
    `AGENTS.md` de la app y [condiciones de publicación](../planning/roadmap.md#4-condiciones-de-pre-release-y-publicación).
 2. Preparar la versión en la rama candidata acordada, no directamente en `main`.
@@ -78,13 +80,15 @@ git diff --cached            # Revisar exactamente lo que se va a registrar.
 git commit -m "chore(android): bump version to $version"
 ```
 
-Con autorización, publicar la rama candidata y seguir la [revisión humana e integración del PR](verification-and-closure.md#revisión-humana-e-integración-del-pr).
-El SHA de la rama previa al merge no identifica la entrega oficial. Después de
-integrar el PR, obtener de GitHub el SHA completo resultante en `main` que incluye
-la versión aprobada. Verificar que está en `origin/main` y compilar desde ese
-SHA exacto con el árbol limpio. Si `main` avanzó, no usar su punta por defecto.
-Una compilación previa al merge no es el artefacto oficial; volver a compilar y
-verificar desde el SHA integrado, incluso si el contenido parece equivalente.
+### Fijar el SHA integrado
+
+Para Android, CENTRAL y PULSO, publicar la rama candidata solo con autorización y seguir la
+[revisión humana e integración del PR](verification-and-closure.md#revisión-humana-e-integración-del-pr).
+Obtener de GitHub el SHA completo resultante de integrar en `main` el PR de la
+entrega aprobada. Verificar que está en `origin/main` y usar ese SHA exacto con
+el árbol limpio para compilar y publicar. No usar el SHA previo al merge ni la
+punta de `main` si avanzó. Volver a generar desde el SHA integrado cualquier
+salida preparada antes del merge.
 
 **Desde la raíz del monorepo**, en la misma sesión PowerShell:
 
@@ -101,10 +105,11 @@ git switch --detach $integratedSha
 if ($LASTEXITCODE -ne 0) { throw 'No se pudo fijar el SHA de compilación.' }
 $commit = git rev-parse HEAD
 if ($LASTEXITCODE -ne 0 -or $commit -ne $integratedSha) { throw 'HEAD no coincide con el SHA integrado.' }
-git status --short           # Debe estar vacío antes de compilar.
+$pending = git status --porcelain
+if ($LASTEXITCODE -ne 0 -or $pending) { throw 'El árbol debe estar limpio en el SHA integrado.' }
 ```
 
-Confirmar versión y código en el `build.gradle` del SHA fijado antes de compilar.
+Para Android, confirmar versión y código en el `build.gradle` del SHA fijado.
 Sin acceso confirmado al remoto o sin PR integrado, no preparar una entrega oficial.
 
 Mantener el código y la configuración estables al compilar. Un commit y un lock
@@ -284,9 +289,9 @@ datos sensibles, versiones previa/nueva y resultado. Compilar no acredita instal
 
 ## 8. CENTRAL y PULSO
 
-Antes de desplegar, desde la raíz del monorepo, ejecutar
-`git status --short -- AdminWeb` y `git rev-parse HEAD`: exigir que `AdminWeb/`
-esté limpio y registrar el SHA completo.
+Antes de compilar, migrar o desplegar, [fijar el SHA integrado](#fijar-el-sha-integrado)
+desde la raíz del monorepo. Mantener ese SHA y el árbol limpio durante la entrega;
+registrar `$commit` como SHA fuente de los pasos efectuados.
 CENTRAL incluye la pantalla PULSO; el Worker se publica aparte e incluye código
 de `monitor/src/` y `monitor/worker/`. No requieren nuevo SemVer ni GitHub Releases.
 

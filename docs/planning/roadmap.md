@@ -106,7 +106,7 @@ pendiente de decisión expresa.
 | Ítem | Nota original |
 |------|---------------|
 | App Check | Reduce riesgo de abuso. |
-| Typecheck en DriverApp | Configurar `tsc` en Driver; no bloquea la operación del MVP. |
+| Typecheck de PILOTO | Configurar `tsc` en `Driver/`; no bloquea la operación del MVP. |
 | Limpieza de `console.log`, `@ts-ignore` y `as any` | Deuda técnica. |
 | Backoff para reconexión RTDB (`goOffline`/`goOnline` por AppState) | Tolerancia adicional a gaps. |
 

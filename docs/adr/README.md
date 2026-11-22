@@ -1,9 +1,9 @@
-# Decisiones de Arquitectura — El Burrito
+# Decisiones de Arquitectura — Ecosistema El Burrito
 
 ## 1. Propósito
 
-Este documento registra las decisiones de arquitectura (ADR) relevantes
-del ecosistema. Cada entrada explica el problema, las alternativas
+Este índice reúne las decisiones de arquitectura (ADR) relevantes del
+ecosistema. Cada registro enlazado explica el problema, las alternativas
 consideradas y el razonamiento detrás de la solución adoptada.
 
 No es un manual técnico ni un changelog. Las decisiones aquí documentadas
@@ -46,12 +46,12 @@ funcionalidad planificada en implementada.
 | ADR-009 | Autenticación segmentada por roles | Sustituida por ADR-017 y ADR-025 |
 | ADR-010 | Gestión manual del tracking | Sustituida por ADR-026 |
 | ADR-011 | Instancia secundaria de Auth | Sustituida por ADR-025 |
-| ADR-012 | DriverApp solo Android | Vigente |
+| ADR-012 | PILOTO solo Android | Vigente |
 | ADR-013 | Geofencing con Punto Cero Dinámico | Pendiente (post-MVP) |
 | ADR-014 | Backend propio | Pendiente (visión, sin ejecución aprobada) |
-| ADR-015 | Dashboard web de flota y analítica | Pendiente; administración parcial en AdminWeb |
+| ADR-015 | Dashboard web de flota y analítica | Pendiente; administración parcial en CENTRAL |
 | ADR-016 | Listener multi-bus | Vigente |
-| ADR-017 | Panel admin en DriverApp y autorización UID | Sustituida parcialmente por ADR-025; autorización UID vigente |
+| ADR-017 | Antiguo panel admin en la app de conductores y autorización UID | Sustituida parcialmente por ADR-025; autorización UID vigente |
 | ADR-018 | Inicialización asíncrona de SecondaryApp | Histórica; implementación sustituida por ADR-025 |
 | ADR-019 | Heartbeat de presencia | Vigente, validación actualizada |
 | ADR-020 | Estrategia C de movimiento | Experimental |
@@ -59,7 +59,7 @@ funcionalidad planificada en implementada.
 | ADR-022 | Retiro de «Seguir Bus» | Vigente |
 | ADR-023 | Autorización GPS por UID→DNI | Vigente, alcance limitado |
 | ADR-024 | Auditoría de asignaciones y «desactivar» | Vigente, con evolución |
-| ADR-025 | Migración a AdminWeb y dominios por rol | Vigente |
+| ADR-025 | Migración a CENTRAL y dominios por rol | Vigente |
 | ADR-026 | Separación detener recorrido/logout | Vigente, con evolución I07 |
 | ADR-027 | Turnos informativos y un bus por conductor/fecha | Vigente |
 | ADR-028 | Validación diaria y respaldo offline | Vigente, con precisión |
@@ -192,12 +192,12 @@ funcionalidad planificada en implementada.
 
 | Documento | Relación |
 |-----------|----------|
-| `ARCHITECTURE.md` | Visión general, flujo de datos, ciclo de vida y componentes. |
-| `FIREBASE_SCHEMA.md` | Estructura de nodos impactada por estas decisiones. |
-| `TROUBLESHOOTING.md` | Problemas derivados de estas decisiones. |
-| `ROADMAP.md` | Planificación post-MVP y referencias a las ADR planeadas. |
-| `BUGS_RESUELTOS/` | Bugs resueltos que originaron decisiones arquitectónicas. |
-| `User/README.md` | Setup y funcionalidad de UserApp. |
-| `Driver/README.md` | Setup y funcionalidad de DriverApp. |
-| `User/AGENTS.md` | Reglas de trabajo para IA en UserApp. |
-| `Driver/AGENTS.md` | Reglas de trabajo para IA en DriverApp. |
+| [Arquitectura](../architecture/overview.md) | Visión general, flujo de datos, ciclo de vida y componentes. |
+| [Esquema Firebase](../architecture/firebase-schema.md) | Estructura de nodos impactada por estas decisiones. |
+| [Diagnóstico](../diagnostics/troubleshooting.md) | Problemas derivados de estas decisiones. |
+| [Roadmap](../planning/roadmap.md) | Planificación post-MVP y referencias a las ADR planeadas. |
+| [Bugs resueltos](../diagnostics/resolved-bugs/) | Bugs resueltos que originaron decisiones arquitectónicas. |
+| [README de El Burrito](../../User/README.md) | Configuración y funcionalidad de El Burrito. |
+| [README de PILOTO](../../Driver/README.md) | Configuración y funcionalidad de PILOTO. |
+| [Reglas de El Burrito](../../User/AGENTS.md) | Instrucciones para asistentes en `User/`. |
+| [Reglas de PILOTO](../../Driver/AGENTS.md) | Instrucciones para asistentes en `Driver/`. |
