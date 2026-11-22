@@ -62,9 +62,8 @@ Con base en ello verifica específicamente:
 - malas prácticas
 
 8. Ejecuta las comprobaciones aplicables del AGENTS.md y README del componente.
-Indica directorio, comando, resultado y advertencias. No inventes scripts:
-User usa npx tsc --noEmit; AdminWeb incluye tipos en npm run build;
-Driver y el Worker de PULSO tienen sus propios comandos de prueba.
+Indica directorio, comando, resultado y advertencias. Usa los comandos
+documentados en el README del componente.
 Para cambios solo documentales, verifica enlaces, coherencia y límite de líneas.
 
 Finalmente indica:

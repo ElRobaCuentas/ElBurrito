@@ -27,19 +27,19 @@ La propuesta histórica de caducidad a los 60 s no es trabajo pendiente.
 
 | Tarea | Proyecto | Estado | Depende de | Alcance y validación |
 |-------|----------|--------|------------|---------------------|
-| T4.2 — Control de turnos y creación de `/recorridos` | BurritoDriverApp | Parcial | T4.1 | INICIAR/DETENER ya existen; falta registrar `/recorridos` (`../architecture/firebase-schema.md` §7). No equivale a los turnos informativos de I08 (ADR-027). |
+| T4.2 — Control de turnos y creación de `/recorridos` | PILOTO | Parcial | T4.1 | INICIAR/DETENER ya existen; falta registrar `/recorridos` (`../architecture/firebase-schema.md` §7). No equivale a los turnos informativos de I08 (ADR-027). |
 | T4.4 — Render multi-bus completo | El Burrito | Pendiente | T3.2 | ShapeSource + SymbolLayer por cada bus activo. |
-| T4.5 — Monitor de flota | AdminWeb | Pendiente | T4.4 | Sección «Flota en servicio ahora». |
+| T4.5 — Monitor de flota | CENTRAL | Pendiente | T4.4 | Sección «Flota en servicio ahora». |
 | T4.6 — Estadísticas de recorridos | El Burrito | Pendiente | T4.2 | StatsScreen con métricas de recorridos. |
-| T4.3 — Geofencing | BurritoDriverApp | Pendiente | T4.2 | Punto Cero Dinámico (ADR-013), máquina de estados con Haversine e histéresis 40/80 m. La validación real depende de la implementación; ajustar radios contra multipath de edificios en campus. |
+| T4.3 — Geofencing | PILOTO | Pendiente | T4.2 | Punto Cero Dinámico (ADR-013), máquina de estados con Haversine e histéresis 40/80 m. La validación real depende de la implementación; ajustar radios contra multipath de edificios en campus. |
 | T5.2 — Smoothing | El Burrito | Pendiente | T4.4 | Interpolación (moving average / Kalman ligero). El ajuste fino depende de la implementación y de datos reales del circuito en campus. |
 | T5.1 — Calibración de paraderos | El Burrito | Pendiente | Presencia en Campus UNMSM | Coordenadas GPS reales de los 10 paraderos. Sin otra dependencia funcional documentada. |
 | PULSO — Vigilancia automática | AdminWeb (monitor) | Terminada | — | Implementada y desplegada en producción; validada operativamente el 18/11/2026 para AHK-459: interrupción, persistencia sin duplicados, recuperación, detención y ausencia de incidentes posteriores. Evidencia y alcance en [PULSO §9](../architecture/pulso.md#9-validación-operativa-del-mvp). |
-| PULSO — Notificaciones de incidentes | AdminWeb (monitor) | Pospuesta | PULSO — Vigilancia automática | Fuera del MVP cerrado; canal sin elegir y ejecución no autorizada. Ver §2.1. |
+| PULSO — Notificaciones de incidentes | PULSO | Pospuesta | PULSO — Vigilancia automática | Fuera del MVP cerrado; canal sin elegir y ejecución no autorizada. Ver §2.1. |
 | PULSO — Integración con Central | AdminWeb | Terminada | — | API administrativa, pantalla y refresco implementados y publicados. Inicio y duración observados validados el 18/11/2026 mediante observación continuada; prueba 3 sin ejecución independiente completa. Los límites de la evidencia se conservan en [PULSO §9](../architecture/pulso.md#9-validación-operativa-del-mvp); los procedimientos técnicos, en el README de AdminWeb. |
 
 **Entornos de trabajo:** Bloque A (Casa/Calle) = implementación y pruebas GPS
-locales con un Motorola, BurritoDriverApp en segundo plano y El Burrito en primer
+locales con un Motorola, PILOTO en segundo plano y El Burrito en primer
 plano. Bloque B (Campus UNMSM) = validación física en universidad y bus para
 T4.3, T5.1 y ajuste fino de T5.2. Esta distinción no añade dependencias entre
 tareas independientes.
@@ -59,7 +59,7 @@ en las ocho pruebas ni tareas comprometidas para corregirlos.
 
 **Mejora pospuesta:** las notificaciones externas de incidentes permanecen fuera
 del MVP; falta elegir canal y aprobar alcance y ejecución. La integración con
-Central que motivó su postergación ya terminó; eso no reactiva la tarea.
+CENTRAL que motivó su postergación ya terminó; eso no reactiva la tarea.
 
 **Ideas futuras no aprobadas:** no tienen prioridad, fecha ni compromiso de
 implementación. El contexto técnico está en PULSO §10; las decisiones futuras
@@ -67,9 +67,9 @@ de planificación se mantendrán aquí.
 
 | Posibilidad | Qué requeriría decidir |
 |-------------|------------------------|
-| Telemetría del fix GPS y diagnóstico de DriverApp | Contrato del productor, señales observables y validación; no confundir heartbeat de publicación con frescura del fix. Relación con I10, sin reabrirla automáticamente. |
+| Telemetría del fix GPS y diagnóstico de PILOTO | Contrato del productor, señales observables y validación; no confundir heartbeat de publicación con frescura del fix. Relación con I10, sin reabrirla automáticamente. |
 | Identidad inequívoca de recorrido y evidencia de detención | Contrato e integración de campos hoy no conectados; no equivale a habilitar una rama del evaluador. |
-| Supervisión externa de PULSO y observabilidad de UserApp | Señales, servicio independiente, alcance y tratamiento de fallos; el monitor no garantiza detectar su propia caída. |
+| Supervisión externa de PULSO y observabilidad de El Burrito | Señales, servicio independiente, alcance y tratamiento de fallos; el monitor no garantiza detectar su propia caída. |
 | Operación multi-bus de PULSO | Selección de buses, ejecución y presentación administrativa; el MVP supervisa un bus configurado. |
 
 ## 3. Tareas postergadas
@@ -128,6 +128,6 @@ ideas sin ADR; ninguna tiene prioridad ni fecha asignada.
 - API pública para integración con servicios externos.
 - Analytics avanzados: tiempos de espera, ocupación y rutas más usadas.
 - Notificaciones push a estudiantes sobre llegada de buses.
-- Soporte iOS completo del ecosistema; BurritoDriverApp no está implementada
+- Soporte iOS completo del ecosistema; PILOTO no está implementada
   ni probada para iOS. No se acredita soporte completo por la configuración
   nativa existente de El Burrito.

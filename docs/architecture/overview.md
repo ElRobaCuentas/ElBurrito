@@ -1,4 +1,4 @@
-# Architecture — El Burrito
+# Arquitectura — Ecosistema El Burrito
 
 Documento de la arquitectura implementada del Ecosistema El Burrito. Describe
 componentes, responsabilidades, comunicación, estado local, ciclo de vida del
@@ -10,10 +10,10 @@ evidencia histórica, en `../diagnostics/resolved-bugs/`.
 
 - [§1. Visión General](#1-visión-general)
 - [§2. Arquitectura del Ecosistema](#2-arquitectura-del-ecosistema)
-- [§3. Arquitectura de BurritoDriverApp](#3-arquitectura-de-burritodriverapp-conductor)
-- [§3.1. Arquitectura de AdminWeb](#31-arquitectura-de-adminweb-administrador)
+- [§3. Arquitectura de PILOTO](#3-arquitectura-de-piloto-conductor)
+- [§3.1. Arquitectura de CENTRAL](#31-arquitectura-de-central-administrador)
 - [§3.2. PULSO (monitor de seguimiento)](#32-pulso-monitor-de-seguimiento)
-- [§4. Arquitectura de BurritoUserApp](#4-arquitectura-de-burritouserapp)
+- [§4. Arquitectura de El Burrito](#4-arquitectura-de-el-burrito)
 - [§5. Comunicación y Flujo de Datos](#5-comunicación-y-flujo-de-datos)
 - [§6. Componentes Principales](#6-componentes-principales)
 - [§7. Servicios Externos](#7-servicios-externos)
@@ -23,28 +23,28 @@ evidencia histórica, en `../diagnostics/resolved-bugs/`.
 
 ## 1. Visión General
 
-El Burrito es un sistema de seguimiento en tiempo real para los autobuses
+El Ecosistema El Burrito incorpora seguimiento en tiempo real de los autobuses
 universitarios de la Universidad Nacional Mayor de San Marcos (UNMSM). Resuelve
 una **asimetría de información**: los estudiantes esperan en paraderos sin saber
 cuándo llegará el próximo bus; la aplicación muestra la posición en vivo de cada
 unidad sobre un mapa accesible desde el celular.
 
-El ecosistema usa un patrón **productor-consumidor para el tracking**: la
-BurritoDriverApp produce posiciones GPS y El Burrito las consume. Esa parte del
+El ecosistema usa un patrón **productor-consumidor para el tracking**:
+PILOTO produce posiciones GPS y El Burrito las consume. Esa parte del
 sistema es **unidireccional** y no tiene una API propia ni un backend intermedio
 mantenido por el proyecto. Firebase proporciona servicios backend administrados
 (Auth, Realtime Database, Hosting, Analytics y Crashlytics), que se consumen
 directamente desde las aplicaciones.
 
-El resto del ecosistema no es estrictamente unidireccional: AdminWeb administra
-configuración y BurritoDriverApp lee datos necesarios para operar.
+El resto del ecosistema no es estrictamente unidireccional: CENTRAL administra
+configuración y PILOTO lee datos necesarios para operar.
 
 ```
-BurritoDriverApp ── escribe tracking ──▶ RTDB /ubicacion_buses/{busId}
+PILOTO ── escribe tracking ──▶ RTDB /ubicacion_buses/{busId}
         │                                        │
         └── lee perfil y asignaciones ◀──────────┘
 
-AdminWeb ── escribe/lee configuración ──▶ RTDB /choferes, /buses,
+CENTRAL ── escribe/lee configuración ──▶ RTDB /choferes, /buses,
         │                                   /asignaciones, /administradores
         └── inicializa/elimina /ubicacion_buses/{placa} al crear/eliminar bus
 
@@ -63,9 +63,9 @@ un servidor de aplicación propio que opaque estas operaciones.
 
 | Aplicación | Rol | Función principal | Identidad | Autorización |
 |-----------|-----|-------------------|-----------|--------------|
-| BurritoDriverApp | **Conductor** | Capturar GPS, mantener presencia y escribir tracking en RTDB | DNI + contraseña | Sesión de conductor y reglas RTDB |
+| PILOTO | **Conductor** | Capturar GPS, mantener presencia y escribir tracking en RTDB | DNI + contraseña | Sesión de conductor y reglas RTDB |
 | El Burrito | **Consumidor** (estudiante) | Leer tracking y renderizar el mapa; gestionar perfil y feedback | Email/contraseña o Google Sign-In | Sesión de estudiante y reglas por UID |
-| AdminWeb | **Administración** | Gestionar conductores, buses, asignaciones y administradores | DNI + contraseña | Nodo `/administradores/{uid}` |
+| CENTRAL | **Administración** | Gestionar conductores, buses, asignaciones y administradores | DNI + contraseña | Nodo `/administradores/{uid}` |
 | Firebase RTDB | **Bus y almacén** | Sincronizar tracking y configuración | — | Reglas de seguridad |
 | Firebase Auth | **Identidad** | Autenticar las tres aplicaciones | — | — |
 
@@ -77,23 +77,23 @@ nodo administrativo, del índice de conductores o de las reglas de cada path.
 
 | Origen | Operación | Destino |
 |--------|-----------|---------|
-| BurritoDriverApp | Escribe posición y `isActive` del recorrido | `/ubicacion_buses/{busId}` |
-| BurritoDriverApp | Lee perfil y asignación diaria | `/choferes/{dni}`, `/asignaciones` |
-| BurritoDriverApp | Consulta estado de conexión para el respaldo I08 | `.info/connected` |
+| PILOTO | Escribe posición y `isActive` del recorrido | `/ubicacion_buses/{busId}` |
+| PILOTO | Lee perfil y asignación diaria | `/choferes/{dni}`, `/asignaciones` |
+| PILOTO | Consulta estado de conexión para el respaldo I08 | `.info/connected` |
 | El Burrito | Escucha la colección completa | `/ubicacion_buses` |
 | El Burrito | Lee y actualiza perfil | `/usuarios/{uid}` |
 | El Burrito | Crea feedback | `/comentarios` |
-| AdminWeb | CRUD de configuración y lectura de listas | `/choferes`, `/buses`, `/asignaciones`, `/administradores` |
-| AdminWeb | Inicializa o elimina el nodo de un bus | `/ubicacion_buses/{placa}` |
-| AdminWeb (PULSO) | El Worker lee el tracking por HTTP público cada minuto en producción; conserva modos locales de prueba | REST `/ubicacion_buses/{busId}.json` |
-| AdminWeb (PULSO) | Verifica el rol de la sesión de Central al autorizar su API de lectura | REST `/administradores/{uid}.json` |
+| CENTRAL | CRUD de configuración y lectura de listas | `/choferes`, `/buses`, `/asignaciones`, `/administradores` |
+| CENTRAL | Inicializa o elimina el nodo de un bus | `/ubicacion_buses/{placa}` |
+| PULSO | El Worker lee el tracking por HTTP público cada minuto en producción; conserva modos locales de prueba | REST `/ubicacion_buses/{busId}.json` |
+| PULSO | Verifica el rol de la sesión de CENTRAL al autorizar su API de lectura | REST `/administradores/{uid}.json` |
 
 ### Autenticación y autorización
 
-- **BurritoDriverApp (conductores)**: Firebase Auth con email compuesto
+- **PILOTO (conductores)**: Firebase Auth con email compuesto
   `${dni}@conductor.com`. La contraseña inicial es el DNI, establecida al crear
-  el conductor desde AdminWeb. El gate de la app comprueba sesión, no rol.
-- **AdminWeb (administradores)**: Firebase Auth con email `${dni}@admin.com`.
+  el conductor desde CENTRAL. El gate de la app comprueba sesión, no rol.
+- **CENTRAL (administradores)**: Firebase Auth con email `${dni}@admin.com`.
   Tras el login, el auth gate consulta `/administradores/{uid}` para autorizar
   el acceso al panel.
 - **El Burrito (estudiantes)**: Firebase Auth con email/contraseña o Google
@@ -111,7 +111,7 @@ configuración. Cada una se ejecuta desde su carpeta (`User/`, `Driver/` o
 `AdminWeb/`, `docs/` y `FirebaseLab/` comparten repositorio e historial; la
 independencia es de aplicación, no de repositorio.
 
-## 3. Arquitectura de BurritoDriverApp (conductor)
+## 3. Arquitectura de PILOTO (conductor)
 
 ### Entry point y enrutador
 
@@ -147,7 +147,7 @@ ADR-026.
 
 La estructura de archivos relevante está centralizada en §6.
 
-## 3.1 Arquitectura de AdminWeb (administrador)
+## 3.1 Arquitectura de CENTRAL (administrador)
 
 ### Entry point y auth gate
 
@@ -226,17 +226,17 @@ La estructura de archivos relevante está centralizada en §6.
 ### 3.2 PULSO (monitor de seguimiento)
 
 PULSO es el monitor técnico interno, implementado en `AdminWeb/monitor/`, que
-observa las publicaciones de BurritoDriverApp sin intervenir en el pipeline del
+observa las publicaciones de PILOTO sin intervenir en el pipeline del
 mapa de El Burrito ni escribir en RTDB.
 
 ```text
-BurritoDriverApp → RTDB → Worker de Cloudflare (cron) → D1
+PILOTO → RTDB → Worker de Cloudflare (cron) → D1
                                                        ↓
-                                  API administrativa → Central
+                                  API administrativa → CENTRAL
 ```
 
 El Worker comprueba el bus configurado cada minuto y persiste estado e
-incidentes. Central consulta `GET /api/pulso` con la sesión administrativa
+incidentes. CENTRAL consulta `GET /api/pulso` con la sesión administrativa
 existente; la API autoriza mediante Firebase y lee D1, sin evaluar ni consultar
 el tracking. El refresco del navegador y el cron son procesos independientes.
 Se conservan modos locales de comprobación manual y programada para desarrollo.
@@ -245,12 +245,12 @@ La referencia principal es [pulso.md](pulso.md): funcionamiento, estados e
 incidentes (§3–5), memoria y migraciones (§6), indicadores y datos antiguos (§7),
 operación (§8), evidencia del MVP (§9) y límites (§10). Los contratos RTDB siguen
 en `firebase-schema.md`; los comandos de desarrollo, pruebas y despliegue, en el
-[README de AdminWeb](https://github.com/ElRobaCuentas/AdminWeb/blob/main/README.md#monitor-pulso-local-y-despliegue-remoto).
+[README de CENTRAL](../../AdminWeb/README.md#monitor-pulso-local-y-despliegue-remoto).
 
-#### 3.2.1 Despliegue remoto e integración con Central (vigilancia activa)
+#### 3.2.1 Despliegue remoto e integración con CENTRAL (vigilancia activa)
 
 El MVP está implementado y publicado con vigilancia automática en Cloudflare y
-memoria D1; Central usa la API remota. Fue validado operativamente el
+memoria D1; CENTRAL usa la API remota. Fue validado operativamente el
 **18/11/2026**, incluyendo interrupción, persistencia sin duplicados, recuperación,
 detención e inicio/duración observados.
 
@@ -261,7 +261,7 @@ fallos atribuidos a esas pruebas. La evolución posterior pertenece a
 [ROADMAP §2.1](../planning/roadmap.md#21-evolución-de-pulso-posterior-al-mvp), sin dar por cerrado
 el MVP general del ecosistema.
 
-## 4. Arquitectura de BurritoUserApp
+## 4. Arquitectura de El Burrito
 
 ### Entry point, hidratación y splash
 
@@ -366,13 +366,13 @@ La estructura de archivos relevante está centralizada en §6.
 
 [Consultar sección](flows.md#6-componentes-principales).
 
-### BurritoDriverApp
+### PILOTO
 
-[Consultar sección](flows.md#burritodriverapp).
+[Consultar sección](flows.md#piloto).
 
-### AdminWeb
+### CENTRAL (AdminWeb)
 
-[Consultar sección](flows.md#adminweb).
+[Consultar sección](flows.md#central-adminweb).
 
 ### El Burrito
 
@@ -474,6 +474,6 @@ La estructura de archivos relevante está centralizada en §6.
 | `../planning/mvp.md` | Operación del piloto, aceptación de jornada y supuestos de relevo. |
 | `../diagnostics/troubleshooting.md` | Incidentes, diagnóstico y soluciones operativas. |
 | `../diagnostics/resolved-bugs/` | Historial de bugs resueltos y evidencia de validación. |
-| `../../Driver/README.md` | Setup, requisitos y funcionalidad de BurritoDriverApp. |
+| `../../Driver/README.md` | Setup, requisitos y funcionalidad de PILOTO. |
 | `../../User/README.md` | Setup, requisitos y funcionalidad de El Burrito. |
 | `../../AdminWeb/README.md` | Setup, requisitos y funcionalidad del panel administrativo. |

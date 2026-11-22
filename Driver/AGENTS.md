@@ -1,4 +1,4 @@
-# BurritoDriverApp — AGENTS.md
+# PILOTO — AGENTS.md
 
 ## 1. Alcance
 
@@ -16,22 +16,11 @@ solicitados.
 
 ## 2. Comandos
 
-| Acción | Comando |
-|--------|---------|
-| Instalar dependencias | `npm install` |
-| Iniciar Metro | `npm start` |
-| Compilar Android | `npm run android` |
-| Lint | `npm run lint` |
-| Tests | `npm test -- --runInBand --ci` |
-| Logs Android | `adb logcat \| grep RNBackground` |
-| Formatear | `npx prettier --write <file>` |
+Consultá la [configuración](README.md#setup) y los [comandos](README.md#scripts)
+en el README.
 
 Prettier: `singleQuote`, `arrowParens: 'avoid'`, `trailingComma: 'all'`.
 No hay script de typecheck ni archivo `.env`.
-
-La suite estándar es `npm test -- --runInBand --ci` (9 suites, 120 pruebas).
-`jest.config.js` contiene las excepciones de transformación para React Native y
-las dependencias ESM; no requiere flags adicionales.
 
 ---
 
@@ -48,9 +37,9 @@ index.js → DriverApp.tsx (auth gate)
 | `firebase_service.ts` | Escritura RTDB |
 
 La app consulta `/asignaciones` y escribe en `/ubicacion_buses/{busId}`. Ciclo
-completo: `../docs/architecture/overview.md` §8; payloads: `../docs/architecture/firebase-schema.md`.
+completo: `../docs/architecture/tracking.md` §8; payloads: `../docs/architecture/firebase-schema.md`.
 
-Ciclo: login → `fetchAssignment` → `startProcess` → permisos Android →
+Ciclo: login → `loadAssignment()` → `startProcess` → permisos Android →
 `BackgroundJob.start` → `locationTask` → `updateBusLocation` → `stopProcess`.
 
 ---
@@ -61,7 +50,7 @@ Ciclo: login → `fetchAssignment` → `startProcess` → permisos Android →
 
 - **No modifiques** `locationTask` sin entender el ciclo: corre dentro del
   `BackgroundJob` y sus errores dejan el tracking inoperativo sin aviso en la
-  UI. Leé `../docs/architecture/overview.md` §8 antes.
+  UI. Leé `../docs/architecture/tracking.md` §8 antes.
 - **No confíes** en un cierre limpio: no hay `onDisconnect`. DETENER RECORRIDO es
   la única fuente de verdad para `isActive: false`. Si el proceso muere de forma
   anormal, `isActive` puede quedar en `true`; el watchdog reintenta dentro del
@@ -102,7 +91,7 @@ Ciclo: login → `fetchAssignment` → `startProcess` → permisos Android →
 
 - **No elimines ni muevas** el heartbeat de 8 s (`HEARTBEAT_INTERVAL_MS`, dentro
   de `locationTask`). Garantiza publicaciones periódicas cuando el GPS no emite
-  (bus quieto); sin él, el bus cruza el umbral de expiración de UserApp (C4.6) y
+  (bus quieto); sin él, el bus cruza el umbral de expiración de El Burrito (C4.6) y
   el watchdog puede reiniciar en falso. Ver ADR-019.
 - **No elimines** `keepAlive` ni el watchdog de C3. `keepAlive` vigila que el
   `BackgroundJob` siga corriendo; el watchdog detecta 30 s sin pulso

@@ -249,7 +249,7 @@ conviene que tenga el índice para operar eficientemente.
 
 ### 9.5 Compatibilidad iOS
 
-BurritoDriverApp no está probada ni soportada en iOS: el foreground service
+PILOTO no está probada ni soportada en iOS: el foreground service
 depende de APIs nativas de Android.
 
 En El Burrito existe configuración iOS, pero el soporte funcional **no está
@@ -263,7 +263,7 @@ reparar esa configuración desde este documento.
 
 ### 9.6 Productores y simulación
 
-El productor actual acreditado en el código es BurritoDriverApp, que escribe en
+El productor actual acreditado en el código es PILOTO, que escribe en
 `/ubicacion_buses/{busId}`. No se acreditó en esta revisión un script Python
 versionado, una carpeta de simulación ni una integración actual que escriba a
 otro path como segundo productor. Si existe una herramienta externa de

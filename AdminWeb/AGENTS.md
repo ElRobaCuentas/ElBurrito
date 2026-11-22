@@ -1,4 +1,4 @@
-# AdminWeb — AGENTS.md
+# CENTRAL — AGENTS.md
 
 ## 1. Alcance
 
@@ -17,14 +17,8 @@ autorización ni las convenciones de correo.
 
 ## 2. Comandos
 
-| Acción | Comando |
-|--------|---------|
-| Instalar dependencias | `npm install` |
-| Dev server | `npm run dev` (por defecto `http://localhost:5173`) |
-| Lint | `npm run lint` (Oxlint) |
-| Build (typecheck + bundle) | `npm run build` (`tsc -b && vite build`) |
-| Preview de build | `npm run preview` |
-| Deploy a Hosting | `firebase deploy` (proyecto `burritounmsm`, sirve `dist/`) |
+Consultá [desarrollo](README.md#desarrollo), [build y vista previa](README.md#build-y-vista-previa-local)
+y [lint](README.md#linting) en el README.
 
 No hay script separado de typecheck: `tsc -b` corre dentro de `npm run build`.
 Prettier no está configurado como script; respetá el estilo existente.
@@ -50,7 +44,7 @@ src/main.tsx → App.tsx (auth gate)
 | `src/shared/config/env.ts` | Validación de las `VITE_FIREBASE_*` al iniciar |
 
 Rutas: `/` (Asignaciones), `/choferes`, `/buses`, `/admins`; `/asignaciones`
-redirige a `/`; `*` → `/`. Detalles: `../docs/architecture/overview.md` (sección AdminWeb) y
+redirige a `/`; `*` → `/`. Detalles: `../docs/architecture/overview.md` (sección CENTRAL) y
 `../docs/architecture/firebase-schema.md`.
 
 Estilos: CSS propio con tokens en `src/styles/` (importado por `index.css`);
@@ -104,7 +98,7 @@ leelo de `/choferes/{dni}`. No agregues reads desde `/choferes_uids`.
 
 Conductores: `{dni}@conductor.com` (contraseña inicial = DNI). Administradores:
 `{dni}@admin.com`. Están en `admin_service.ts` y `LoginScreen.tsx`, y deben
-coincidir con DriverApp (ADR-025). Cambiarlas rompe el login del conductor.
+coincidir con PILOTO (ADR-025). Cambiarlas rompe el login del conductor.
 
 ### 5.5 DNI: exactamente 8 dígitos numéricos
 
@@ -145,7 +139,7 @@ turnos son datos administrativos dentro del mismo `asignacionId`:
 - Editar turnos usa `updateTurnos()` sobre el mismo nodo; no crees otra
   asignación.
 - La unicidad sigue siendo una asignación activa por conductor + fecha.
-- No leas `turnos` desde DriverApp ni cambies el tracking: los turnos no inician
+- No leas `turnos` desde PILOTO ni cambies el tracking: los turnos no inician
   ni detienen el recorrido. Cambiar de bus requeriría otra fase.
 
 ### 5.9 Conductores y administradores
@@ -156,8 +150,8 @@ turnos son datos administrativos dentro del mismo `asignacionId`:
   `/choferes_uids/{uid}`. No reintroduzcas la eliminación física como operación
   habitual.
 - Desactivar **no** cancela asignaciones activas ni detiene por sí solo el
-  tracking de DriverApp (que no consulta el flag `activo`). Es una limitación
-  conocida; no modifiques DriverApp desde este panel.
+  tracking de PILOTO (que no consulta el flag `activo`). Es una limitación
+  conocida; no modifiques PILOTO desde este panel.
 - `deleteAdmin` borra solo el nodo `/administradores/{uid}`; la cuenta de
   Authentication se borra manualmente en Firebase Console.
 - El **primer** administrador se crea manualmente en Firebase Console (cuenta
@@ -167,13 +161,14 @@ turnos son datos administrativos dentro del mismo `asignacionId`:
 ### 5.10 Crear bus inicializa `ubicacion_buses`
 
 `createBus` normaliza la placa a mayúsculas y crea `/ubicacion_buses/{placa}`
-con `isActive: false`. No lo omitas: DriverApp y la app de usuario dependen de
+con `isActive: false`. No lo omitas: PILOTO y la app de usuario dependen de
 ese nodo.
 
 ### 5.11 Deploy
 
-`firebase.json` sirve `dist/` con rewrites SPA y cache inmutable en `/assets/**`.
-El proyecto de Hosting es `burritounmsm`. No versionar `.env` (gitignored).
+Consultar la [política y secuencia](../docs/engineering/versioning-and-releases.md#8-central-y-pulso)
+y los [comandos de producción](README.md#migraciones-y-publicación-en-producción).
+No versionar `.env` (gitignored).
 
 ---
 

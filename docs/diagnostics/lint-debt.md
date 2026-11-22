@@ -1,8 +1,8 @@
-# Deuda técnica de lint — UserApp (El Burrito)
+# Deuda técnica de lint — El Burrito
 
 ## 1. Propósito y estado
 
-Este documento registra la **deuda técnica de ESLint de la UserApp**: hallazgos
+Este documento registra la **deuda técnica de ESLint de El Burrito**: hallazgos
 conocidos, **no corregidos y no olvidados**. No es un listado de bugs resueltos
 ni un plan de refactor: es el inventario de referencia y las condiciones bajo
 las cuales cada hallazgo debe revisarse.
@@ -24,13 +24,13 @@ Estado general al **07/11/2026**:
 
 ## 2. Alcance
 
-- Proyecto: **UserApp** (`User/` en el monorepo).
+- Proyecto: **El Burrito** (`User/` en el monorepo).
 - Herramienta: **ESLint 8.57.1** con la configuración de React Native del
   proyecto (`npm run lint` → `eslint .`).
 - Cubre los hallazgos del árbol de trabajo al 07/11/2026.
-- **Fuera de alcance:** DriverApp y AdminWeb. El error preexistente de
-  DriverApp (`asignacionId` sin usar en `SendCoordinates.tsx`) y el resultado
-  limpio de AdminWeb no forman parte de este registro.
+- **Fuera de alcance:** PILOTO y CENTRAL. El error preexistente de
+  PILOTO (`asignacionId` sin usar en `SendCoordinates.tsx`) y el resultado
+  limpio de CENTRAL no forman parte de este registro.
 
 ---
 

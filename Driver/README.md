@@ -1,4 +1,4 @@
-# BurritoDriverApp
+# PILOTO
 
 Aplicación móvil para los conductores del sistema de transporte
 universitario "Oficina de Transportes" de la UNMSM. Captura coordenadas
@@ -8,10 +8,10 @@ Es una de las aplicaciones del ecosistema con permisos de escritura sobre
 los nodos de tracking. Está diseñada para ejecutarse en dispositivos
 Android dedicados instalados en los buses.
 
-**La DriverApp es conductor-only**: su única función es capturar GPS y
+**PILOTO es de uso exclusivo de conductores**: su única función es capturar GPS y
 escribirlo en RTDB. No incluye panel administrativo. La gestión de
 conductores, buses y asignaciones se realiza exclusivamente desde
-**AdminWeb**.
+**CENTRAL**.
 
 ## Stack Principal
 
@@ -66,6 +66,8 @@ Android-only y no está probada en iOS.
 | Compilar Android | `npm run android` |
 | Tests | `npm test -- --runInBand --ci` |
 | Lint | `npm run lint` |
+| Logs Android (PowerShell) | `adb logcat \| Select-String RNBackground` |
+| Formatear un archivo | `npx prettier --write <file>` |
 
 La suite estándar es `npm test -- --runInBand --ci` (9 suites, 120 pruebas).
 `jest.config.js` contiene las excepciones de transformación para React Native y
@@ -98,7 +100,7 @@ watchPosition captura GPS cada ~3s
     ↓
 Firebase RTDB (/ubicacion_buses/{busId})
     ↓
-UserApp (vía listener propio)
+El Burrito (vía listener propio)
 ```
 
 Para el detalle del payload y la estructura del nodo de tracking,

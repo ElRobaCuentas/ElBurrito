@@ -48,7 +48,7 @@ normalizan en la recepción según las reglas I06 descritas en §3.
 | Campo | Nodos | Significado |
 |-------|-------|-------------|
 | `activo` | Administración (`choferes`, `buses`, `asignaciones`) | Registro habilitado/vigente. No revoca permisos ni detiene tracking. |
-| `isActive` | Tracking (`ubicacion_buses`) | Último estado publicado por la DriverApp. `true` no certifica que el bus siga transmitiendo. |
+| `isActive` | Tracking (`ubicacion_buses`) | Último estado publicado por PILOTO. `true` no certifica que el bus siga transmitiendo. |
 
 ### Claves primarias
 
@@ -71,8 +71,8 @@ cliente; su borrado en Consola quedó pendiente.
 
 ### `/ubicacion_buses/{placa}`
 
-Nodo único de tracking multi-bus. DriverApp escribe el estado; AdminWeb crea
-un marcador al dar de alta un bus; UserApp escucha la colección completa y
+Nodo único de tracking multi-bus. PILOTO escribe el estado; CENTRAL crea
+un marcador al dar de alta un bus; El Burrito escucha la colección completa y
 mantiene un `Record<string, BurritoLocation>` indexado por placa.
 
 ```json
@@ -103,15 +103,15 @@ mantiene un `Record<string, BurritoLocation>` indexado por placa.
 rumbo, velocidad, `timestamp` e `isActive: true`. El GPS publica cada ~3 s y
 un heartbeat cada 8 s reutiliza la última ubicación conocida si el GPS no
 emitió. `stopBusService()` escribe únicamente `isActive: false`: no borra
-coordenadas ni renueva `timestamp`. Al crear un bus, AdminWeb escribe
+coordenadas ni renueva `timestamp`. Al crear un bus, CENTRAL escribe
 `{ "isActive": false }` como marcador de existencia.
 
 No existe `onDisconnect`. Una terminación anómala puede dejar `isActive: true`.
-UserApp además oculta el bus cuando el `timestamp` alcanza el umbral de
+El Burrito además oculta el bus cuando el `timestamp` alcanza el umbral de
 frescura (30 s en la implementación actual). Ninguna de estas señales demuestra
 que el proceso de tracking siga vivo.
 
-**Recepción I06 (cliente, no reglas RTDB).** UserApp valida el snapshot
+**Recepción I06 (cliente, no reglas RTDB).** El Burrito valida el snapshot
 completo antes de actualizar el store:
 
 - Rechaza tipos incorrectos, coordenadas fuera de rango, `timestamp` no
@@ -133,8 +133,8 @@ completo antes de actualizar el store:
 
 ## 4. Nodos de Administración
 
-AdminWeb es el único productor de estos nodos. DriverApp lee su perfil y su
-asignación; UserApp no los consulta. Las escrituras descritas son operaciones
+CENTRAL es el único productor de estos nodos. PILOTO lee su perfil y su
+asignación; El Burrito no los consulta. Las escrituras descritas son operaciones
 de cliente: las reglas y sus límites se detallan en §9.
 
 ### `/choferes/{dni}`
@@ -154,7 +154,7 @@ el índice uid→DNI. **No es una transacción multi-ruta**: no hay rollback
 conjunto. La escritura del índice es la última y es fail-closed: si falla, el
 conductor existe pero no puede publicar tracking hasta repararlo.
 
-Lectura: AdminWeb escucha la colección; el conductor indexado puede leer solo
+Lectura: CENTRAL escucha la colección; el conductor indexado puede leer solo
 su propio `/choferes/{dni}`. No existe `deleteChofer`; desactivar solo cambia
 `activo`.
 
@@ -186,8 +186,8 @@ contra borrar un bus con asignación activa/futura está en la pantalla
 
 ### `/asignaciones/{pushId}`
 
-Relación diaria conductor↔bus. AdminWeb escucha la colección y filtra por
-fecha; crea, cancela y edita turnos. DriverApp solo lee. La lectura del
+Relación diaria conductor↔bus. CENTRAL escucha la colección y filtra por
+fecha; crea, cancela y edita turnos. PILOTO solo lee. La lectura del
 conductor está limitada a su propio `choferId` mediante consulta indexada.
 El alta exige una sesión activa en el servicio; `updateTurnos()` no repite esa
 comprobación. La autorización real de escritura la impone la regla admin.
@@ -244,7 +244,7 @@ forman un intervalo válido. Pueden faltar `createdAt`/`createdBy`; la UI
 muestra `createdAt` condicionalmente y hoy no renderiza `createdBy`. No hay
 migración masiva.
 
-**I08.** DriverApp valida al montar y al pulsar INICIAR con
+**I08.** PILOTO valida al montar y al pulsar INICIAR con
 `orderByChild('choferId').equalTo(dni)` y la fecha Lima del momento. Una
 respuesta ausente, cancelada, duplicada, de otro conductor o inválida bloquea
 el inicio. Si la consulta falla y `.info/connected` indica desconexión, puede
@@ -353,20 +353,20 @@ lectura permanece denegada.
 
 ### Persistencia y estado offline
 
-- DriverApp mantiene la persistencia de disco desactivada (ADR-003). Las
+- PILOTO mantiene la persistencia de disco desactivada (ADR-003). Las
   escrituras se entregan al SDK y pueden quedar pendientes en memoria; no se
   encola un reintento propio. El `timestamp` se toma al intentar publicar y
   el heartbeat puede reutilizar coordenadas anteriores.
-- UserApp mantiene el tracking en memoria y persiste el perfil local con
+- El Burrito mantiene el tracking en memoria y persiste el perfil local con
   Zustand. Ese perfil no refleja cambios remotos.
-- El respaldo de asignación de DriverApp es en memoria, por conductor/día, y
+- El respaldo de asignación de PILOTO es en memoria, por conductor/día, y
   no cubre cambios administrativos hechos durante la desconexión (ADR-028).
 
 ## 8. Índices Requeridos
 
 | Path | Campo índice | Consulta |
 |------|--------------|----------|
-| `/asignaciones` | `choferId` | DriverApp: `orderByChild('choferId').equalTo(dni)` |
+| `/asignaciones` | `choferId` | PILOTO: `orderByChild('choferId').equalTo(dni)` |
 
 ```json
 {

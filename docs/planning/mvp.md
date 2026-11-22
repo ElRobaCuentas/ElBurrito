@@ -46,11 +46,14 @@ Cada tarea del backlog se clasifica por tipo; el flujo a aplicar depende del tip
 
 | Tipo | Definición | Flujo |
 |------|-----------|-------|
-| **A — Microtarea** (5-30 min) | Cambiar una constante, quitar un debug, corregir un README, cambiar una ruta | Implementar → Compilar → Commit |
-| **B — Tarea normal** | Corregir `keepAlive`, arreglar `existeAdministrador`, timeout | Auditar → Implementar → Self Review → Compilar → Prueba manual → Commit |
-| **C — Cambio arquitectónico** | MultiBus, Dashboard Web, Control de turnos, Geofencing | Auditar → Diseñar → Implementar → Self Review → Review externo → Correcciones → Compilar → Testing → Actualizar documentación → Revisión arquitectura → Commit |
+| **A — Microtarea** (5-30 min) | Cambiar una constante, quitar un debug, corregir un README, cambiar una ruta | Implementar → Verificar según el cambio → Cierre común |
+| **B — Tarea normal** | Corregir `keepAlive`, arreglar `existeAdministrador`, timeout | Auditar → Implementar → Auto revisión → Compilar → Prueba manual → Cierre común |
+| **C — Cambio arquitectónico** | MultiBus, Dashboard Web, Control de turnos, Geofencing | Auditar → Diseñar → Implementar → Auto revisión → Revisión externa → Correcciones → Compilar → Pruebas → Revisión de arquitectura → Cierre común |
 
-Los detalles y prompts de cada etapa viven en `../engineering/workflow.md`.
+**Cierre común (A/B/C):** actualizar la documentación afectada respetando la pausa
+vigente → commit autorizado → PR → revisión humana → integración en `main` →
+registro en el backlog. Consultar el [flujo de trabajo](../engineering/workflow.md)
+y las [condiciones de cierre](../engineering/verification-and-closure.md#revisión-humana-e-integración-del-pr).
 
 No se inicia una nueva tarea mientras la actual no haya finalizado completamente.
 
@@ -59,7 +62,7 @@ No se inicia una nueva tarea mientras la actual no haya finalizado completamente
 ## 1. Estado actual
 
 - El núcleo del MVP está operativo y tiene pruebas físicas parciales; **no se acredita una jornada completa de ~8 h**.
-- Integrado en `main` del monorepo: Driver I07 `9faaaf9`, I08 `67fa362` e I11 `4a05e41`; User I04 `5bc3a83` e I06-B `011a4b6`; AdminWeb I08 `80a52bd` y foco de `Modal.tsx` `5e66d46`. Los remotos de los repositorios anteriores son evidencia histórica; el monorepo todavía no tiene remoto.
+- Integrado en `main` del monorepo: Driver I07 `9faaaf9`, I08 `67fa362` e I11 `4a05e41`; User I04 `5bc3a83` e I06-B `011a4b6`; AdminWeb I08 `80a52bd` y foco de `Modal.tsx` `5e66d46`. El monorepo usa `origin/main`; consultar [incorporación](../engineering/onboarding.md#1-acceso-y-copia-de-trabajo) para acceder. Los remotos anteriores se conservan como evidencia histórica.
 - Última regresión registrada: User 124/124 pruebas en 10 suites; Driver 120/120 en 9 suites. No sustituye la prueba de jornada.
 - I06-A permanece aceptada. I09, I10 y P06 están fuera del alcance de cierre del MVP; su planificación vive en `roadmap.md` (Tareas postergadas).
 - **Riesgo vigente del piloto — W12:** desactivar un conductor no revoca su autorización de escritura RTDB. Es la semántica aceptada de elegibilidad futura (ADR-024), no una detención en caliente. La revisión antes de producción está en `roadmap.md` (Condiciones de pre-release y publicación).
@@ -80,7 +83,7 @@ Regla del backlog: si una tarea no impide que el MVP funcione correctamente dura
 
 Estados: `Pendiente` / `En progreso` / `En revisión` / `Terminado` / `Pospuesto (Pre-Release)`.
 
-### T1 — Ciclo completo DriverApp (incluye prueba de resistencia de turno completo)
+### T1 — Ciclo completo PILOTO (incluye prueba de resistencia de turno completo)
 
 **Descripción**
 
@@ -88,7 +91,7 @@ Es la validación más importante del MVP: un conductor usa la aplicación duran
 
 **Información general**
 
-- App: BurritoDriverApp
+- App: PILOTO
 - Tipo: B
 - Prioridad: 3 — Testing manual
 - Duración objetivo: aproximadamente **8 h de operación**; pruebas más cortas son parciales
@@ -136,7 +139,7 @@ El MVP se considera cerrado cuando:
 | Calibración de paraderos | Post-MVP (requiere campus) |
 | Notificaciones push | Visión de largo plazo |
 | Refactors puramente estéticos | No agregan valor funcional |
-| Typecheck en DriverApp | No bloquea operación |
+| Typecheck en PILOTO | No bloquea operación |
 | Cobertura de tests por porcentaje | Solo proteger flujos críticos |
 
 Esta tabla delimita el alcance del MVP. Los identificadores, estados y

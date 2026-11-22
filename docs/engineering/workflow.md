@@ -29,16 +29,20 @@ afectado.
 
 # Preparación de una tarea
 
-El ciclo colaborativo es **actualizar main → recibir contexto → rama → Plan →
-implementación → pruebas y documentación → revisión humana del PR → integración**.
+El ciclo colaborativo es **actualizar `main` → recibir contexto → rama → Plan →
+implementación → pruebas y documentación → commit autorizado → PR → revisión
+humana → integración en `main`**.
 La [guía de incorporación](onboarding.md) prepara el equipo; este documento
 define el trabajo cotidiano.
 
-Los pasos con `origin` y pull requests requieren el remoto privado publicado y
-acceso confirmado. Durante la migración se habilitan después de la fase 7;
-documentarlos no autoriza ejecutarlos ni configurar remotos en fases anteriores.
+Los pasos con `origin` y pull requests requieren acceso confirmado al remoto del
+monorepo y autorización para la operación. La URL y los pasos para el primer
+acceso están en [incorporación](onboarding.md#1-acceso-y-copia-de-trabajo).
 
 ## Actualizar y abrir la rama
+
+Trabajar en una rama por tarea (`feat/`, `fix/`, `docs/` o `chore/`), no
+directamente en `main`. Mantener fuera del cambio cualquier trabajo ajeno.
 
 Desde la raíz del monorepo, comprobar `git status --short`. Si hay cambios,
 identificar su dueño antes de continuar: no descartarlos ni usar stash
@@ -109,11 +113,7 @@ Quiero que determines:
 
 2. ¿Qué módulos podrían verse afectados?
 
-3. ¿Qué aplicaciones están involucradas?
-   - BurritoUserApp
-   - BurritoDriverApp
-   - AdminWeb
-   (una o varias)
+3. ¿Qué productos están involucrados: El Burrito, PILOTO, CENTRAL o PULSO?
 
 4. ¿Qué archivos probablemente habrá que modificar?
 
@@ -147,7 +147,7 @@ Plan responde algo como:
 ```
 Aplicación:
 
-UserApp
+El Burrito
 
 Documentación necesaria:
 
@@ -370,8 +370,8 @@ A partir de ahora, absolutamente todas las tareas activas deberán seguir este c
 8. Cuando la tarea esté terminada:
    - actualizar los documentos afectados según `../../AGENTS.md` §7, respetando la pausa documental;
    - preparar aprendizajes técnicos para revisión humana si corresponde, sin exportar la base histórica;
-   - realizar únicamente los commits y operaciones remotas autorizados, y solicitar revisión del PR;
-   - registrar la integración en `main` y recién entonces dar por cerrada la tarea en el backlog;
+   - seguir la [revisión humana e integración del PR](verification-and-closure.md#revisión-humana-e-integración-del-pr), solo con las operaciones autorizadas;
+   - registrar la integración en `main` antes de dar por cerrada la tarea en el backlog;
    - si un PR marca una tarea como terminada, entender esa marca como propuesta hasta su integración.
 9. Continuar únicamente con la siguiente tarea pendiente del backlog.
 

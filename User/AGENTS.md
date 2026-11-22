@@ -1,4 +1,4 @@
-# BurritoUserApp — AGENTS.md
+# El Burrito — AGENTS.md
 
 ## 1. Alcance
 
@@ -16,20 +16,11 @@ refactors innecesarios.
 
 ## 2. Comandos
 
-| Acción | Comando |
-|--------|---------|
-| Iniciar Metro | `npm start` |
-| Android | `npm run android` |
-| iOS | `npm run ios` |
-| Tests | `npm test` |
-| Lint | `npm run lint` |
-| Typecheck | `npx tsc --noEmit` |
-| Formatear | `npx prettier --write <file>` |
+Consultá los [comandos de desarrollo](README.md#comandos-de-desarrollo) y sus
+requisitos en el README.
 
 Prettier 2.8.8: `singleQuote: true`, `arrowParens: 'avoid'`,
 `trailingComma: 'all'`.
-
-No existe npm script para typecheck. Ejecuta `npx tsc --noEmit` manualmente.
 
 ---
 
@@ -53,7 +44,7 @@ stores, no en componentes React:
 
 RTDB que toca la app: lectura `/ubicacion_buses`, escritura `/comentarios` y
 `/usuarios/{uid}`. Payloads y flujo: `../docs/architecture/firebase-schema.md` y
-`../docs/architecture/overview.md` §4–§5.
+`../docs/architecture/overview.md` §4 y `../docs/architecture/flows.md` §5.
 
 Nombres: stores `useXStore`, servicios `XService`, componentes PascalCase.
 TypeScript en `strict: true`; estilos con `StyleSheet.create` al final del
@@ -84,15 +75,15 @@ archivo.
 - La gestión de conductores, buses y asignaciones **ya no vive aquí**. La app es
   de solo lectura respecto al tracking (auth, mapa y feedback).
 - La creación de cuentas y la escritura de `/choferes`, `/buses`,
-  `/asignaciones` y `/administradores` se hacen desde **AdminWeb**. No la
-  reintroduzcas en UserApp.
+  `/asignaciones` y `/administradores` se hacen desde **CENTRAL**. No las
+  reintroduzcas en El Burrito.
 
 ### 4.4 Ciclo de tracking
 
 - **No modifiques** el flujo `startTracking → listener RTDB → dedup → store` sin
-  actualizar `../docs/architecture/overview.md` §5.
+  actualizar `../docs/architecture/flows.md` §5.
 - Es el corazón del sistema: cualquier cambio afecta cómo la app recibe
-  ubicaciones. Trabajá dentro de `MapService.subscribeToBusLocation()` y
+  ubicaciones. Trabajá dentro de `MapService.subscribeToBusLocations()` y
   `burritoLocationStore`.
 
 ### 4.5 Una sola fuente de estado
@@ -169,7 +160,7 @@ Las pruebas de `__tests__/` son contratos contra regresiones silenciosas:
   no elimines la cobertura.
 - Las tablas `test.each` son contratos ejecutables. El estado vigente del
   movimiento en vivo (estrategia C, C4.6) y la calibración pendiente están en
-  `../docs/architecture/overview.md` §5.3 y ADR-020.
+  `../docs/architecture/flows.md` §5.3 y ADR-020.
 
 ---
 

@@ -23,4 +23,4 @@ Además de los directorios de producto, [FirebaseLab](FirebaseLab/README.md) con
 | `docs/engineering/` | [Incorporación al monorepo](docs/engineering/onboarding.md) |
 | `docs/planning/` | [Alcance y estado del MVP](docs/planning/mvp.md) |
 
-Para navegar por toda la documentación, consultar el [mapa de documentos](docs/AGENTS.md#7-mapa-de-documentos). Las reglas para asistentes están en [AGENTS.md](AGENTS.md).
+Para navegar por toda la documentación, consultar el [mapa de documentos](docs/AGENTS.md#7-mapa-de-documentos). El [flujo de trabajo](docs/engineering/workflow.md) y el [procedimiento de publicación](docs/engineering/versioning-and-releases.md) tienen sus propias guías. Las reglas para asistentes y la [nomenclatura oficial](AGENTS.md#2-terminología-obligatoria) están en `AGENTS.md`.
