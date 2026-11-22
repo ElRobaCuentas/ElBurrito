@@ -1,4 +1,4 @@
-# El Burrito
+# <img src="../docs/assets/readme-title.gif" alt="El Burrito" width="640">
 
 El Burrito permite a los estudiantes de la Universidad Nacional Mayor de
 San Marcos (UNMSM) consultar dónde está el bus universitario mientras

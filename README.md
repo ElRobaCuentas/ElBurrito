@@ -1,33 +1,33 @@
 <div align="center">
-  <img src="docs/assets/readme-title.gif" alt="El Burrito" width="640">
+  <h1>ECOSISTEMA EL BURRITO</h1>
 
-  <h1>Ecosistema El Burrito</h1>
-
+  <p>Desarrollado por</p>
   <img src="docs/assets/well.gif" alt="well." width="200">
 
-  <p>Transporte universitario con información al alcance de la comunidad estudiantil.</p>
-  <p>Un proyecto de seguimiento de buses para la Universidad Nacional Mayor de San Marcos (UNMSM), bajo la marca <strong>well.</strong></p>
+  <p>Seguimiento del transporte universitario de la Universidad Nacional Mayor de San Marcos (UNMSM), con información al alcance de la comunidad estudiantil.</p>
+</div>
+
+<h2 align="center">La aplicación para estudiantes</h2>
+
+<div align="center">
+  <img src="docs/assets/readme-title.gif" alt="El Burrito" width="640">
+  <p>Consulta la ubicación del bus universitario en el mapa, junto con la ruta y sus paraderos.</p>
+  <p><a href="User/README.md">Conocer El Burrito</a></p>
 </div>
 
 <h2 align="center">El ecosistema</h2>
 
 <table align="center">
   <tr>
-    <td align="center" width="50%">
-      <strong><a href="User/README.md">El Burrito</a></strong><br>
-      Mapa, ruta y ubicación del bus para estudiantes.
-    </td>
-    <td align="center" width="50%">
+    <td align="center" width="33%">
       <strong><a href="Driver/README.md">PILOTO</a></strong><br>
       Captura y transmisión de ubicación desde el dispositivo del conductor.
     </td>
-  </tr>
-  <tr>
-    <td align="center" width="50%">
+    <td align="center" width="33%">
       <strong><a href="AdminWeb/README.md">CENTRAL</a></strong><br>
       Gestión de conductores, buses, asignaciones y administradores.
     </td>
-    <td align="center" width="50%">
+    <td align="center" width="33%">
       <strong><a href="docs/architecture/pulso.md">PULSO</a></strong><br>
       Monitor operativo de las publicaciones de ubicación.
     </td>
@@ -39,15 +39,6 @@
 <p align="center">
   React Native · React · TypeScript · Firebase · Mapbox · Cloudflare Workers y D1
 </p>
-
-<h2 align="center">Estado del MVP</h2>
-
-<p align="center">
-  El núcleo está operativo y cuenta con pruebas físicas parciales.<br>
-  La validación de una jornada completa sigue pendiente.
-</p>
-
-<p align="center"><a href="docs/planning/mvp.md">Consultar alcance y estado del MVP</a></p>
 
 <h2 align="center">Monorepo</h2>
 
