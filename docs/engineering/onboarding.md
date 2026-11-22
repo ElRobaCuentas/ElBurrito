@@ -275,14 +275,15 @@ la incorporación.
 4. Implementar el alcance, comprobarlo y actualizar la documentación afectada en
    el mismo PR. Si aparece conocimiento útil, proponer una síntesis para revisión;
    no exportar automáticamente todas las notas de la sesión.
-5. Pedir revisión a otro desarrollador y seguir el
+5. Pedir la aprobación que corresponda según el rol y seguir el
    [cierre e integración](verification-and-closure.md#revisión-humana-e-integración-del-pr).
    Un commit local no es una tarea integrada y un PR no autoriza un despliegue.
 
 La incorporación queda confirmada cuando el integrante puede recuperar contexto,
-reproducir las comprobaciones pertinentes a su tarea y completar un PR revisado.
-Registrar por separado cualquier componente aún bloqueado por acceso o entorno;
-no dar por verificados los cinco por haber probado solo uno.
+reproducir las comprobaciones pertinentes a su tarea y completar un PR con la
+aprobación que corresponda a su rol. Registrar por separado cualquier componente
+aún bloqueado por acceso o entorno; no dar por verificados los cinco por haber
+probado solo uno.
 
 ## Fuentes oficiales
 

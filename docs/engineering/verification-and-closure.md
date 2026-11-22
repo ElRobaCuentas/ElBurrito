@@ -325,7 +325,7 @@ No escribas código.
                   commits autorizados
                              │
                              ▼
-                   PR y revisión humana
+                  PR y aprobación según rol
                              │
                              ▼
                  integración y cierre en main
@@ -400,11 +400,17 @@ vuelve a publicar como parte de la incorporación.
 - Con autorización, registrar commits de unidades revisables y abrir PR hacia
   `main`. Describir objetivo, componentes, pruebas, advertencias, documentos y
   memorias incluidas. No publicar secretos en descripciones ni evidencias.
-- Otro desarrollador revisa el PR. La aprobación de un agente, el autor o un
-  orquestador no sustituye esa revisión humana. Resolver observaciones dentro
-  del alcance; repetir las comprobaciones que afecten las correcciones.
-- Integrar solo con aprobación y autorización para merge. Una prohibición de
-  commits, push o PR mantiene el trabajo local: informar el pendiente.
+- La protección de `main` sigue vigente: los cambios se integran mediante rama
+  y PR.
+- Juan, como propietario, puede autorizar e integrar sus propios PR sin
+  aprobación externa; la revisión de sus PR por otros colaboradores es opcional.
+- José y los demás colaboradores necesitan la aprobación de Juan antes de
+  integrar sus cambios. La aprobación de un agente o de un orquestador no
+  sustituye la aprobación de Juan. Resolver observaciones dentro del alcance;
+  repetir las comprobaciones que afecten las correcciones.
+- Integrar solo con la aprobación que corresponda según el rol y autorización
+  para merge. Una prohibición de commits, push o PR mantiene el trabajo local:
+  informar el pendiente.
 - Verificar el resultado en `main`, registrar cierre del backlog y actualizar
   las copias locales antes de la próxima tarea. Si cambió el candidato durante
   la revisión, verificar el candidato final, no reutilizar evidencia incompatible.

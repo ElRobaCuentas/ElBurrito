@@ -30,8 +30,8 @@ afectado.
 # Preparación de una tarea
 
 El ciclo colaborativo es **actualizar `main` → recibir contexto → rama → Plan →
-implementación → pruebas y documentación → commit autorizado → PR → revisión
-humana → integración en `main`**.
+implementación → pruebas y documentación → commit autorizado → PR → aprobación
+según rol → integración en `main`**.
 La [guía de incorporación](onboarding.md) prepara el equipo; este documento
 define el trabajo cotidiano.
 
@@ -399,7 +399,7 @@ La siguiente tarea solo podrá comenzar cuando la anterior esté:
 - probada;
 - documentada;
 - con la documentación técnica correspondiente actualizada, solo si el cambio lo requiere;
-- revisada por otro desarrollador e integrada mediante PR en `main`;
+- con la aprobación que corresponda según el rol e integrada mediante PR en `main`;
 - con el resultado de integración y el estado de cierre registrados en el backlog.
 
 Si una restricción impide documentar, hacer commit o integrar, entregar el estado
