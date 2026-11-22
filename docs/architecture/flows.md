@@ -1,6 +1,6 @@
 # Arquitectura: flujos, componentes y servicios
 
-[Volver al documento principal](ARCHITECTURE.md).
+[Volver al documento principal](overview.md).
 
 ## 5. Comunicación y Flujo de Datos
 
@@ -35,7 +35,7 @@ Heartbeat (8 s) ───┘
 
 `writeLocation()` es la única ruta para publicar posiciones GPS y heartbeat;
 no es la única escritura de RTDB del ecosistema. `stopBusService()` escribe
-`isActive:false`, y AdminWeb inicializa o elimina `/ubicacion_buses/{placa}` al
+`isActive:false`, y CENTRAL inicializa o elimina `/ubicacion_buses/{placa}` al
 gestionar un bus.
 
 Señales distintas que no deben confundirse:
@@ -88,7 +88,7 @@ la flota. `Map.tsx` y `MapBranding.tsx`:
 3. Seleccionan la primera entrada.
 
 No buscan una alternativa fresca ni eligen un bus arbitrario. El render
-multi-marcador completo sigue pendiente (ROADMAP T4.4).
+multi-marcador completo sigue pendiente (`../planning/roadmap.md`, T4.4).
 
 La caducidad de 30 s se evalúa cada 2 s y cambia el estado del bus a `offline`
 cuando `!isActive` o cuando la edad del timestamp alcanza el umbral. Ese estado
@@ -109,7 +109,7 @@ lo contrasta con la sesión vigente antes de crear un hijo mediante
 `push().set()`, con `ServerValue.TIMESTAMP`. Las reglas publicadas exigen
 creación con UID propio y rating entero 1–5; deniegan editar o borrar
 comentarios. Los permisos de conductores y asignaciones se detallan en
-`FIREBASE_SCHEMA.md` §9.
+`firebase-schema.md` §9.
 
 ### 5.5 Autenticación de El Burrito
 
@@ -156,7 +156,7 @@ createAdmin:
     → /administradores/{uid}
 ```
 
-Los payloads completos, reglas e índices están en `FIREBASE_SCHEMA.md`. Las
+Los payloads completos, reglas e índices están en `firebase-schema.md`. Las
 validaciones y limitaciones del panel están en §3.1.
 
 ## 6. Componentes Principales
@@ -164,7 +164,7 @@ validaciones y limitaciones del panel están en §3.1.
 Inventario central de archivos relevantes. Los árboles completos de directorios
 pertenecen al README de cada aplicación; esta tabla es el mapa de arquitectura.
 
-### BurritoDriverApp
+### PILOTO
 
 | Archivo | Responsabilidad |
 |---------|----------------|
@@ -175,7 +175,7 @@ pertenecen al README de cada aplicación; esta tabla es el mapa de arquitectura.
 | `src/services/firebase_service.ts` | `updateBusLocation()` y `stopBusService()` contra RTDB |
 | `src/shared/utils/timeout.ts` | Helper con timeout para lecturas RTDB |
 
-### AdminWeb
+### CENTRAL (AdminWeb)
 
 | Archivo | Responsabilidad |
 |---------|----------------|
@@ -232,7 +232,7 @@ servidor propio ni una API intermedia.
 
 ### Firebase
 
-| Servicio | BurritoDriverApp | El Burrito | AdminWeb |
+| Servicio | PILOTO | El Burrito | CENTRAL |
 |----------|------------------|------------|----------|
 | Firebase Auth | Login de conductor | Login email/password + Google Sign-In | Login de admin y creación de cuentas con app temporal |
 | Firebase RTDB | `/ubicacion_buses/{busId}` (write), `/asignaciones` y `/choferes` (read) | `/ubicacion_buses` (listen), `/usuarios`, `/comentarios` | CRUD de configuración y lectura de listas |
@@ -241,7 +241,7 @@ servidor propio ni una API intermedia.
 | `ServerValue.TIMESTAMP` | No | Sí (`ultimaConexion`, feedback) | No; los registros administrativos usan `Date.now()` |
 | Firebase Hosting | No | No | Sirve `dist/` con rewrites SPA y cache de assets |
 
-> **AdminWeb** usa Firebase Auth para login y alta de cuentas, y RTDB para
+> **CENTRAL** usa Firebase Auth para login y alta de cuentas, y RTDB para
 > `/choferes`, `/buses`, `/asignaciones`, `/choferes_uids` y
 > `/administradores`.
 
@@ -271,5 +271,5 @@ servidor propio ni una API intermedia.
 
 - El Burrito usa `module:react-native-dotenv` para inyectar variables desde
   `.env` vía `@env`.
-- BurritoDriverApp no usa variables de entorno.
+- PILOTO no usa variables de entorno.
 

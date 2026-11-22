@@ -19,26 +19,30 @@ afectado.
 
 - Los comandos de la app (`npm`, Gradle, tests) se ejecutan dentro de su carpeta.
 - Los comandos Git se ejecutan desde la raíz del monorepo.
-- Las reglas comunes están en `AGENTS.md`; las tres aplicaciones y `docs/`
+- Las reglas comunes están en `../../AGENTS.md`; las tres aplicaciones y `docs/`
   tienen además su propio `AGENTS.md`.
 - Las aplicaciones conservan dependencias, versiones y publicación
   independientes. El procedimiento de entregas está en
-  `docs/VERSIONADO_Y_PUBLICACION.md`.
+  `versioning-and-releases.md`.
 
 ---
 
 # Preparación de una tarea
 
-El ciclo colaborativo es **actualizar main → recibir contexto → rama → Plan →
-implementación → pruebas y documentación → revisión humana del PR → integración**.
-La [guía de incorporación](docs/INCORPORACION.md) prepara el equipo; este documento
+El ciclo colaborativo es **actualizar `main` → recibir contexto → rama → Plan →
+implementación → pruebas y documentación → commit autorizado → PR → revisión
+humana → integración en `main`**.
+La [guía de incorporación](onboarding.md) prepara el equipo; este documento
 define el trabajo cotidiano.
 
-Los pasos con `origin` y pull requests requieren el remoto privado publicado y
-acceso confirmado. Durante la migración se habilitan después de la fase 7;
-documentarlos no autoriza ejecutarlos ni configurar remotos en fases anteriores.
+Los pasos con `origin` y pull requests requieren acceso confirmado al remoto del
+monorepo y autorización para la operación. La URL y los pasos para el primer
+acceso están en [incorporación](onboarding.md#1-acceso-y-copia-de-trabajo).
 
 ## Actualizar y abrir la rama
+
+Trabajar en una rama por tarea (`feat/`, `fix/`, `docs/` o `chore/`), no
+directamente en `main`. Mantener fuera del cambio cualquier trabajo ajeno.
 
 Desde la raíz del monorepo, comprobar `git status --short`. Si hay cambios,
 identificar su dueño antes de continuar: no descartarlos ni usar stash
@@ -63,7 +67,7 @@ consulta esa misma base y resuelve `ecosistema-el-burrito` antes de recuperar no
 
 Actualizar la rama con los cambios pertinentes de `main` antes de pedir la
 revisión final; resolver conflictos y repetir las pruebas afectadas. El
-[cierre](FLUJO_VERIFICACION_Y_CIERRE.md#revisión-humana-e-integración-del-pr)
+[cierre](verification-and-closure.md#revisión-humana-e-integración-del-pr)
 define las condiciones para integrar. Una rama rechazada o abandonada no debe
 convertirse en fuente de memoria compartida de decisiones vigentes.
 
@@ -109,11 +113,7 @@ Quiero que determines:
 
 2. ¿Qué módulos podrían verse afectados?
 
-3. ¿Qué aplicaciones están involucradas?
-   - BurritoUserApp
-   - BurritoDriverApp
-   - AdminWeb
-   (una o varias)
+3. ¿Qué productos están involucrados: El Burrito, PILOTO, CENTRAL o PULSO?
 
 4. ¿Qué archivos probablemente habrá que modificar?
 
@@ -129,7 +129,7 @@ Para cada documento explica:
 
 7. ¿La tarea contradice algún ADR existente?
 
-8. ¿La tarea está alineada con MVP.md (alcance y cierre del MVP) o ROADMAP.md (planificación posterior), según corresponda?
+8. ¿La tarea está alineada con ../planning/mvp.md (alcance y cierre del MVP) o ../planning/roadmap.md (planificación posterior), según corresponda?
 
 9. ¿Existe algún bug anterior o limitación conocida relacionada?
 
@@ -147,27 +147,27 @@ Plan responde algo como:
 ```
 Aplicación:
 
-UserApp
+El Burrito
 
 Documentación necesaria:
 
-✔ AGENTS.md
+✔ ../../AGENTS.md
 
 porque contiene...
 
-✔ ARCHITECTURE.md
+✔ ../architecture/overview.md
 
 porque...
 
-✔ FIREBASE_SCHEMA.md
+✔ ../architecture/firebase-schema.md
 
 porque...
 
-✔ DECISIONS.md
+✔ ../adr/README.md
 
 porque...
 
-✔ MVP.md (alcance y cierre) o ROADMAP.md (planificación posterior), según corresponda
+✔ ../planning/mvp.md (alcance y cierre) o ../planning/roadmap.md (planificación posterior), según corresponda
 
 porque...
 
@@ -227,7 +227,7 @@ Una vez entendido el contexto completo, implementa únicamente la tarea solicita
 
 No expandas el alcance.
 
-Respeta AGENTS.md y los ADR existentes.
+Respeta ../../AGENTS.md y los ADR existentes.
 ```
 
 ---
@@ -322,35 +322,35 @@ y recién vuelve a escribir código.
 
 ---
 
-**[Flujo de trabajo: verificación y cierre](FLUJO_VERIFICACION_Y_CIERRE.md)**
+**[Flujo de trabajo: verificación y cierre](verification-and-closure.md)**
 
 # ETAPA 4 — VERIFICACIÓN TÉCNICA Y CONTRACTUAL
 
-[Consultar sección](FLUJO_VERIFICACION_Y_CIERRE.md#etapa-4--verificación-técnica-y-contractual).
+[Consultar sección](verification-and-closure.md#etapa-4--verificación-técnica-y-contractual).
 
 ## Prompt guía
 
-[Consultar sección](FLUJO_VERIFICACION_Y_CIERRE.md#prompt-guía).
+[Consultar sección](verification-and-closure.md#prompt-guía).
 
 # ETAPA 5 — CORRECCIÓN (si existe)
 
-[Consultar sección](FLUJO_VERIFICACION_Y_CIERRE.md#etapa-5--corrección-si-existe).
+[Consultar sección](verification-and-closure.md#etapa-5--corrección-si-existe).
 
 # ETAPA 6 — DOCUMENTACIÓN
 
-[Consultar sección](FLUJO_VERIFICACION_Y_CIERRE.md#etapa-6--documentación).
+[Consultar sección](verification-and-closure.md#etapa-6--documentación).
 
 ## Prompt guía
 
-[Consultar sección](FLUJO_VERIFICACION_Y_CIERRE.md#prompt-guía-1).
+[Consultar sección](verification-and-closure.md#prompt-guía-1).
 
 # ETAPA 7 — EVALUACIÓN ARQUITECTÓNICA (SOLO CUANDO SEA NECESARIO)
 
-[Consultar sección](FLUJO_VERIFICACION_Y_CIERRE.md#etapa-7--evaluación-arquitectónica-solo-cuando-sea-necesario).
+[Consultar sección](verification-and-closure.md#etapa-7--evaluación-arquitectónica-solo-cuando-sea-necesario).
 
 ## Prompt guía
 
-[Consultar sección](FLUJO_VERIFICACION_Y_CIERRE.md#prompt-guía-2).
+[Consultar sección](verification-and-closure.md#prompt-guía-2).
 
 # Ciclo Operativo del MVP
 
@@ -358,8 +358,8 @@ Este será el procedimiento oficial de trabajo durante toda la etapa del MVP.
 
 A partir de ahora, absolutamente todas las tareas activas deberán seguir este ciclo.
 
-1. Abrir `MVP.md`.
-2. Acordar responsable y siguiente tarea según el orden operativo del backlog (ver `MVP.md` §2 "Backlog pendiente").
+1. Abrir `../planning/mvp.md`.
+2. Acordar responsable y siguiente tarea según el orden operativo del backlog (ver `../planning/mvp.md` §2 "Backlog pendiente").
 3. Completar la preparación anterior y crear una sesión dedicada a la tarea, en su rama.
 4. Auditar únicamente el alcance de esa tarea.
 5. Implementar la solución respetando el tipo de tarea (A, B o C).
@@ -368,10 +368,10 @@ A partir de ahora, absolutamente todas las tareas activas deberán seguir este c
    - si bloquean el MVP, crear subtareas dentro del mismo bloque (por ejemplo C4.1, C4.2);
    - si no bloquean el MVP, registrarlos como Post-MVP.
 8. Cuando la tarea esté terminada:
-   - actualizar los documentos afectados según `AGENTS.md` §7, respetando la pausa documental;
+   - actualizar los documentos afectados según `../../AGENTS.md` §7, respetando la pausa documental;
    - preparar aprendizajes técnicos para revisión humana si corresponde, sin exportar la base histórica;
-   - realizar únicamente los commits y operaciones remotas autorizados, y solicitar revisión del PR;
-   - registrar la integración en `main` y recién entonces dar por cerrada la tarea en el backlog;
+   - seguir la [revisión humana e integración del PR](verification-and-closure.md#revisión-humana-e-integración-del-pr), solo con las operaciones autorizadas;
+   - registrar la integración en `main` antes de dar por cerrada la tarea en el backlog;
    - si un PR marca una tarea como terminada, entender esa marca como propuesta hasta su integración.
 9. Continuar únicamente con la siguiente tarea pendiente del backlog.
 
@@ -381,10 +381,10 @@ A partir de ahora, absolutamente todas las tareas activas deberán seguir este c
 - Nunca cambiar el orden del backlog salvo decisión explícita.
 - Nunca agregar funcionalidades nuevas durante una tarea.
 - Si aparece deuda técnica que no bloquea el MVP, moverla a Post-MVP.
-- El backlog (`MVP.md`) es la única fuente oficial de trabajo durante esta etapa.
-- `FLUJO_DE_TRABAJO.md` define cómo se ejecutan las tareas.
-- `MVP.md` define qué tareas deben ejecutarse.
-- Los problemas resueltos y las decisiones técnicas se documentan en `docs/BUGS_RESUELTOS/` o `docs/DECISIONS.md` solo cuando sea necesario.
+- El backlog (`../planning/mvp.md`) es la única fuente oficial de trabajo durante esta etapa.
+- `workflow.md` define cómo se ejecutan las tareas.
+- `../planning/mvp.md` define qué tareas deben ejecutarse.
+- Cuando corresponda documentar un bug resuelto o una decisión arquitectónica, seguir la [matriz de documentación afectada](../../AGENTS.md#7-documentación-afectada).
 
 ## Regla de una sola tarea activa
 

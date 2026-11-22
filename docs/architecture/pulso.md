@@ -4,21 +4,21 @@
 
 PULSO es el monitor técnico interno del seguimiento del bus universitario del
 Ecosistema El Burrito. Permite saber qué publicaciones se observaron, detectar
-interrupciones y conservar incidentes para su consulta administrativa en Central
-(AdminWeb), sin depender de que alguien mantenga el panel abierto.
+interrupciones y conservar incidentes para su consulta administrativa en
+CENTRAL, sin depender de que alguien mantenga el panel abierto.
 
 Lo construimos para distinguir un recorrido declarado activo de un seguimiento
 que realmente sigue publicando. No sustituye el mapa de El Burrito, el productor
-GPS de BurritoDriverApp ni una herramienta de diagnóstico integral del teléfono.
+GPS de PILOTO ni una herramienta de diagnóstico integral del teléfono.
 
 **Estado del MVP:** implementado, desplegado y validado operativamente el
 **18/11/2026** para `AHK-459`. La evidencia y sus límites están en §9. Este cierre
-no acredita el cierre del MVP general de El Burrito, definido en `../MVP.md`.
+no acredita el cierre del MVP general de El Burrito, definido en `../planning/mvp.md`.
 
 Esta es la referencia de funcionamiento, alcance y validación. La integración
-general vive en [ARCHITECTURE §3.2](ARCHITECTURE.md#32-pulso-monitor-de-seguimiento),
-los procedimientos técnicos en el [README de AdminWeb](https://github.com/ElRobaCuentas/AdminWeb/blob/main/README.md#monitor-pulso-local-y-despliegue-remoto)
-y la planificación posterior en [ROADMAP](ROADMAP.md#21-evolución-de-pulso-posterior-al-mvp).
+general vive en [ARCHITECTURE §3.2](overview.md#32-pulso-monitor-de-seguimiento),
+los procedimientos técnicos en el [README de CENTRAL](../../AdminWeb/README.md#monitor-pulso-local-y-despliegue-remoto)
+y la planificación posterior en [ROADMAP](../planning/roadmap.md#21-evolución-de-pulso-posterior-al-mvp).
 
 ## 2. Alcance del MVP
 
@@ -33,7 +33,7 @@ y la planificación posterior en [ROADMAP](ROADMAP.md#21-evolución-de-pulso-pos
 El adaptador acepta los seis campos actuales: `isActive`, `timestamp`, `latitude`,
 `longitude`, `heading` y `speed`. Distingue campos ausentes e inválidos y no deriva
 telemetría adicional. El contrato del productor pertenece a
-[FIREBASE_SCHEMA §2](FIREBASE_SCHEMA.md#ubicacion_busesplaca).
+[Esquema de Firebase §3](firebase-schema.md#ubicacion_busesplaca).
 
 El `timestamp` es de publicación, no del fix GPS original. El heartbeat puede
 republicar la última posición: publicación reciente no prueba una medición nueva
@@ -48,7 +48,7 @@ autenticada no identifica necesariamente al conductor físico del momento.
 | Momento | Comportamiento de PULSO |
 |---------|------------------------|
 | Inicio | Al observar `isActive:true`, registra vigilancia activa. Si inicia un período nuevo, guarda la hora de esa comprobación como inicio observado. |
-| Seguimiento normal | Comprueba la fuente cada minuto, evalúa la publicación y conserva el resultado. No exige que Central esté abierta. |
+| Seguimiento normal | Comprueba la fuente cada minuto, evalúa la publicación y conserva el resultado. No exige que CENTRAL esté abierta. |
 | Interrupción | Con actividad declarada y publicación de más de tres minutos, abre un incidente de seguimiento interrumpido. No fecha la caída retrospectivamente. |
 | Problema persistente | Actualiza el mismo incidente abierto; no crea uno por cada minuto. |
 | Recuperación | La primera publicación reciente inicia confirmación; una segunda válida y con timestamp mayor confirma y cierra el incidente. |
@@ -67,9 +67,9 @@ jornada ni identificación inequívoca de cada recorrido en este MVP.
 ## 4. Arquitectura técnica
 
 ```text
-BurritoDriverApp → Firebase RTDB → Cloudflare Worker (cron) → D1
+PILOTO → Firebase RTDB → Cloudflare Worker (cron) → D1
                                                             ↓
-                                      API administrativa → Central
+                                      API administrativa → CENTRAL
 ```
 
 Son dos procesos independientes, aunque el cron y la API pertenecen al mismo
@@ -77,7 +77,7 @@ Worker:
 
 1. **Vigilancia:** el cron carga la memoria anterior, lee RTDB, adapta los campos,
    ejecuta el evaluador puro y persiste estado, observación e incidentes.
-2. **Consulta:** Central envía su ID token de Firebase Authentication a
+2. **Consulta:** CENTRAL envía su ID token de Firebase Authentication a
    `GET /api/pulso`. El Worker autoriza mediante Firebase y lee únicamente D1
    para devolver los registros. No ejecuta una evaluación ni consulta el tracking.
 
@@ -100,7 +100,7 @@ fallos sanitizados; no intenta destinos alternativos ni registra el payload crud
 | Consulta, presentación y reloj visual | `src/features/pulso/services/pulso_service.ts`, `pulsoPresentation.ts`, `screen/PulsoScreen.tsx` |
 
 En remoto, la API exige HTTPS, `GET` sin query y, cuando se envía `Origin`, el
-origen exacto de Central. El preflight autorizado acepta `GET` + `Authorization`
+origen exacto de CENTRAL. El preflight autorizado acepta `GET` + `Authorization`
 con `OPTIONS` 204; las respuestas no se cachean. Distingue 401 por sesión
 ausente/token inválido, 403 por acceso denegado y 503 por configuración o servicio
 no disponible. No expone coordenadas, perfiles, SQL ni credenciales.
@@ -120,7 +120,7 @@ con un incidente persistido de acceso a la fuente del tracking.
 ### Clasificación del seguimiento
 
 La clasificación resume la última comprobación; no es el estado de un incidente
-ni una certificación de la situación actual del bus. Central la presenta con una
+ni una certificación de la situación actual del bus. CENTRAL la presenta con una
 etiqueta operativa en «Estado del recorrido» y conserva la etiqueta técnica en
 «Detalle del estado registrado».
 
@@ -195,11 +195,11 @@ no se fecha desde una migración o un despliegue.
 
 La API lo expone como `observedState.observedTripStartedAt`; el cliente tolera
 su ausencia durante una transición desde la API anterior. La duración del
-recorrido se calcula en Central, en minutos enteros u horas y minutos. No hay
+recorrido se calcula en CENTRAL, en minutos enteros u horas y minutos. No hay
 contador persistente por segundo, tabla de recorridos ni duración final de cada
 recorrido archivada por esta mejora.
 
-## 7. Interfaz de Central
+## 7. Interfaz de CENTRAL
 
 `/pulso` agrupa la lectura en tres bloques —«Estado del recorrido», «Estado de
 PULSO» e «Incidentes»— y un aviso superior cuando la comprobación es antigua.
@@ -216,7 +216,7 @@ y la clasificación no es de inactividad, el inicio y el tiempo de recorrido.
 | Indicador | Qué representa |
 |-----------|----------------|
 | Encabezado y descripción | Etiqueta operativa de la clasificación en la última comprobación (§5). |
-| Inicio observado | Primera comprobación del período activo registrado. No es necesariamente la hora de INICIAR en DriverApp. |
+| Inicio observado | Primera comprobación del período activo registrado. No es necesariamente la hora de INICIAR en PILOTO. |
 | Tiempo de recorrido | Estimación desde ese inicio, incluyendo interrupciones. No mide transmisión GPS continua. |
 | Última publicación del bus | `publicationTimestamp` recibido de RTDB, si es utilizable; no es hora del fix GPS ni hora de lectura de PULSO. |
 | Detención | Solo en estados inactivos: «Declarada» o «Con evidencia registrada», con «Sin verificación independiente» cuando falta esa evidencia. |
@@ -272,12 +272,12 @@ revisiones del bus sí están guardadas.
 
 ### Actualización, antigüedad y errores
 
-**Dos ciclos independientes:** el Worker comprueba cada minuto; Central consulta
+**Dos ciclos independientes:** el Worker comprueba cada minuto; CENTRAL consulta
 al entrar y cada 60 s mientras la pantalla permanece montada. Actualizar repite
 la consulta, sin evaluar ni escribir D1. No hay sincronización entre ambos ciclos
 ni garantía de que la pantalla refleje una comprobación inmediatamente.
 
-Central impide consultas solapadas, cancela al salir y descarta respuestas
+CENTRAL impide consultas solapadas, cancela al salir y descarta respuestas
 tardías. Un error conserva los últimos registros con aviso; una denegación 401/403
 retira los datos. Sin comprobaciones guardadas muestra «Sin registros de PULSO»;
 no lo confunde con un error ni con ausencia de incidentes.
@@ -301,12 +301,12 @@ La configuración versionada está en `monitor/worker/wrangler.jsonc`, entorno
 antes de leer tracking o persistir una comprobación.
 
 - Worker/API: `https://pulso-monitor.elburrito.workers.dev/api/pulso`.
-- Central: `https://burritounmsm.web.app/pulso`; origen permitido
+- CENTRAL: `https://burritounmsm.web.app/pulso`; origen permitido
   `https://burritounmsm.web.app`.
 - La build usa `VITE_PULSO_API_ORIGIN`; la autorización usa las variables
   `PULSO_ADMIN_*` del proyecto `burritounmsm`. No hay login adicional de PULSO.
 
-Para comprobar funcionamiento, abrir Central con una sesión administrativa y
+Para comprobar funcionamiento, abrir CENTRAL con una sesión administrativa y
 comparar comprobaciones sucesivas, su antigüedad y la fuente. Un estado inactivo
 puede ser normal; no equivale a cron detenido. Si hace falta diagnóstico técnico,
 contrastar ejecuciones programadas, errores sanitizados y última escritura D1.
@@ -318,7 +318,7 @@ apagar el primero evita evaluar/persistir en la entrada programada; retirar el
 cron evita futuras invocaciones. La API puede seguir consultando memoria, que
 envejecerá. No se limpia D1 ni se simula DETENER. El procedimiento de cambio,
 publicación y verificación pertenece al
-[README de mantenimiento](https://github.com/ElRobaCuentas/AdminWeb/blob/main/README.md#mantenimiento-de-la-vigilancia).
+[README de mantenimiento](../../AdminWeb/README.md#mantenimiento-de-la-vigilancia).
 
 ### Evidencia de publicación conservada
 
@@ -406,8 +406,8 @@ horas ni una medición independiente del intervalo exacto de refresco en producc
 
 - Observa publicaciones, no garantiza frescura de cada medición GPS ni identifica
   necesariamente la causa de una interrupción.
-- No supervisa integralmente errores internos de BurritoDriverApp ni El Burrito
-  (UserApp), y no garantiza detectar fallos del propio Worker sin supervisión externa.
+- No supervisa integralmente errores internos de PILOTO ni de El Burrito,
+  y no garantiza detectar fallos del propio Worker sin supervisión externa.
 - El muestreo periódico introduce demora entre un hecho y su observación; no es
   telemetría continua ni una alarma instantánea.
 - Sin observar un `false` entre períodos puede unir recorridos diferentes.
@@ -417,7 +417,7 @@ horas ni una medición independiente del intervalo exacto de refresco en producc
 - `false` permite reconocer inactividad, pero no aporta la evidencia independiente
   necesaria para clasificar finalización confirmada.
 - Fuente accesible no significa publicación reciente; una consulta exitosa de
-  Central no significa comprobación nueva ni estado actual confirmado.
+  CENTRAL no significa comprobación nueva ni estado actual confirmado.
 
 Son límites de diseño y observabilidad, no fallos encontrados en las ocho pruebas.
 
@@ -425,12 +425,12 @@ Son límites de diseño y observabilidad, no fallos encontrados en las ocho prue
 
 No están conectadas la identidad inequívoca de recorrido/fix ni evidencia
 independiente de detención; tampoco hay supervisión externa del monitor,
-diagnóstico integral de aplicaciones, gestión multi-bus en Central ni
+diagnóstico integral de aplicaciones, gestión multi-bus en CENTRAL ni
 notificaciones externas. Las últimas permanecen pospuestas.
 
 Más telemetría podría separar mejor publicación y medición; supervisión externa
 podría cubrir el fallo del monitor. Ambas requieren diseño, alcance y validación
 propios, no se obtienen habilitando únicamente una etiqueta del evaluador.
 La clasificación de estas posibilidades, su postergación y cualquier aprobación
-futura pertenecen a [ROADMAP §2.1](ROADMAP.md#21-evolución-de-pulso-posterior-al-mvp).
+futura pertenecen a [ROADMAP §2.1](../planning/roadmap.md#21-evolución-de-pulso-posterior-al-mvp).
 No son compromisos, prioridades ni requisitos adicionales del MVP cerrado.

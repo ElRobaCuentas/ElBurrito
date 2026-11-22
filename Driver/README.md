@@ -1,4 +1,4 @@
-# BurritoDriverApp
+# PILOTO
 
 Aplicación móvil para los conductores del sistema de transporte
 universitario "Oficina de Transportes" de la UNMSM. Captura coordenadas
@@ -8,10 +8,10 @@ Es una de las aplicaciones del ecosistema con permisos de escritura sobre
 los nodos de tracking. Está diseñada para ejecutarse en dispositivos
 Android dedicados instalados en los buses.
 
-**La DriverApp es conductor-only**: su única función es capturar GPS y
+**PILOTO es de uso exclusivo de conductores**: su única función es capturar GPS y
 escribirlo en RTDB. No incluye panel administrativo. La gestión de
 conductores, buses y asignaciones se realiza exclusivamente desde
-**AdminWeb**.
+**CENTRAL**.
 
 ## Stack Principal
 
@@ -66,6 +66,8 @@ Android-only y no está probada en iOS.
 | Compilar Android | `npm run android` |
 | Tests | `npm test -- --runInBand --ci` |
 | Lint | `npm run lint` |
+| Logs Android (PowerShell) | `adb logcat \| Select-String RNBackground` |
+| Formatear un archivo | `npx prettier --write <file>` |
 
 La suite estándar es `npm test -- --runInBand --ci` (9 suites, 120 pruebas).
 `jest.config.js` contiene las excepciones de transformación para React Native y
@@ -98,11 +100,11 @@ watchPosition captura GPS cada ~3s
     ↓
 Firebase RTDB (/ubicacion_buses/{busId})
     ↓
-UserApp (vía listener propio)
+El Burrito (vía listener propio)
 ```
 
 Para el detalle del payload y la estructura del nodo de tracking,
-consultar el [esquema Firebase](../docs/FIREBASE_SCHEMA.md).
+consultar el [esquema Firebase](../docs/architecture/firebase-schema.md).
 
 ## Estado de Implementación
 
@@ -125,12 +127,12 @@ el contexto histórico del incidente, no una certificación de builds actuales.
 
 | Documento | Propósito |
 |-----------|-----------|
-| [Versionado y publicación](../docs/VERSIONADO_Y_PUBLICACION.md) | Procedimiento previsto de entregas y actualizaciones mediante APK privada. |
+| [Versionado y publicación](../docs/engineering/versioning-and-releases.md) | Procedimiento previsto de entregas y actualizaciones mediante APK privada. |
 | [Recuperación de compilación](docs/build-recovery-report.md) | Incidente de julio de 2026 y workaround de geolocation. |
-| [Arquitectura](../docs/ARCHITECTURE.md) | Flujo de datos y ciclo de vida del tracking. |
-| [Esquema Firebase](../docs/FIREBASE_SCHEMA.md) | Nodos y payloads de la RTDB. |
+| [Arquitectura](../docs/architecture/overview.md) | Flujo de datos y ciclo de vida del tracking. |
+| [Esquema Firebase](../docs/architecture/firebase-schema.md) | Nodos y payloads de la RTDB. |
 | [AGENTS.md](AGENTS.md) | Convenciones e instrucciones para asistentes IA. |
-| [Roadmap](../docs/ROADMAP.md) | Trabajo planificado después del MVP. |
-| [Diagnóstico](../docs/TROUBLESHOOTING.md) | Problemas conocidos. |
-| [Decisiones](../docs/DECISIONS.md) | Decisiones de arquitectura (ADR). |
-| [Bugs resueltos](../docs/BUGS_RESUELTOS/) | Historial de correcciones. |
+| [Roadmap](../docs/planning/roadmap.md) | Trabajo planificado después del MVP. |
+| [Diagnóstico](../docs/diagnostics/troubleshooting.md) | Problemas conocidos. |
+| [Decisiones](../docs/adr/README.md) | Decisiones de arquitectura (ADR). |
+| [Bugs resueltos](../docs/diagnostics/resolved-bugs/) | Historial de correcciones. |

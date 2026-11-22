@@ -1,6 +1,6 @@
 # Arquitectura: ciclo de tracking y límites
 
-[Volver al documento principal](ARCHITECTURE.md).
+[Volver al documento principal](overview.md).
 
 ## 8. Ciclo de Vida del Tracking
 
@@ -136,7 +136,7 @@ durante la desconexión. Un timeout aislado no equivale a offline.
 `.info/connected` debe consultarse sin barra inicial (`ref('.info/connected')`)
 porque el SDK instalado lanza excepción con `/`. Que reporte `false` habilita el
 respaldo, pero no prueba entrega ni confirmación de escrituras remotas. Ver
-`BUGS_RESUELTOS/driverapp.md` (CASO 021).
+`../diagnostics/resolved-bugs/driverapp.md` (CASO 021).
 
 ### 8.7 I07: idempotencia, restauración y HeadlessJS
 
@@ -166,7 +166,7 @@ La promesa de usuario de `locationTask` queda pendiente al limpiar para evitar
 el `stop()` global automático del wrapper al resolverla. En esa versión, entregas
 tardías pueden sobrescribir el resolver global y dejar envolturas pendientes. Los
 tests caracterizan ese residual; no hay dos motores GPS
-completos simultáneos. Ver `BUGS_RESUELTOS/driverapp.md` (CASO 020).
+completos simultáneos. Ver `../diagnostics/resolved-bugs/driverapp.md` (CASO 020).
 
 ### 8.8 Persistencia y estado de la UI
 
@@ -213,7 +213,7 @@ atribuir al sistema una garantía que el código no controla.
 ### 9.2 Multi-bus, caducidad y deuda pendiente
 
 La selección de un solo bus, la caducidad y el estado `offline` se explican en
-§5.3. El render multi-marcador completo sigue pendiente (ROADMAP T4.4) y no debe
+§5.3. El render multi-marcador completo sigue pendiente (`../planning/roadmap.md`, T4.4) y no debe
 presentarse como implementado.
 
 ### 9.3 Geofencing y Haversine
@@ -223,7 +223,7 @@ presentarse como implementado.
 `Map.tsx`.
 
 La arquitectura actual no incorpora geofencing, cierre automático de vueltas ni
-escritura a `/recorridos`. Su planificación está en ROADMAP T4.3. Haversine ya
+escritura a `/recorridos`. Su planificación está en `../planning/roadmap.md`, T4.3. Haversine ya
 se utiliza; geofencing sigue pendiente.
 
 ### 9.4 Índices de RTDB
@@ -249,7 +249,7 @@ conviene que tenga el índice para operar eficientemente.
 
 ### 9.5 Compatibilidad iOS
 
-BurritoDriverApp no está probada ni soportada en iOS: el foreground service
+PILOTO no está probada ni soportada en iOS: el foreground service
 depende de APIs nativas de Android.
 
 En El Burrito existe configuración iOS, pero el soporte funcional **no está
@@ -263,7 +263,7 @@ reparar esa configuración desde este documento.
 
 ### 9.6 Productores y simulación
 
-El productor actual acreditado en el código es BurritoDriverApp, que escribe en
+El productor actual acreditado en el código es PILOTO, que escribe en
 `/ubicacion_buses/{busId}`. No se acreditó en esta revisión un script Python
 versionado, una carpeta de simulación ni una integración actual que escriba a
 otro path como segundo productor. Si existe una herramienta externa de

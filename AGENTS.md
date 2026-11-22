@@ -12,8 +12,9 @@ mismo repositorio:
 | Ruta | Producto | Naturaleza |
 |------|----------|------------|
 | `User/` | El Burrito | App pública de estudiantes (React Native: mapa + tracking) |
-| `Driver/` | BurritoDriverApp | App privada de conductores (productor GPS Android) |
-| `AdminWeb/` | AdminWeb | Panel administrativo web (SPA React) |
+| `Driver/` | PILOTO | App privada de conductores (productor GPS Android) |
+| `AdminWeb/` | CENTRAL | Panel administrativo web (SPA React) |
+| `AdminWeb/monitor/` | PULSO | Monitor de seguimiento |
 | `docs/` | — | Documentación compartida |
 | `FirebaseLab/` | FirebaseLab | Laboratorio local de permisos de Firebase |
 
@@ -25,7 +26,7 @@ archivo y el de esa app**. Las rutas de esta documentación son relativas a la
 raíz del monorepo salvo que se indique lo contrario.
 
 El procedimiento de trabajo (plan, build, verificación, documentación) está en
-`FLUJO_DE_TRABAJO.md`. El backlog y el alcance del MVP están en `MVP.md`.
+`docs/engineering/workflow.md`. El backlog y el alcance del MVP están en `docs/planning/mvp.md`.
 
 En OpenCode, el agente `plan` no puede editar, ejecutar comandos de terminal
 ni delegar tareas. Después de aprobar el plan, usá `build` para ejecutar las
@@ -44,15 +45,17 @@ Usá siempre estos nombres:
 
 | Término | Significado |
 |---------|-------------|
-| **El Burrito** | App pública para estudiantes (carpeta `User/`). |
-| **BurritoDriverApp** | App privada para conductores (carpeta `Driver/`). |
-| **AdminWeb** | Panel administrativo web (carpeta `AdminWeb/`). |
-| **Ecosistema El Burrito** | Conjunto de apps, servicios e infraestructura. |
+| **well.** | Marca principal; siempre en minúsculas y con punto. |
+| **Ecosistema El Burrito** | Proyecto de transporte universitario de la UNMSM. En menciones genéricas, «el ecosistema» o «el proyecto». |
+| **El Burrito** | App pública para estudiantes, no abreviatura del proyecto. |
+| **PILOTO** | App privada para conductores. |
+| **CENTRAL** | Panel administrativo web. `AdminWeb/` es su directorio técnico. |
+| **PULSO** | Monitor de seguimiento. |
 
-**Regla de rutas vs productos:** los prefijos de carpeta `BurritoUserApp/` y
-`BurritoDriverApp/` son **obsoletos** (hoy son `User/` y `Driver/`). Pero
-`BurritoDriverApp` y `BurritoUserApp` como **nombres de producto** siguen
-siendo válidos (aparecen en títulos y documentación). No los "corrijas".
+No anteponer la marca a los productos ni usarla como nombre de ruta. Usar
+«piloto», «central», «pulso», «monitor» y «panel administrativo» en minúscula en
+sentido genérico. Mantener los identificadores técnicos, las citas de la interfaz
+y los nombres de evidencia histórica tal como se registraron.
 
 ---
 
@@ -87,23 +90,19 @@ para cambios reales; una inferencia no constituye una verificación.
 
 ### Trabajo colaborativo
 
-- Antes de una tarea, seguir la [preparación del flujo](FLUJO_DE_TRABAJO.md#preparación-de-una-tarea):
-  revisar el árbol, actualizar `main`, recibir memoria compartida y crear una rama.
-  Si no hay remoto publicado o no están autorizadas las operaciones, informar el
-  bloqueo; no configurar un remoto ni simular que la actualización ocurrió.
-- Trabajar por tarea en ramas `feat/`, `fix/`, `docs/` o `chore/`; integrar a
-  `main` por pull request revisado por otro desarrollador. No trabajar
-  directamente sobre `main` ni incluir cambios ajenos.
+- Seguir la [preparación del flujo](docs/engineering/workflow.md#preparación-de-una-tarea)
+  y la [revisión humana e integración](docs/engineering/verification-and-closure.md#revisión-humana-e-integración-del-pr).
+  Si no hay acceso al remoto o no están autorizadas las operaciones, informar el bloqueo.
 - La aprobación de una implementación no autoriza por sí sola commit, push,
   creación de PR, merge ni despliegue. Respetar las restricciones de la sesión.
 - Actualizar la documentación afectada en la misma tarea y PR. Respetar la pausa
-  documental vigente de `FLUJO_DE_TRABAJO.md`; no cerrar una tarea con documentación
+  documental vigente de `docs/engineering/workflow.md`; no cerrar una tarea con documentación
   pendiente ni declarar integración por tener únicamente un commit local.
-- Recuperar memoria con `scripts/engram-team.ps1 Receive`, solo cuando esté
-  autorizada la importación. Verificar la identidad `ecosistema-el-burrito`;
-  la memoria es contexto y debe contrastarse con las fuentes actuales.
+- Recuperar memoria solo cuando esté autorizada la importación; consultar
+  [incorporación](docs/engineering/onboarding.md). La memoria es contexto y debe
+  contrastarse con las fuentes actuales.
 - Conservar las notas de trabajo en la base habitual. Para compartir aprendizajes,
-  usar únicamente el [procedimiento de publicación curada](FLUJO_VERIFICACION_Y_CIERRE.md#memorias-técnicas-compartidas):
+  usar únicamente el [procedimiento de publicación curada](docs/engineering/verification-and-closure.md#memorias-técnicas-compartidas):
   revisión humana del lote y del chunk completo antes de publicarlo por Git.
   Nunca sincronizar directamente la base histórica, prompts ni notas personales.
 
@@ -129,14 +128,14 @@ para cambios reales; una inferencia no constituye una verificación.
 
 | Si cambias... | Actualiza... |
 |---------------|-------------|
-| Un path o nodo de RTDB | `docs/FIREBASE_SCHEMA.md` |
-| Un flujo o la arquitectura | `docs/ARCHITECTURE.md` |
-| Una decisión arquitectónica | `docs/DECISIONS.md` |
-| Un bug identificado | `docs/TROUBLESHOOTING.md` |
-| Un bug corregido | `docs/BUGS_RESUELTOS/` |
-| Una limitación del sistema | `docs/ARCHITECTURE.md` §9 / `docs/TROUBLESHOOTING.md` |
-| El estado de una tarea del MVP | `MVP.md` |
-| Prioridades post-MVP | `docs/ROADMAP.md` |
+| Un path o nodo de RTDB | `docs/architecture/firebase-schema.md` |
+| Un flujo o la arquitectura | `docs/architecture/overview.md`, `docs/architecture/flows.md` o `docs/architecture/tracking.md`, según corresponda |
+| Una decisión arquitectónica | Primero el registro correspondiente en `docs/adr/`; después su [índice](docs/adr/README.md) |
+| Un bug identificado | `docs/diagnostics/troubleshooting.md` |
+| Un bug corregido | `docs/diagnostics/resolved-bugs/` |
+| Una limitación del sistema | `docs/architecture/tracking.md` §9 / `docs/diagnostics/troubleshooting.md` |
+| El estado de una tarea del MVP | `docs/planning/mvp.md` |
+| Prioridades post-MVP | `docs/planning/roadmap.md` |
 | Una regla de trabajo para IA | El `AGENTS.md` correspondiente |
 | Setup, comandos o variables de entorno | El `README.md` de la app |
 | Una variable `VITE_*` de AdminWeb | `AdminWeb/README.md` + `.env.example` |
@@ -151,15 +150,18 @@ de cerrar la tarea.
 | Si necesitas... | Leé... |
 |-----------------|--------|
 | Reglas de una app | `User/AGENTS.md`, `Driver/AGENTS.md`, `AdminWeb/AGENTS.md` |
-| Procedimiento de trabajo | `FLUJO_DE_TRABAJO.md` |
-| Alcance y cierre del MVP | `MVP.md` |
-| Arquitectura y flujos | `docs/ARCHITECTURE.md` |
-| Estructura RTDB | `docs/FIREBASE_SCHEMA.md` |
-| Decisiones (ADR) | `docs/DECISIONS.md` |
-| Limitaciones y diagnóstico | `docs/ARCHITECTURE.md` §9, `docs/TROUBLESHOOTING.md` |
-| Próximas fases | `docs/ROADMAP.md` |
-| Bugs conocidos / resueltos | `docs/TROUBLESHOOTING.md`, `docs/BUGS_RESUELTOS/` |
-| Deuda de lint de UserApp | `docs/LINT_DEBT.md` |
-| Incorporación de desarrolladores y tipos de configuración | [Guía de incorporación](docs/INCORPORACION.md) |
-| Revisión del PR y publicación de memoria | [Verificación y cierre](FLUJO_VERIFICACION_Y_CIERRE.md#revisión-humana-e-integración-del-pr) |
+| Entrada al monorepo / mapa completo | [README](README.md) / [mapa de documentos](docs/AGENTS.md#7-mapa-de-documentos) |
+| Procedimiento de trabajo | [Flujo de trabajo](docs/engineering/workflow.md) |
+| Alcance y cierre del MVP | [MVP](docs/planning/mvp.md) |
+| Arquitectura y flujos | [Visión general](docs/architecture/overview.md), [flujos](docs/architecture/flows.md), [tracking](docs/architecture/tracking.md) |
+| Estructura RTDB | [Esquema Firebase](docs/architecture/firebase-schema.md) |
+| Monitor de seguimiento | [PULSO](docs/architecture/pulso.md) |
+| Decisiones (ADR) | [Índice de ADR](docs/adr/README.md) |
+| Limitaciones y diagnóstico | [Tracking §9](docs/architecture/tracking.md#9-consideraciones-de-implementación-y-límites), [diagnóstico](docs/diagnostics/troubleshooting.md) |
+| Próximas fases | [Roadmap](docs/planning/roadmap.md) |
+| Bugs conocidos / resueltos | [Diagnóstico](docs/diagnostics/troubleshooting.md), [historial](docs/diagnostics/resolved-bugs/) |
+| Deuda de lint de El Burrito | [Deuda de lint](docs/diagnostics/lint-debt.md) |
+| Incorporación de desarrolladores y tipos de configuración | [Guía de incorporación](docs/engineering/onboarding.md) |
+| Entregas y publicación | [Versionado y publicación](docs/engineering/versioning-and-releases.md) |
+| Revisión del PR y publicación de memoria | [Verificación y cierre](docs/engineering/verification-and-closure.md#revisión-humana-e-integración-del-pr) |
 | Historial de cambios | Git (commits) |

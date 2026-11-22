@@ -1,8 +1,9 @@
 # Versionado y publicación del Ecosistema El Burrito
 
 Guía operativa de Juan y Jose para el MVP, acordada el **19/11/2026**.
-**Versionamos entregas, no commits.** Para Android: preparar → compilar → verificar
-→ respaldar → crear tag y release → distribuir → confirmar el resultado.
+**Versionamos entregas, no commits.** Para Android: preparar → integrar el PR y
+fijar el SHA de `main` → compilar → verificar → respaldar → crear tag y registro
+de release → distribuir por el canal autorizado → confirmar el resultado.
 
 El monorepo comparte un único repositorio e historial. Cada aplicación conserva
 sus propias versiones, dependencias, comandos de compilación y canal de
@@ -12,14 +13,16 @@ distribución.
 
 | Componente | Identificación de la entrega | Distribución |
 |------------|-----------------------------|--------------|
-| El Burrito (UserApp, `User/`) | SemVer, `versionCode`, commit, tag anotado y GitHub Release | Google Play |
-| BurritoDriverApp (`Driver/`) | SemVer, `versionCode`, commit, tag anotado y GitHub Release | APK privada |
-| Central y servicio PULSO (`AdminWeb/`) | Commits e IDs de Hosting/Workers; sin nuevo SemVer ni tags obligatorios | Firebase Hosting / Cloudflare |
+| El Burrito (`User/`) | SemVer, `versionCode`, commit, tag anotado y GitHub Release | Google Play |
+| PILOTO (`Driver/`) | SemVer, `versionCode`, commit, tag anotado y GitHub Release | APK privada |
+| CENTRAL y servicio PULSO (`AdminWeb/`) | Commits e IDs de Hosting/Workers; sin nuevo SemVer ni tags obligatorios | Firebase Hosting / Cloudflare |
 | `docs/` | Historial Git del monorepo | Documentación compartida |
 
-- Este documento contiene el procedimiento; **GitHub Releases**, el historial Android.
-- **Play Console** indica el estado de User; un directorio privado de Releases
-  fuera del monorepo conserva los binarios privados.
+- Este documento define el procedimiento. **GitHub Releases** registra las
+  entregas Android; no es el canal de alojamiento ni de distribución de binarios privados.
+- El directorio privado de Releases, fuera del monorepo, conserva el APK y el AAB.
+  El AAB se entrega mediante **Play Console**, fuente del estado de publicación de
+  El Burrito. El APK de PILOTO se distribuye por el canal privado autorizado.
 - Las versiones y los contadores son propios de cada app. No mover tags, reemplazar
   artefactos publicados ni atribuir origen a binarios históricos sin evidencia.
 - No incorporar CI/CD de publicación, Fastlane, generadores de changelog ni otras herramientas.
@@ -48,10 +51,12 @@ Los comandos son para **futuras entregas autorizadas**, no para recrear `v1.2.0`
 Usar el entorno y las herramientas existentes, PowerShell 5.1 y la misma sesión
 para conservar las variables. Ejecutar paso a paso y detenerse ante cualquier error.
 
+### Preparar la versión Android
+
 1. Acordar alcance, responsable, versión y canal. Consultar las pruebas del
-   `AGENTS.md` de la app y [condiciones de publicación](ROADMAP.md#4-condiciones-de-pre-release-y-publicación).
-2. Comprobar la rama candidata; no asumir que es `main`. Integrar los cambios
-   funcionales y completar sus pruebas antes de preparar la versión.
+   `AGENTS.md` de la app y [condiciones de publicación](../planning/roadmap.md#4-condiciones-de-pre-release-y-publicación).
+2. Preparar la versión en la rama candidata acordada, no directamente en `main`.
+   Integrar los cambios funcionales y completar sus pruebas antes de preparar la versión.
 3. Consultar el máximo código en todos los canales de Play (User) o en entregas
    e instalaciones privadas (Driver). Cambiar solo los dos valores aprobados;
    no mezclar dependencias, Firebase, `applicationId` ni firma.
@@ -75,18 +80,37 @@ git diff --cached            # Revisar exactamente lo que se va a registrar.
 git commit -m "chore(android): bump version to $version"
 ```
 
-Tras el commit exitoso, **desde la raíz del monorepo**, sincronizar y conservar su SHA:
+### Fijar el SHA integrado
+
+Para Android, CENTRAL y PULSO, publicar la rama candidata solo con autorización y seguir la
+[revisión humana e integración del PR](verification-and-closure.md#revisión-humana-e-integración-del-pr).
+Obtener de GitHub el SHA completo resultante de integrar en `main` el PR de la
+entrega aprobada. Verificar que está en `origin/main` y usar ese SHA exacto con
+el árbol limpio para compilar y publicar. No usar el SHA previo al merge ni la
+punta de `main` si avanzó. Volver a generar desde el SHA integrado cualquier
+salida preparada antes del merge.
+
+**Desde la raíz del monorepo**, en la misma sesión PowerShell:
 
 ```powershell
-git status --short           # Debe estar vacío antes de compilar.
-$branch = git branch --show-current
+git fetch origin refs/heads/main
+if ($LASTEXITCODE -ne 0) { throw 'No se pudo consultar main en origin.' }
+$integratedSha = (Read-Host 'SHA completo del PR integrado en main').Trim()
+if ($integratedSha -notmatch '^[0-9a-fA-F]{40}$') { throw 'Se requiere el SHA completo.' }
+git merge-base --is-ancestor $integratedSha FETCH_HEAD
+if ($LASTEXITCODE -ne 0) { throw 'El SHA no está acreditado en origin/main.' }
+$pending = git status --porcelain
+if ($LASTEXITCODE -ne 0 -or $pending) { throw 'Revisar el estado del árbol antes de continuar.' }
+git switch --detach $integratedSha
+if ($LASTEXITCODE -ne 0) { throw 'No se pudo fijar el SHA de compilación.' }
 $commit = git rev-parse HEAD
-git push origin "$branch"
-git ls-remote origin "refs/heads/$branch" # Debe anunciar $commit.
+if ($LASTEXITCODE -ne 0 -or $commit -ne $integratedSha) { throw 'HEAD no coincide con el SHA integrado.' }
+$pending = git status --porcelain
+if ($LASTEXITCODE -ne 0 -or $pending) { throw 'El árbol debe estar limpio en el SHA integrado.' }
 ```
 
-Los pasos de sincronización requieren que el monorepo ya tenga remoto (fase 7).
-Hasta entonces, verificar el commit localmente y no publicar.
+Para Android, confirmar versión y código en el `build.gradle` del SHA fijado.
+Sin acceso confirmado al remoto o sin PR integrado, no preparar una entrega oficial.
 
 Mantener el código y la configuración estables al compilar. Un commit y un lock
 identifican fuentes, pero no garantizan reconstrucciones idénticas byte a byte.
@@ -164,23 +188,28 @@ repositorio; guardar una segunda copia en el destino privado acordado y
 comprobar su hash.
 Una copia en el mismo disco no cubre la pérdida del equipo. Conservar mappings
 y sourcemaps de esa compilación cuando sean necesarios para diagnosticarla.
-No publicar artefactos privados por defecto; nunca incluir tokens, contraseñas
-ni keystores en releases o paquetes. Respaldar las claves separadamente.
+No adjuntar ni publicar automáticamente binarios privados. Cualquier excepción
+requiere autorización específica y verificación de visibilidad. No incluir tokens,
+contraseñas ni keystores en releases o paquetes. Respaldar las claves separadamente.
 
 ## 6. Crear el tag anotado y la GitHub Release
 
 La convención aprobada es `user-vX.Y.Z` para User y `driver-vX.Y.Z` para
 Driver. Los tags históricos permanecen en los repositorios anteriores.
 
-**Desde la raíz del monorepo**, fijar el commit que produjo el artefacto:
+**Desde la raíz del monorepo**, comprobar que sigue seleccionado el SHA compilado:
 
 ```powershell
 Set-Location -LiteralPath $repoRoot
-git status --short -- $app    # Sin cambios de fuentes pendientes.
-git rev-parse HEAD            # Debe coincidir con $commit.
+$pending = git status --porcelain
+if ($LASTEXITCODE -ne 0 -or $pending) { throw 'Revisar los cambios del árbol antes de etiquetar.' }
+$current = git rev-parse HEAD
+if ($LASTEXITCODE -ne 0 -or $current -ne $commit) { throw 'HEAD no es el SHA compilado.' }
 $tag = "$($app.ToLower())-v$version"
 git tag --list "$tag"
+if ($LASTEXITCODE -ne 0) { throw 'No se pudo consultar el tag local.' }
 git ls-remote --tags origin "refs/tags/$tag"
+if ($LASTEXITCODE -ne 0) { throw 'No se pudo consultar el tag remoto.' }
 ```
 
 **Ambas consultas del tag deben estar vacías.** Si existe, inspeccionar la entrega
@@ -188,21 +217,27 @@ existente y detener su creación: no eliminar, mover ni forzar el tag.
 
 ```powershell
 git tag -a "$tag" "$commit" -m "Release $tag - MVP"
-git cat-file -t "$tag"        # Debe devolver tag.
-git rev-parse "$tag^{}"       # Debe devolver $commit.
+if ($LASTEXITCODE -ne 0) { throw 'No se pudo crear el tag.' }
+$tagType = git cat-file -t "$tag"
+if ($LASTEXITCODE -ne 0 -or $tagType -ne 'tag') { throw 'El tag no es anotado.' }
+$tagCommit = git rev-parse "${tag}^{}"
+if ($LASTEXITCODE -ne 0 -or $tagCommit -ne $commit) { throw 'El tag no apunta al SHA compilado.' }
 git push origin "refs/tags/$tag"
-git ls-remote --tags origin "refs/tags/$tag" "refs/tags/$tag^{}"
+if ($LASTEXITCODE -ne 0) { throw 'No se pudo publicar el tag.' }
+git ls-remote --tags origin "refs/tags/$tag" "refs/tags/${tag}^{}"
+if ($LASTEXITCODE -ne 0) { throw 'No se pudo comprobar el tag remoto.' }
 ```
 
-Estos comandos requieren que el monorepo tenga remoto (fase 7).
+Antes de publicar el tag, comprobar que su destino coincide con `$commit`;
+después, contrastar ese mismo destino con el tag anotado remoto.
 
 En **GitHub web → Releases del monorepo → nueva release**, seleccionar ese tag
 existente. Usar títulos como `El Burrito user-vX.Y.Z - Pruebas cerradas MVP` o
-`BurritoDriverApp driver-vX.Y.Z - Piloto privado`. Marcar **pre-release** para pruebas;
+`PILOTO driver-vX.Y.Z - Piloto privado`. Marcar **pre-release** para pruebas;
 clasificar como estable solo cuando se acuerde. Incluir:
 
 - Commit completo, versión/código y cambios de la entrega.
-- Artefacto, SHA-256, firma y advertencias, copia privada y responsable/fecha.
+- Nombre del artefacto, SHA-256, firma y advertencias, referencia no sensible a la copia privada y responsable/fecha. El registro no requiere adjuntar el archivo.
 - Pruebas, compatibilidad, limitaciones y vía de recuperación.
 - Canal y estado fechado: inicialmente, pendiente de envío o instalación.
 
@@ -231,7 +266,7 @@ repositorios anteriores no se recrean ni se mueven.
 ### Driver: instalar sin interrumpir la jornada
 
 **Procedimiento previsto; no acredita una actualización ya validada.** Distribuir
-el APK privadamente y comprobar la visibilidad antes de adjuntarlo a GitHub.
+el APK por el canal privado autorizado; aplicar la regla de adjuntos de §5.
 Actualizar **después de que el último conductor finalice la jornada o antes de
 que el primero la inicie**. Nunca durante un relevo ni interrumpiendo un recorrido
 activo. Confirmar servicio detenido, estado remoto esperado y versión previa.
@@ -252,12 +287,12 @@ Confirmar versión y probar acceso, asignación, INICIAR/publicación y DETENER 
 condiciones controladas antes del servicio. Registrar fecha, dispositivo sin
 datos sensibles, versiones previa/nueva y resultado. Compilar no acredita instalar.
 
-## 8. Central y PULSO
+## 8. CENTRAL y PULSO
 
-Antes de desplegar, desde la raíz del monorepo, ejecutar
-`git status --short -- AdminWeb` y `git rev-parse HEAD`: exigir que `AdminWeb/`
-esté limpio y registrar el SHA completo.
-Central incluye la pantalla PULSO; el Worker se publica aparte e incluye código
+Antes de compilar, migrar o desplegar, [fijar el SHA integrado](#fijar-el-sha-integrado)
+desde la raíz del monorepo. Mantener ese SHA y el árbol limpio durante la entrega;
+registrar `$commit` como SHA fuente de los pasos efectuados.
+CENTRAL incluye la pantalla PULSO; el Worker se publica aparte e incluye código
 de `monitor/src/` y `monitor/worker/`. No requieren nuevo SemVer ni GitHub Releases.
 
 | Destino | Registro asociado al commit fuente |
@@ -267,24 +302,27 @@ de `monitor/src/` y `monitor/worker/`. No requieren nuevo SemVer ni GitHub Relea
 | D1 | Migraciones aplicadas y compatibilidad requerida |
 
 Asociar el SHA a la descripción del proveedor cuando sea posible; no inferirlo
-por fechas. Seguir los comandos y verificaciones del
-[README de AdminWeb](../AdminWeb/README.md#migraciones-y-publicación-en-producción):
-**migración compatible → Worker → verificación → Hosting**. Conservar `STATE_VERSION`,
+por fechas. Para una entrega conjunta, la secuencia es **migración compatible
+(solo si hay una pendiente y autorizada) → Worker → verificación → Hosting**.
+Si se publica solo CENTRAL, no migrar D1 ni volver a publicar el Worker. Detener
+la publicación ante incompatibilidad o pérdida de integridad. Ejecutar los
+comandos y comprobaciones del [README de CENTRAL](../../AdminWeb/README.md#migraciones-y-publicación-en-producción).
+Conservar `STATE_VERSION`,
 validaciones y migraciones; `compatibility_date` identifica compatibilidad del
-runtime, no del producto. Validar combinaciones con [FIREBASE_SCHEMA.md](FIREBASE_SCHEMA.md)
-y la API vigente. Evidencia histórica: [PULSO §8](PULSO.md#8-operación-en-producción).
+runtime, no del producto. Validar combinaciones con [../architecture/firebase-schema.md](../architecture/firebase-schema.md)
+y la API vigente. Evidencia histórica: [PULSO §8](../architecture/pulso.md#8-operación-en-producción).
 
 ## 9. Hotfixes y recuperación
 
-- **Android:** partir del tag de producción afectado si `main` contiene avances no destinados
-  a producción; corregir, incrementar PATCH y usar un código superior a todos los
-  utilizados. Repetir el procedimiento completo. **Incorporar después el hotfix
-  a `main` y verificar sus pruebas**, para no reintroducir el error en otra entrega.
+- **Android:** si `main` contiene avances no destinados a producción, preparar la
+  corrección a partir del tag afectado. Incrementar PATCH y usar un código superior
+  a todos los utilizados. Integrar el hotfix por PR antes de compilar la entrega oficial.
+  Si no hay un SHA integrado con el alcance autorizado, detener la publicación.
 - **User:** frenar una distribución no revierte instalaciones. Recuperar el
   comportamiento anterior mediante una nueva entrega con código superior.
 - **Driver:** suspender instalaciones y corregir en la ventana indicada en §7;
   no usar downgrade forzado ni desinstalación como recuperación habitual.
-- **Central:** volver a una versión compatible en Hosting, registrar el nuevo
+- **CENTRAL:** volver a una versión compatible en Hosting, registrar el nuevo
   release de rollback y comprobar el contenido servido.
 - **PULSO:** revisar D1, estado y configuración antes de volver a otro Worker.
   Su rollback no revierte D1; el Worker anterior a `0003` no mantiene el inicio
@@ -296,11 +334,11 @@ sustituye y el resultado de recuperación, sin mover tags ni reemplazar backups.
 ## 10. Checklist breve
 
 - [ ] Alcance/canal acordados, condiciones revisadas y pruebas completadas.
-- [ ] Versión/código correctos; commit sincronizado y árbol limpio al compilar.
+- [ ] Versión/código correctos; PR integrado y compilación desde su SHA exacto con árbol limpio.
 - [ ] Identidad/firma verificadas, advertencias revisadas y SHA-256 registrado.
-- [ ] Copia privada y respaldo coinciden; tag anotado y GitHub Release completos.
+- [ ] Copia privada y respaldo coinciden; el tag anotado apunta al SHA compilado y GitHub Release registra la entrega.
 - [ ] Distribución realizada en el canal o ventana acordados; resultado comprobado.
-- [ ] Estado real fechado y recuperación registrada; hotfix incorporado a `main` si aplica.
+- [ ] Estado real fechado y recuperación registrada, si aplica.
 
 ## 11. Primera aplicación y validación pendiente
 

@@ -100,9 +100,11 @@ Desde esta carpeta (`User/`):
 |--------|---------|
 | Iniciar Metro | `npm start` |
 | Ejecutar Android | `npm run android` |
+| Ejecutar iOS (sin soporte funcional acreditado) | `npm run ios` |
 | Ejecutar pruebas | `npm test` |
 | Revisar lint | `npm run lint` |
 | Comprobar tipos | `npx tsc --noEmit` |
+| Formatear un archivo | `npx prettier --write <file>` |
 
 La comprobación de tipos es un comando manual; no hay un script npm
 `typecheck`. Los hallazgos de lint preexistentes se registran en la
@@ -110,10 +112,10 @@ documentación técnica enlazada al final.
 
 ### Organización del proyecto
 
-Esta carpeta contiene la app de estudiantes, identificada en el código
-como **BurritoUserApp**. Recibe las ubicaciones de **BurritoDriverApp**:
+Esta carpeta contiene **El Burrito**, identificado como `BurritoUserApp`
+en la configuración de la app. Recibe las ubicaciones de **PILOTO**:
 no captura el GPS del bus ni inicia o detiene sus recorridos. La gestión
-de conductores, buses y asignaciones corresponde a **AdminWeb**.
+de conductores, buses y asignaciones corresponde a **CENTRAL**.
 
 ```text
 src/
@@ -139,16 +141,16 @@ React Navigation. Las dependencias y scripts están en
 
 ## Documentación técnica
 
-La documentación del Ecosistema El Burrito se mantiene en `../docs/`, dentro
-del monorepo:
+Para otros temas, consultar el [mapa de documentación del monorepo](../docs/AGENTS.md#7-mapa-de-documentos).
 
 | Documento | Contenido |
 |-----------|-----------|
-| [Versionado y publicación](../docs/VERSIONADO_Y_PUBLICACION.md) | Procedimiento oficial de entregas Android, firmas, artefactos y distribución. |
-| [Arquitectura](../docs/ARCHITECTURE.md) | Componentes y flujo de datos entre aplicaciones. |
-| [Esquema Firebase](../docs/FIREBASE_SCHEMA.md) | Nodos y payloads de Realtime Database. |
-| [Diagnóstico](../docs/TROUBLESHOOTING.md) | Limitaciones y problemas conocidos. |
-| [Decisiones](../docs/DECISIONS.md) | Decisiones de arquitectura e historial técnico. |
-| [Roadmap](../docs/ROADMAP.md) | Trabajo planificado después del MVP. |
-| [Bugs resueltos](../docs/BUGS_RESUELTOS/) | Registro de correcciones por aplicación. |
-| [Deuda de lint](../docs/LINT_DEBT.md) | Hallazgos preexistentes y criterios para distinguir cambios nuevos. |
+| [Versionado y publicación](../docs/engineering/versioning-and-releases.md) | Procedimiento oficial de entregas Android, firmas, artefactos y distribución. |
+| [Arquitectura](../docs/architecture/overview.md) | Componentes y flujo de datos entre aplicaciones. |
+| [Esquema Firebase](../docs/architecture/firebase-schema.md) | Nodos y payloads de Realtime Database. |
+| [Diagnóstico](../docs/diagnostics/troubleshooting.md) | Limitaciones y problemas conocidos. |
+| [Decisiones](../docs/adr/README.md) | Decisiones de arquitectura e historial técnico. |
+| [Roadmap](../docs/planning/roadmap.md) | Trabajo planificado después del MVP. |
+| [Bugs resueltos](../docs/diagnostics/resolved-bugs/) | Registro de correcciones por aplicación. |
+| [Deuda de lint](../docs/diagnostics/lint-debt.md) | Hallazgos preexistentes y criterios para distinguir cambios nuevos. |
+| [AGENTS.md](AGENTS.md) | Instrucciones específicas para asistentes. |

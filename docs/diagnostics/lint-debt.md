@@ -1,8 +1,8 @@
-# Deuda técnica de lint — UserApp (El Burrito)
+# Deuda técnica de lint — El Burrito
 
 ## 1. Propósito y estado
 
-Este documento registra la **deuda técnica de ESLint de la UserApp**: hallazgos
+Este documento registra la **deuda técnica de ESLint de El Burrito**: hallazgos
 conocidos, **no corregidos y no olvidados**. No es un listado de bugs resueltos
 ni un plan de refactor: es el inventario de referencia y las condiciones bajo
 las cuales cada hallazgo debe revisarse.
@@ -24,13 +24,13 @@ Estado general al **07/11/2026**:
 
 ## 2. Alcance
 
-- Proyecto: **UserApp** (`User/` en el monorepo).
+- Proyecto: **El Burrito** (`User/` en el monorepo).
 - Herramienta: **ESLint 8.57.1** con la configuración de React Native del
   proyecto (`npm run lint` → `eslint .`).
 - Cubre los hallazgos del árbol de trabajo al 07/11/2026.
-- **Fuera de alcance:** DriverApp y AdminWeb. El error preexistente de
-  DriverApp (`asignacionId` sin usar en `SendCoordinates.tsx`) y el resultado
-  limpio de AdminWeb no forman parte de este registro.
+- **Fuera de alcance:** PILOTO y CENTRAL. El error preexistente de
+  PILOTO (`asignacionId` sin usar en `SendCoordinates.tsx`) y el resultado
+  limpio de CENTRAL no forman parte de este registro.
 
 ---
 
@@ -48,7 +48,7 @@ Aclaraciones de trazabilidad:
 
 - Los hallazgos se inventariaron en la auditoría del 07/11/2026; el mismo
   conteo ya figuraba como deuda previa en el corte del 03/11/2026
-  (`TROUBLESHOOTING.md` §10).
+  (`troubleshooting.md` §10).
 - La antigüedad del código afectado, según el historial del repositorio, va del
   **21/02/2026** al **22/08/2026**.
 - Las cifras son una **fotografía**: pueden variar si se actualizan ESLint, la
@@ -81,7 +81,7 @@ Los IDs son estables: pueden citarse en commits, incidencias o tests.
 |--------|-------------|
 | `Aceptado provisional` | Auditado; se decidió no intervenir antes del MVP. |
 | `Pendiente post-MVP` | Conocido y registrado; sin análisis individual todavía. |
-| `Resuelto` | Corregido y verificado; se enlaza el caso en `BUGS_RESUELTOS/userapp.md`. |
+| `Resuelto` | Corregido y verificado; se enlaza el caso en `resolved-bugs/userapp.md`. |
 
 ### 4.4 Severidad
 
@@ -328,7 +328,7 @@ queda sujeta a las condiciones de §9.
    de reportarlo y la corrección se verificó. Si se opta por una excepción
    permanente, debe existir un `eslint-disable` justificado en el código y una
    fila con decisión **C** en este documento.
-7. **Al resolver.** Mover el detalle a `docs/BUGS_RESUELTOS/userapp.md` como
+7. **Al resolver.** Mover el detalle a `resolved-bugs/userapp.md` como
    caso, y dejar aquí el ID con estado `Resuelto` y el enlace.
 
 ---
@@ -362,7 +362,7 @@ Notas:
 - El comando `npm run lint` ejecuta `eslint .` (definido en `package.json`).
 - Para esta deuda **no se usa `--fix`**: cualquier corrección es una tarea
   separada y debe registrarse en §11 y, al cerrarse, en
-  `BUGS_RESUELTOS/userapp.md`.
+  `resolved-bugs/userapp.md`.
 - Si el conteo difiere, revisar primero cambios en la configuración de ESLint o
   en las dependencias antes de asumir una regresión.
 
@@ -380,9 +380,9 @@ Notas:
 
 | Documento | Relación |
 |-----------|----------|
-| `TROUBLESHOOTING.md` §10 | Problemas conocidos; enlaza a este registro. |
-| `BUGS_RESUELTOS/userapp.md` | Cierre de hallazgos resueltos. |
-| `ARCHITECTURE.md` §9 | Limitaciones actuales del sistema. |
-| `../MVP.md` | Alcance, cierre del MVP y regla de postergación. |
-| `ROADMAP.md` | Planificación posterior al piloto y referencia al inventario de deuda técnica. |
-| `../User/AGENTS.md` §7 | Enrutado de cambios documentales. |
+| `troubleshooting.md` §10 | Problemas conocidos; enlaza a este registro. |
+| `resolved-bugs/userapp.md` | Cierre de hallazgos resueltos. |
+| `../architecture/overview.md` §9 | Limitaciones actuales del sistema. |
+| `../planning/mvp.md` | Alcance, cierre del MVP y regla de postergación. |
+| `../planning/roadmap.md` | Planificación posterior al piloto y referencia al inventario de deuda técnica. |
+| `../../User/AGENTS.md` §7 | Enrutado de cambios documentales. |

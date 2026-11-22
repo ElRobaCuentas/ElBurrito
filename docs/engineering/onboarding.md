@@ -1,25 +1,17 @@
 # Incorporación al Ecosistema El Burrito
 
 Guía para preparar un equipo Windows y completar una primera tarea en el
-monorepo. Sirve tanto para quien ya tiene los cuatro repositorios anteriores
-como para un integrante nuevo. Los README de cada componente conservan sus
-procedimientos: esta guía indica el orden y los puntos de entrada.
-
-**Estado al 21/11/2026:** el monorepo y Git Sync están preparados localmente;
-la publicación del remoto corresponde a la fase 7. La clonación, los pull
-requests y la recepción desde ese remoto se ejecutan después de que el
-responsable confirme su disponibilidad. No hay una URL nueva asumida aquí.
-Los comandos siguientes son instrucciones para el equipo que se incorpora;
-no implican instalaciones, permisos ni importaciones realizadas durante la fase 6.4.
+monorepo. Los README de cada componente conservan sus procedimientos; esta guía
+indica el orden y los puntos de entrada.
 
 ## 1. Acceso y copia de trabajo
 
-Solicitar al responsable acceso al repositorio privado y la URL exacta publicada.
+Solicitar al responsable acceso al repositorio privado del monorepo.
 Usar una identidad GitHub propia, con acceso a ramas y PR según el rol acordado;
 tener el código no concede acceso a Firebase, Cloudflare ni Play Console.
 Configurar la autenticación Git en el equipo sin incrustar tokens en URLs.
 
-Si ya se tienen los repositorios independientes, como José:
+Si se conservan copias de los repositorios anteriores:
 
 - Conservarlos sin cambios junto con cualquier trabajo local pendiente.
 - Clonar el monorepo en otra carpeta; no convertir una carpeta anterior cambiando
@@ -29,13 +21,18 @@ Si ya se tienen los repositorios independientes, como José:
 - Recrear la configuración local para la nueva ruta. No copiar toda la carpeta
   privada de otro integrante ni distribuir sus claves de firma.
 
-Después de confirmar el remoto, desde un directorio padre existente:
+Si ya existe una copia del monorepo, comprobar `origin` con `git remote get-url origin`
+y seguir la [preparación de una tarea](workflow.md#preparación-de-una-tarea).
+Para una copia nueva, comprobar el acceso usando la URL del monorepo desde un
+directorio padre existente:
 
 ```powershell
 $parent = Read-Host 'Directorio padre existente para la copia nueva'
 if (-not (Test-Path -LiteralPath $parent -PathType Container)) { throw 'Revisar el directorio padre.' }
 Set-Location -LiteralPath $parent
-$repositoryUrl = Read-Host 'URL privada del monorepo confirmada por el responsable'
+$repositoryUrl = 'https://github.com/ElRobaCuentas/ElBurrito.git'
+git ls-remote --exit-code $repositoryUrl refs/heads/main
+if ($LASTEXITCODE -ne 0) { throw 'No se pudo consultar main; revisar acceso al monorepo.' }
 git clone --branch main -- $repositoryUrl EcosistemaElBurrito
 if ($LASTEXITCODE -ne 0) { throw 'No se pudo clonar; revisar URL y acceso.' }
 Set-Location -LiteralPath .\EcosistemaElBurrito
@@ -44,8 +41,8 @@ git status --short
 ```
 
 Confirmar una raíz Git con `User/`, `Driver/`, `AdminWeb/`, `docs/`,
-`FirebaseLab/` y `scripts/`. Leer [AGENTS.md](../AGENTS.md) y el
-[flujo de trabajo](../FLUJO_DE_TRABAJO.md) antes de pedir cambios a un agente.
+`FirebaseLab/` y `scripts/`. Leer [AGENTS.md](../../AGENTS.md) y el
+[flujo de trabajo](workflow.md) antes de pedir cambios a un agente.
 
 ## 2. Herramientas y versiones de referencia
 
@@ -95,7 +92,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Revisar JAVA_HOME.' }
 
 Usar esa terminal para Gradle; revisar también el Gradle JDK de Android Studio.
 Los runners de Firebase seleccionan Java 21 para sus hijos según los
-[requisitos de FirebaseLab](../FirebaseLab/README.md#requisitos).
+[requisitos de FirebaseLab](../../FirebaseLab/README.md#requisitos).
 Si la instalación de Android Studio tiene otra ruta, resolver ese bloqueo con el
 responsable antes de ejecutar pruebas; no modificar el runner durante el onboarding.
 
@@ -176,12 +173,14 @@ Confirmar que esa es también la base usada por OpenCode; no apuntarlo a la base
 de publicación. Pedir al agente que consulte `mem_current_project`: debe
 informar el workspace correcto y `ecosistema-el-burrito`, no guardar notas para
 adivinar la identidad. El lote inicial de fase 6.3 contiene 12 síntesis técnicas.
-Buscar, por ejemplo, «Monorepo con aplicaciones independientes» y contrastar sus fuentes.
+Buscar, por ejemplo, «Monorepo con aplicaciones independientes» y contrastar sus
+fuentes. Las rutas del lote inicial reflejan la estructura anterior; para ubicar
+los documentos trasladados, consultar el [mapa vigente](../AGENTS.md#7-mapa-de-documentos).
 
 No importar la base histórica de otro integrante ni volver a publicar el lote
 inicial. Repetir `Receive` no duplica un chunk ya procesado. No activar Cloud ni
 sincronización automática. Para aportar conocimiento nuevo, seguir la
-[publicación curada](../FLUJO_VERIFICACION_Y_CIERRE.md#memorias-técnicas-compartidas).
+[publicación curada](verification-and-closure.md#memorias-técnicas-compartidas).
 
 ## 5. Qué se comparte y qué debe prepararse localmente
 
@@ -197,18 +196,18 @@ sincronización automática. Para aportar conocimiento nuevo, seguir la
 No hace falta distribuir claves release para incorporarse. Si una compilación
 local exige material reservado, registrar el bloqueo y consultarlo; no cambiar
 la firma ni copiar claves para eludirlo. La
-[política de publicación](VERSIONADO_Y_PUBLICACION.md) define la entrega, no esta guía.
+[política de publicación](versioning-and-releases.md) define la entrega, no esta guía.
 
 ### Preparar cada aplicación
 
-- **User:** seguir [configuración y ejecución](../User/README.md#configuración-y-ejecución)
+- **El Burrito:** seguir [configuración y ejecución](../../User/README.md#configuración-y-ejecución)
   para Firebase Android y los nombres de variables Mapbox/Google.
-- **Driver:** seguir [setup](../Driver/README.md#setup); no requiere `.env`.
-- **AdminWeb:** completar solo los nombres previstos en
-  [variables de entorno](../AdminWeb/README.md#variables-de-entorno). Sus `VITE_*`
+- **PILOTO:** seguir [setup](../../Driver/README.md#setup); no requiere `.env`.
+- **CENTRAL:** completar solo los nombres previstos en
+  [variables de entorno](../../AdminWeb/README.md#variables-de-entorno). Sus `VITE_*`
   llegan al bundle; no colocar secretos de servidor.
 - **FirebaseLab y PULSO local:** utilizar cuentas y datos ficticios. El modo
-  `pulso-local` no carga el `.env` operativo. Abrir AdminWeb normalmente no lo
+  `pulso-local` no carga el `.env` operativo. Abrir CENTRAL normalmente no lo
   conecta automáticamente a los emuladores.
 
 Mantener la configuración de producción separada. Solicitar una cuenta de prueba
@@ -231,7 +230,7 @@ npm --prefix .\AdminWeb ci
 if ($LASTEXITCODE -ne 0) { throw 'Falló AdminWeb.' }
 npm --prefix .\AdminWeb\monitor\worker ci
 if ($LASTEXITCODE -ne 0) { throw 'Falló el Worker.' }
-npm --prefix .\FirebaseLab ci --cache .npm-cache --no-audit --no-fund
+npm --prefix .\FirebaseLab ci --cache (Join-Path $PWD.Path 'FirebaseLab\.npm-cache') --no-audit --no-fund
 if ($LASTEXITCODE -ne 0) { throw 'Falló FirebaseLab.' }
 ```
 
@@ -242,16 +241,16 @@ comprobar después que no aparecieron cambios de fuentes inesperados en Git.
 
 ## 7. Ejecutar y verificar los componentes
 
-Ejecutar cada procedimiento desde su carpeta. Los siguientes enlaces son la
+Respetar el directorio inicial indicado en cada procedimiento. Los siguientes enlaces son la
 fuente de comandos y fixtures; no se duplican aquí sus pasos completos.
 
 | Componente | Entrada de ejecución y verificación | Resultado que comprobar |
 |------------|------------------------------------|------------------------|
-| User | [Desarrollo local](../User/README.md#desarrollo-local) y [comandos](../User/README.md#comandos-de-desarrollo) | Metro y Android; tests, tipos y lint distinguiendo la [deuda conocida](LINT_DEBT.md). User no tiene script npm `typecheck`. |
-| Driver | [Scripts](../Driver/README.md#scripts) y [requisitos de plataforma](../Driver/README.md#requisitos-de-plataforma) | Metro, Android y suite Jest estándar; no reutilizar flags históricos. Un emulador no acredita GPS físico ni continuidad del servicio. |
-| AdminWeb | [Desarrollo](../AdminWeb/README.md#desarrollo) y [linting](../AdminWeb/README.md#linting) | Vite, lint y build; el build incluye tipos. El acceso real requiere un usuario autorizado; no deducir el rol por tener código. |
-| FirebaseLab | [Regresión de reglas](../FirebaseLab/README.md#ejecutar-la-regresión-de-reglas) e [integración Auth/RTDB](../FirebaseLab/README.md#integración-de-auth-y-rtdb) | Fixtures locales, reglas y login; el runner inicia y cierra emuladores y rechaza puertos ocupados. |
-| PULSO | [Desarrollo con memoria y Central](../AdminWeb/README.md#desarrollo-local-con-memoria-y-central) y [pruebas](../AdminWeb/README.md#pruebas-y-comprobaciones-previas) | Emuladores, Worker y Vite separados; integraciones API/pantalla con sus fixtures, tipos y tests del Worker. Actualizar solo consulta D1. |
+| El Burrito | [Desarrollo local](../../User/README.md#desarrollo-local) y [comandos](../../User/README.md#comandos-de-desarrollo) | Metro y Android; distinguir la [deuda de lint conocida](../diagnostics/lint-debt.md). |
+| PILOTO | [Scripts](../../Driver/README.md#scripts) y [requisitos de plataforma](../../Driver/README.md#requisitos-de-plataforma) | Un emulador no acredita GPS físico ni continuidad del servicio. |
+| CENTRAL | [Desarrollo](../../AdminWeb/README.md#desarrollo) y [linting](../../AdminWeb/README.md#linting) | El acceso real requiere un usuario autorizado; no deducir el rol por tener código. |
+| FirebaseLab | [Regresión de reglas](../../FirebaseLab/README.md#ejecutar-la-regresión-de-reglas) e [integración Auth/RTDB](../../FirebaseLab/README.md#integración-de-auth-y-rtdb) | Fixtures locales, reglas y login; el runner inicia y cierra emuladores y rechaza puertos ocupados. |
+| PULSO | [Desarrollo con memoria y CENTRAL](../../AdminWeb/README.md#desarrollo-local-con-memoria-y-central) y [pruebas](../../AdminWeb/README.md#pruebas-y-comprobaciones-previas) | Emuladores, Worker y Vite separados; integraciones API/pantalla con sus fixtures, tipos y tests del Worker. Actualizar solo consulta D1. |
 
 No iniciar todo a la vez: User y Driver requieren sesiones Metro separadas según
 la app elegida. Las integraciones API/pantalla de PULSO comparten puertos y se
@@ -267,8 +266,8 @@ la incorporación.
 ## 8. Primera tarea y confirmación de incorporación
 
 1. Acordar una tarea pequeña, responsable y criterios de aceptación; consultar
-   `MVP.md` y los bloqueos antes de elegirla. Una prueba de setup no cierra el MVP.
-2. Seguir la [preparación de una tarea](../FLUJO_DE_TRABAJO.md#preparación-de-una-tarea):
+   `../planning/mvp.md` y los bloqueos antes de elegirla. Una prueba de setup no cierra el MVP.
+2. Seguir la [preparación de una tarea](workflow.md#preparación-de-una-tarea):
    árbol limpio, `main` actualizado, memoria recibida y rama propia.
 3. Usar Plan para el análisis y Build después de aprobarlo. Invocar
    Gentle-Orchestrator solo si se solicita coordinación explícita. Las credenciales
@@ -277,7 +276,7 @@ la incorporación.
    el mismo PR. Si aparece conocimiento útil, proponer una síntesis para revisión;
    no exportar automáticamente todas las notas de la sesión.
 5. Pedir revisión a otro desarrollador y seguir el
-   [cierre e integración](../FLUJO_VERIFICACION_Y_CIERRE.md#revisión-humana-e-integración-del-pr).
+   [cierre e integración](verification-and-closure.md#revisión-humana-e-integración-del-pr).
    Un commit local no es una tarea integrada y un PR no autoriza un despliegue.
 
 La incorporación queda confirmada cuando el integrante puede recuperar contexto,

@@ -1,7 +1,7 @@
 # FirebaseLab — control local de permisos
 
-Laboratorio independiente de SYTHOR para el Ecosistema El Burrito. Forma parte
-del monorepo, pero no está conectado en ejecución a User, Driver ni AdminWeb.
+Laboratorio local de permisos del Ecosistema El Burrito. Forma parte del
+monorepo, pero no está conectado en ejecución a El Burrito, PILOTO ni CENTRAL.
 
 **Las reglas son locales y no están publicadas.** `database.rules.json` es la
 política ficticia de control. `rules/i03-choferes.rules.json` conserva la
