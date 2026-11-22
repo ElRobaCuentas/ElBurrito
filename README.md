@@ -2,9 +2,12 @@
   <h1><img src="docs/assets/portada.svg" alt="Ecosistema El Burrito. Transporte universitario para la UNMSM." width="960"></h1>
 
   <p>Desarrollado por</p>
-  <img src="docs/assets/well.gif" alt="well." width="180">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/well.gif">
+    <img src="docs/assets/well-light.gif" alt="well." width="200">
+  </picture>
 
-  <p>Información sobre el transporte universitario de la Universidad Nacional Mayor de San Marcos (UNMSM), al alcance de la comunidad estudiantil.</p>
+  <p>El bus universitario de San Marcos, en tiempo real.</p>
 
   <p><a href="#user-content-aplicacion">Aplicación</a> · <a href="#user-content-ecosistema">Ecosistema</a> · <a href="#user-content-desarrollo">Desarrollo</a></p>
 </div>
