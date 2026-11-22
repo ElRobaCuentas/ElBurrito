@@ -1,26 +1,76 @@
-# Ecosistema El Burrito
+<div align="center">
+  <img src="docs/assets/readme-title.gif" alt="El Burrito" width="640">
 
-Proyecto de transporte universitario de la Universidad Nacional Mayor de San Marcos (UNMSM), bajo la marca **well.** El monorepo reúne las aplicaciones, el monitor de seguimiento y la documentación compartida.
+  <h1>Ecosistema El Burrito</h1>
 
-## Productos
+  <img src="docs/assets/well.gif" alt="well." width="200">
 
-| Producto | Ubicación | Qué hace |
-|---|---|---|
-| [El Burrito](User/README.md) | `User/` | Permite a estudiantes consultar la ubicación del bus, la ruta y los paraderos. |
-| [PILOTO](Driver/README.md) | `Driver/` | Captura y transmite la ubicación del bus desde el dispositivo del conductor. |
-| [CENTRAL](AdminWeb/README.md) | `AdminWeb/` | Panel web para gestionar conductores, buses, asignaciones y administradores. |
-| [PULSO](docs/architecture/pulso.md) | `AdminWeb/monitor/` | Monitor de seguimiento que detecta y registra incidencias de la publicación de ubicación. |
+  <p>Transporte universitario con información al alcance de la comunidad estudiantil.</p>
+  <p>Un proyecto de seguimiento de buses para la Universidad Nacional Mayor de San Marcos (UNMSM), bajo la marca <strong>well.</strong></p>
+</div>
 
-## Estructura del monorepo
+<h2 align="center">El ecosistema</h2>
 
-Además de los directorios de producto, [FirebaseLab](FirebaseLab/README.md) contiene el laboratorio local de permisos de Firebase y `scripts/` reúne utilidades del equipo. `AGENTS.md`, `opencode.json` y `.gitignore` permanecen en la raíz.
+<table align="center">
+  <tr>
+    <td align="center" width="50%">
+      <strong><a href="User/README.md">El Burrito</a></strong><br>
+      Mapa, ruta y ubicación del bus para estudiantes.
+    </td>
+    <td align="center" width="50%">
+      <strong><a href="Driver/README.md">PILOTO</a></strong><br>
+      Captura y transmisión de ubicación desde el dispositivo del conductor.
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <strong><a href="AdminWeb/README.md">CENTRAL</a></strong><br>
+      Gestión de conductores, buses, asignaciones y administradores.
+    </td>
+    <td align="center" width="50%">
+      <strong><a href="docs/architecture/pulso.md">PULSO</a></strong><br>
+      Monitor operativo de las publicaciones de ubicación.
+    </td>
+  </tr>
+</table>
 
-| Documentación compartida | Punto de entrada |
-|---|---|
-| `docs/architecture/` | [Arquitectura del ecosistema](docs/architecture/overview.md) |
-| `docs/adr/` | [Índice de decisiones arquitectónicas](docs/adr/README.md) |
-| `docs/diagnostics/` | [Diagnóstico y problemas conocidos](docs/diagnostics/troubleshooting.md) |
-| `docs/engineering/` | [Incorporación al monorepo](docs/engineering/onboarding.md) |
-| `docs/planning/` | [Alcance y estado del MVP](docs/planning/mvp.md) |
+<h2 align="center">Tecnologías</h2>
 
-Para navegar por toda la documentación, consultar el [mapa de documentos](docs/AGENTS.md#7-mapa-de-documentos). El [flujo de trabajo](docs/engineering/workflow.md) y el [procedimiento de publicación](docs/engineering/versioning-and-releases.md) tienen sus propias guías. Las reglas para asistentes y la [nomenclatura oficial](AGENTS.md#2-terminología-obligatoria) están en `AGENTS.md`.
+<p align="center">
+  React Native · React · TypeScript · Firebase · Mapbox · Cloudflare Workers y D1
+</p>
+
+<h2 align="center">Estado del MVP</h2>
+
+<p align="center">
+  El núcleo está operativo y cuenta con pruebas físicas parciales.<br>
+  La validación de una jornada completa sigue pendiente.
+</p>
+
+<p align="center"><a href="docs/planning/mvp.md">Consultar alcance y estado del MVP</a></p>
+
+<h2 align="center">Monorepo</h2>
+
+```text
+User/              El Burrito · aplicación de estudiantes
+Driver/            PILOTO · aplicación de conductores
+AdminWeb/          CENTRAL · panel administrativo
+AdminWeb/monitor/  PULSO · monitor de seguimiento
+FirebaseLab/       Laboratorio local de permisos de Firebase
+docs/              Arquitectura, planificación y guías compartidas
+scripts/           Utilidades del equipo
+```
+
+<h2 align="center">Documentación y desarrollo</h2>
+
+<p align="center">
+  <a href="docs/architecture/overview.md">Arquitectura</a> ·
+  <a href="docs/adr/README.md">Decisiones</a> ·
+  <a href="docs/diagnostics/troubleshooting.md">Diagnóstico</a> ·
+  <a href="docs/engineering/onboarding.md">Incorporación</a> ·
+  <a href="docs/engineering/workflow.md">Flujo de trabajo</a> ·
+  <a href="FirebaseLab/README.md">FirebaseLab</a> ·
+  <a href="docs/AGENTS.md#7-mapa-de-documentos">Mapa de documentación</a>
+</p>
+
+<p align="center">Cada producto tiene su propia guía técnica y sus instrucciones de desarrollo.</p>
