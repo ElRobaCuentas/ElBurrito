@@ -195,7 +195,7 @@ Gestión contra RTDB:
 
 | Entidad | Path | Operaciones |
 |---------|------|-------------|
-| Choferes | `/choferes/{dni}` | Crear (Auth + RTDB + índice `/choferes_uids`), listar, editar, activar/desactivar (no se eliminan) |
+| Choferes | `/choferes/{dni}` | Crear (Auth + RTDB + índice `/choferes_uids`), listar, editar, activar/desactivar, eliminar (índice y perfil RTDB; sin cuenta Auth) |
 | Buses | `/buses/{placa}` | Crear e inicializar `/ubicacion_buses/{placa}`, listar, toggle, eliminar |
 | Asignaciones | `/asignaciones/{pushId}` | Crear para hoy/futuro con uno o varios turnos (valida mínimo 1, inicio < fin, mismo día, sin solape y los ordena), validar exclusividad conductor/fecha, listar, editar turnos (con la misma validación/orden) y cancelar |
 | Administradores | `/administradores/{uid}` | Crear (Auth + RTDB), listar, editar, eliminar (nodo) |
@@ -214,7 +214,8 @@ Límites de la operación administrativa:
 - `hasActiveOrFutureBusAssignment` se usa para bloquear la eliminación de un bus
   con asignación activa o futura; no participa del alta de asignaciones.
 - Desactivar un conductor no cancela sus asignaciones ni detiene su tracking.
-  No existe eliminación física habitual de conductores.
+- `deleteChofer` borra el índice y el perfil RTDB cuando no hay asignaciones
+  activas o futuras, pero no elimina la cuenta Auth.
 - Eliminar un administrador borra su nodo, no su cuenta de Authentication.
 - Crear un bus normaliza la placa y crea `/ubicacion_buses/{placa}` con
   `isActive:false`. Eliminarlo también elimina ese nodo.

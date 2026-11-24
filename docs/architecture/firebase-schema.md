@@ -155,8 +155,10 @@ conjunto. La escritura del índice es la última y es fail-closed: si falla, el
 conductor existe pero no puede publicar tracking hasta repararlo.
 
 Lectura: CENTRAL escucha la colección; el conductor indexado puede leer solo
-su propio `/choferes/{dni}`. No existe `deleteChofer`; desactivar solo cambia
-`activo`.
+su propio `/choferes/{dni}`. `toggleChoferStatus()` solo cambia `activo`.
+`deleteChofer(dni)` borra primero `/choferes_uids/{uid}` y después
+`/choferes/{dni}`; `hasActiveOrFutureChoferAssignment` lo bloquea si hay
+asignaciones activas o futuras. No elimina la cuenta Auth.
 
 ### `/choferes_uids/{uid}`
 
@@ -169,6 +171,7 @@ backfill para conductores preexistentes y lo escribe `createChofer()`.
 **La existencia en el índice significa “conductor registrado”, no “conductor
 activo”.** `toggleChoferStatus()` no elimina el índice; por tanto desactivar a
 un conductor no le revoca la autorización de escritura en tracking.
+`deleteChofer()` sí lo elimina al borrar el perfil y revoca esa autorización.
 
 ### `/buses/{placa}`
 

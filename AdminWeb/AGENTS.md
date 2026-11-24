@@ -144,11 +144,15 @@ turnos son datos administrativos dentro del mismo `asignacionId`:
 
 ### 5.9 Conductores y administradores
 
-- No existe `deleteChofer`: los conductores se desactivan con
-  `toggleChoferStatus(dni, false)` y se reactivan con `true`, sin crear una
-  cuenta nueva. Se conservan cuenta Auth, `uid`, `/choferes/{dni}` y
-  `/choferes_uids/{uid}`. No reintroduzcas la eliminación física como operación
-  habitual.
+- `toggleChoferStatus(dni, false)` desactiva al conductor y `true` lo reactiva
+  sin crear una cuenta nueva: conserva cuenta Auth, `uid`, `/choferes/{dni}` y
+  `/choferes_uids/{uid}`. Es la operación habitual.
+- `deleteChofer(dni)` permite la baja física desde `ChoferesScreen` previa
+  confirmación. `hasActiveOrFutureChoferAssignment` bloquea el borrado si hay
+  asignaciones activas o futuras. Borra primero `/choferes_uids/{uid}` y
+  después `/choferes/{dni}` (fail-closed); lee el `uid` de `/choferes/{dni}`,
+  nunca del índice (§5.3). No elimina la cuenta Auth: requiere Admin SDK y
+  queda fuera del panel, igual que `deleteAdmin`.
 - Desactivar **no** cancela asignaciones activas ni detiene por sí solo el
   tracking de PILOTO (que no consulta el flag `activo`). Es una limitación
   conocida; no modifiques PILOTO desde este panel.
@@ -180,5 +184,6 @@ No versionar `.env` (gitignored).
 - Auth gate intacto (login → verificación de rol → panel → logout).
 - Operaciones de Auth vía app temporal.
 - Convenciones de correo y validación de DNI sin cambios.
-- Sin `deleteChofer`; los conductores se desactivan.
+- `deleteChofer` bloquea asignaciones activas/futuras, borra índice y perfil y
+  no toca la cuenta Auth; desactivar sigue disponible.
 - Documentación sincronizada según `../AGENTS.md` §7.

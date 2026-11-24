@@ -30,6 +30,8 @@ export const ChoferesScreen = () => {
 
   const [toggleTarget, setToggleTarget] = useState<{ chofer: Chofer; next: boolean } | null>(null);
   const [toggling, setToggling] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Chofer | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const unsubscribe = AdminService.subscribeToChoferes(data => {
@@ -100,6 +102,26 @@ export const ChoferesScreen = () => {
       toast.success(next ? 'Conductor activado.' : 'Conductor desactivado.');
     } else {
       toast.error(`No se pudo ${next ? 'activar' : 'desactivar'} al conductor.`);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    const chofer = deleteTarget;
+    setDeleting(true);
+    try {
+      const tieneAsignacion = await AdminService.hasActiveOrFutureChoferAssignment(chofer.dni);
+      if (tieneAsignacion) {
+        toast.error('Este conductor tiene una asignación activa o programada. Cancélala primero.');
+        return;
+      }
+      await AdminService.deleteChofer(chofer.dni);
+      toast.success(`Conductor ${chofer.nombre} ${chofer.apellidos} eliminado.`);
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
     }
   };
 
@@ -184,6 +206,15 @@ export const ChoferesScreen = () => {
                   >
                     <Icon name="edit" size={16} />
                   </button>
+                  <button
+                    type="button"
+                    className="btn btn-icon btn-icon-danger"
+                    title="Eliminar"
+                    aria-label={`Eliminar a ${item.nombre} ${item.apellidos}`}
+                    onClick={() => setDeleteTarget(item)}
+                  >
+                    <Icon name="trash" size={16} />
+                  </button>
                 </div>
               </li>
             ))}
@@ -233,6 +264,17 @@ export const ChoferesScreen = () => {
         busy={toggling}
         onConfirm={handleToggle}
         onCancel={() => setToggleTarget(null)}
+      />
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Eliminar conductor"
+        message={`¿Eliminar a ${deleteTarget?.nombre} ${deleteTarget?.apellidos}? Se borrarán sus datos y su acceso al tracking. La cuenta de autenticación (${deleteTarget?.dni}@conductor.com) no se elimina: bórrala desde Firebase Console. Esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar"
+        danger
+        busy={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
       />
     </div>
   );

@@ -378,6 +378,19 @@ export const AdminService = {
     );
   },
 
+  // 5.1 Verificar si un conductor tiene asignación activa de hoy o futura
+  hasActiveOrFutureChoferAssignment: async (dni: string): Promise<boolean> => {
+    const today = AdminService.getTodayDateString();
+    const snapshot = await get(ref(firebaseDatabase, ASIGNACIONES_PATH));
+    if (!snapshot.exists()) return false;
+    const data = snapshot.val() as Record<string, Asignacion>;
+    return Object.values(data).some(
+      (a: Asignacion) => a.choferId === dni
+        && a.activo === true
+        && isDateOnOrAfter(a.fecha, today),
+    );
+  },
+
   // 6. Editar conductor (nombre y apellidos)
   updateChofer: async (dni: string, data: { nombre: string; apellidos: string }) => {
     await update(ref(firebaseDatabase, `${CHOFERES_PATH}/${dni}`), {
@@ -391,6 +404,20 @@ export const AdminService = {
   deleteBus: async (placa: string) => {
     await remove(ref(firebaseDatabase, `${BUSES_PATH}/${placa}`));
     await remove(ref(firebaseDatabase, `/ubicacion_buses/${placa}`));
+    return true;
+  },
+
+  // 7.1 Eliminar conductor (RTDB: índice uid→DNI y perfil; la cuenta Auth queda)
+  deleteChofer: async (dni: string) => {
+    const choferRef = ref(firebaseDatabase, `${CHOFERES_PATH}/${dni}`);
+    const snapshot = await get(choferRef);
+    if (!snapshot.exists()) throw new Error('El conductor ya no existe.');
+
+    const chofer = snapshot.val() as Pick<Chofer, 'uid'>;
+    if (chofer.uid) {
+      await remove(ref(firebaseDatabase, `${CHOFERES_UIDS_PATH}/${chofer.uid}`));
+    }
+    await remove(choferRef);
     return true;
   },
 
