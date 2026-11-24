@@ -190,8 +190,9 @@ contra borrar un bus con asignación activa/futura está en la pantalla
 ### `/asignaciones/{pushId}`
 
 Relación diaria conductor↔bus. CENTRAL escucha la colección y filtra por
-fecha; crea, cancela y edita turnos. PILOTO solo lee. La lectura del
-conductor está limitada a su propio `choferId` mediante consulta indexada.
+fecha; crea y cancela asignaciones, y edita turnos. PILOTO solo lee. La
+lectura del conductor está limitada a su propio `choferId` mediante consulta
+indexada.
 El alta exige una sesión activa en el servicio; `updateTurnos()` no repite esa
 comprobación. La autorización real de escritura la impone la regla admin.
 
@@ -203,12 +204,7 @@ comprobación. La autorización real de escritura la impone la regla admin.
       "busId": "ABC-123",
       "fecha": "2025-06-09",
       "activo": true,
-      "turnos": [
-        { "inicio": 420, "fin": 480 },
-        { "inicio": 1140, "fin": 1260 }
-      ],
-      "horaInicio": 420,
-      "horaFin": 480,
+      "turnos": [],
       "createdAt": 1776948195000,
       "createdBy": "jDhveoruZpgX5ZksfrWd5qcrDcp1"
     }
@@ -222,17 +218,18 @@ comprobación. La autorización real de escritura la impone la regla admin.
 | `busId` | string | Placa; coincide con `/buses` |
 | `fecha` | string | `YYYY-MM-DD` en `America/Lima`; alta solo hoy o futuro |
 | `activo` | boolean | Asignación vigente; cancelar solo lo pone en `false` |
-| `turnos` | array | Fuente de verdad; intervalos `{ inicio, fin }` en minutos |
-| `horaInicio` | number | Legacy: espejo de `turnos[0].inicio` |
-| `horaFin` | number | Legacy: espejo de `turnos[0].fin` |
+| `turnos` | array | Fuente de verdad; el alta guarda `[]` y `updateTurnos()` lo rellena con `{ inicio, fin }` en minutos |
+| `horaInicio` | number | Legacy: espejo de `turnos[0].inicio`; ausente en el alta |
+| `horaFin` | number | Legacy: espejo de `turnos[0].fin`; ausente en el alta |
 | `createdAt` | number | Unix ms de creación; se muestra en la UI |
 | `createdBy` | string | UID del admin creador (coincide con `/administradores`); auditoría, no autorización |
 
-**Turnos.** Mínimo uno; `inicio < fin`; sin cruzar medianoche; sin
-solapamientos; ordenados; consecutivos o separados permitidos. Editar turnos
-actualiza `turnos`, `horaInicio` y `horaFin`, y solo se permite en asignaciones
-existentes y activas. Los turnos son informativos y no inician ni detienen el
-tracking.
+**Turnos.** El alta guarda `turnos: []` y no escribe `horaInicio`/`horaFin`;
+la UI muestra «Sin horario». `updateTurnos()` exige mínimo un turno,
+`inicio < fin`, sin cruzar medianoche, sin solapamientos y ordenados;
+consecutivos o separados permitidos. Editar turnos actualiza `turnos`,
+`horaInicio` y `horaFin`, y solo se permite en asignaciones existentes y
+activas. Los turnos son informativos y no inician ni detienen el tracking.
 
 **Exclusividad.** `createAsignacion()` lee la colección y rechaza si el mismo
 conductor ya tiene una asignación activa para la fecha. Es una validación
@@ -241,11 +238,12 @@ reglas**: dos altas concurrentes podrían duplicar. No valida que el bus esté
 libre; varios conductores pueden compartir bus. `hasActiveOrFutureBusAssignment`
 solo protege el borrado de buses desde la pantalla.
 
-**Compatibilidad.** Registros anteriores al multi-turno pueden carecer de
-`turnos`; `getTurnos()` usa `horaInicio`/`horaFin` como un único turno si
-forman un intervalo válido. Pueden faltar `createdAt`/`createdBy`; la UI
-muestra `createdAt` condicionalmente y hoy no renderiza `createdBy`. No hay
-migración masiva.
+**Compatibilidad.** El alta actual guarda `turnos: []` y los registros
+anteriores al multi-turno pueden carecer de `turnos`; `getTurnos()` usa
+`horaInicio`/`horaFin` como un único turno si forman un intervalo válido. Si no
+hay ninguno, la UI muestra «Sin horario». Pueden faltar `createdAt`/`createdBy`;
+la UI muestra `createdAt` condicionalmente y hoy no renderiza `createdBy`. No
+hay migración masiva.
 
 **I08.** PILOTO valida al montar y al pulsar INICIAR con
 `orderByChild('choferId').equalTo(dni)` y la fecha Lima del momento. Una

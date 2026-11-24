@@ -31,7 +31,6 @@ export const AsignacionesScreen = () => {
   const [createFecha, setCreateFecha] = useState(today);
   const [selectedChofer, setSelectedChofer] = useState<string | null>(null);
   const [selectedBus, setSelectedBus] = useState<string | null>(null);
-  const [createTurnos, setCreateTurnos] = useState<TurnoDraft[]>(() => [createTurnoDraft()]);
   const [creating, setCreating] = useState(false);
 
   const [editTarget, setEditTarget] = useState<Asignacion | null>(null);
@@ -99,20 +98,13 @@ export const AsignacionesScreen = () => {
       return;
     }
 
-    const { turnos, error: turnosError } = parseTurnos(createTurnos);
-    if (turnosError) {
-      toast.error(turnosError);
-      return;
-    }
-
     setCreating(true);
     try {
-      await AdminService.createAsignacion(selectedChofer, selectedBus, fecha, turnos);
+      await AdminService.createAsignacion(selectedChofer, selectedBus, fecha);
       toast.success('Asignación creada.');
       setSelectedFecha(fecha);
       setSelectedChofer(null);
       setSelectedBus(null);
-      setCreateTurnos([createTurnoDraft()]);
     } catch (error) {
       toast.error((error as Error).message);
     } finally {
@@ -326,18 +318,6 @@ export const AsignacionesScreen = () => {
                 ))}
               </div>
             )}
-          </div>
-
-          <div>
-            <div className="step-label">
-              <span className="step-num">4</span> ¿A qué hora?
-            </div>
-            <TurnosEditor
-              idPrefix="crear-horarios"
-              value={createTurnos}
-              onChange={setCreateTurnos}
-              disabled={creating}
-            />
           </div>
         </div>
           <Button onClick={handleCreate} disabled={creating}>

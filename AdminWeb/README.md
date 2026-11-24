@@ -87,7 +87,7 @@ completo se mantiene en la [arquitectura compartida](../docs/architecture/overvi
 
 | Módulo | Ruta | Descripción |
 |--------|------|-------------|
-| **Asignaciones** | `/` (`/asignaciones` redirige) | Formulario de creación y listado por fecha con horarios, placa, conductor y fecha de creación cuando está disponible. Permite editar horarios o cancelar asignaciones |
+| **Asignaciones** | `/` (`/asignaciones` redirige) | Formulario de creación con día, conductor y bus; listado por fecha que muestra «Sin horario» hasta editarlo. Permite editar horarios o cancelar asignaciones |
 | **Choferes** | `/choferes` | Crear, listar, editar y activar/desactivar conductores. Desactivar conserva su cuenta y su historial (no se elimina). Cada creación genera una cuenta Firebase Auth (`{dni}@conductor.com`) y el nodo en `/choferes/{dni}` |
 | **Buses** | `/buses` | Crear, listar, activar/desactivar y eliminar buses. Al crear, se inicializa `/ubicacion_buses/{placa}` con `isActive: false` |
 | **Administradores** | `/admins` | Crear, editar y retirar el acceso administrativo. Crear genera cuenta Firebase Auth (`{dni}@admin.com`) y nodo en `/administradores/{uid}`. Retirar acceso borra solo el nodo RTDB; la cuenta Auth se elimina manualmente en Firebase Console |
@@ -95,8 +95,8 @@ completo se mantiene en la [arquitectura compartida](../docs/architecture/overvi
 ### Asignaciones y turnos
 
 - Una asignación activa por conductor + fecha; un solo bus.
-- `turnos` es un array de intervalos `{ inicio, fin }` en minutos; mínimo uno, mismo día, sin solapamientos y ordenado.
-- `horaInicio`/`horaFin` se mantienen como espejo del primer turno para compatibilidad.
+- El alta guarda `turnos: []`; `updateTurnos()` rellena el array con intervalos `{ inicio, fin }` en minutos: mínimo uno, mismo día, sin solapamientos y ordenado.
+- `horaInicio`/`horaFin` se mantienen como espejo del primer turno en registros editados o antiguos; el alta no los escribe.
 - Los turnos no inician ni detienen el tracking del conductor; el conductor sigue usando el bus asignado.
 - Al crear no se comprueba que el bus esté libre; sí se bloquea su eliminación si tiene una asignación activa o futura.
 

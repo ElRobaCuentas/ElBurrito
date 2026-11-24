@@ -30,7 +30,7 @@ El MVP de El Burrito estará terminado cuando **un conductor pueda operar un bus
 |-----|------------------|------------------|
 | Conductor | Iniciar sesión, obtener su asignación automáticamente, comenzar el recorrido, enviar ubicación durante horas sin detenerse, recuperarse de pérdidas temporales de red, finalizar correctamente | Abrir Firebase Console, reiniciar la app, intervención técnica |
 | Estudiante | Iniciar sesión, ver el mapa, ver el bus correctamente, ver posición actualizada en tiempo real, ver estado real del servicio (en ruta/detenido/sin señal), no bloquearse durante el uso | Contactar al desarrollador, recargar datos |
-| Administrador | Crear conductores, crear buses, crear asignaciones para hoy o fechas futuras (uno o varios turnos), mantener operativo el sistema | Editar Firebase Console, escribir código |
+| Administrador | Crear conductores, crear buses, crear asignaciones para hoy o fechas futuras sin horario y editarlo después, mantener operativo el sistema | Editar Firebase Console, escribir código |
 
 ### Operación durante la jornada
 
@@ -121,7 +121,7 @@ El MVP se considera cerrado cuando:
 2. [ ] El tracking se mantiene activo durante toda la jornada (pantalla apagada, app minimizada, tareas de Android).
 3. [ ] Al finalizar, el conductor detiene el servicio y el bus desaparece del mapa estudiantil.
 4. [ ] Un estudiante puede iniciar sesión (email o Google), ver el mapa y ver el bus en tiempo real con su estado (en ruta/detenido/sin señal).
-5. [ ] Un administrador puede crear conductores, buses y asignaciones para hoy o fechas futuras con uno o varios turnos desde el panel.
+5. [ ] Un administrador puede crear conductores, buses y asignaciones para hoy o fechas futuras sin horario desde el panel y editarlo después.
 6. [ ] El sistema se recupera de pérdidas temporales de red sin intervención.
 7. [ ] No hay secretos ni credenciales expuestas en el repositorio (verificado 22/08).
 

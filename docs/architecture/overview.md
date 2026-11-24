@@ -197,7 +197,7 @@ Gestión contra RTDB:
 |---------|------|-------------|
 | Choferes | `/choferes/{dni}` | Crear (Auth + RTDB + índice `/choferes_uids`), listar, editar, activar/desactivar, eliminar (índice y perfil RTDB; sin cuenta Auth) |
 | Buses | `/buses/{placa}` | Crear e inicializar `/ubicacion_buses/{placa}`, listar, toggle, eliminar |
-| Asignaciones | `/asignaciones/{pushId}` | Crear para hoy/futuro con uno o varios turnos (valida mínimo 1, inicio < fin, mismo día, sin solape y los ordena), validar exclusividad conductor/fecha, listar, editar turnos (con la misma validación/orden) y cancelar |
+| Asignaciones | `/asignaciones/{pushId}` | Crear para hoy/futuro sin horario (`turnos: []`), validar exclusividad conductor/fecha, listar, editar turnos (mínimo 1, inicio < fin, mismo día, sin solape y ordenados) y cancelar |
 | Administradores | `/administradores/{uid}` | Crear (Auth + RTDB), listar, editar, eliminar (nodo) |
 
 Al crear cuentas de Auth, `admin_service.ts` usa una **app temporal por

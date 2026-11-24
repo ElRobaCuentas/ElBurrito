@@ -117,8 +117,9 @@ usa el proxy `/api/pulso`. Si agregás una variable, sumala ahí y al
 ### 5.7 Asignaciones
 
 `createAsignacion` valida que el conductor no tenga otra asignación activa
-**para la misma fecha** (hoy o futura) y que los turnos sean válidos. **No**
-valida que el bus esté libre: varios conductores pueden usar el mismo bus.
+**para la misma fecha** (hoy o futura). No valida turnos: el alta guarda
+`turnos: []` y no escribe `horaInicio`/`horaFin`. **No** valida que el bus
+esté libre: varios conductores pueden usar el mismo bus.
 `hasActiveOrFutureBusAssignment` solo se usa en `BusesScreen` para bloquear la
 eliminación de un bus con asignación activa o futura; no está conectado al alta.
 No afirmes ni documentes una validación de bus que el código no ejecuta.
@@ -133,9 +134,11 @@ turnos son datos administrativos dentro del mismo `asignacionId`:
 `turnos: [{ inicio, fin }]`, en minutos desde medianoche.
 
 - `turnos` es la fuente de verdad; `horaInicio`/`horaFin` se conservan como
-  espejo del primer turno por compatibilidad con registros viejos.
-- Mínimo un turno, `inicio < fin`, mismo día (sin cruzar medianoche), sin
-  solapamientos y ordenados. Consecutivos y separados están permitidos.
+  espejo del primer turno por compatibilidad con registros viejos. El alta no
+  carga turnos y la lista muestra «Sin horario» hasta que se editen.
+- `updateTurnos()` exige mínimo un turno, `inicio < fin`, mismo día (sin cruzar
+  medianoche), sin solapamientos y ordenados. Consecutivos y separados están
+  permitidos.
 - Editar turnos usa `updateTurnos()` sobre el mismo nodo; no crees otra
   asignación.
 - La unicidad sigue siendo una asignación activa por conductor + fecha.

@@ -272,7 +272,6 @@ export const AdminService = {
     choferId: string,
     busId: string,
     fecha: string,
-    turnos: Turno[],
   ) => {
     const fechaNormalizada = fecha.trim();
     if (!isValidDateString(fechaNormalizada)) {
@@ -283,12 +282,6 @@ export const AdminService = {
     if (!isDateOnOrAfter(fechaNormalizada, today)) {
       throw new Error('No se pueden crear asignaciones para fechas anteriores a hoy.');
     }
-
-    const errorTurnos = validateTurnos(turnos);
-    if (errorTurnos) throw new Error(errorTurnos);
-
-    const turnosOrdenados = sortTurnos(turnos);
-    const primerTurno = turnosOrdenados[0];
 
     const dbRef = ref(firebaseDatabase, ASIGNACIONES_PATH);
 
@@ -314,9 +307,7 @@ export const AdminService = {
       busId,
       fecha: fechaNormalizada,
       activo: true,
-      turnos: turnosOrdenados,
-      horaInicio: primerTurno.inicio,
-      horaFin: primerTurno.fin,
+      turnos: [],
       createdAt: Date.now(),
       createdBy: adminUid,
     });
