@@ -23,6 +23,10 @@
       ".write": "auth != null && root.child('administradores').child(auth.uid).exists()",
       ".indexOn": ["choferId"]
     },
+    "directorio_choferes": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('administradores').child(auth.uid).exists()"
+    },
     "ubicacion_buses": {
       ".read": true,
       ".write": "auth != null && (root.child('administradores').child(auth.uid).exists() || root.child('choferes_uids').child(auth.uid).exists())"

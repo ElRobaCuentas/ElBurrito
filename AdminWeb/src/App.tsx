@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
 import { firebaseAuth } from './shared/config/firebase';
 import { existeAdministrador } from './features/admin/services/admin_check';
+import { AdminService } from './features/admin/services/admin_service';
 import { LoginScreen } from './screen/LoginScreen';
 import { AdminNavigator } from './navigation/AdminNavigator';
 import { Button } from './shared/ui/Button';
@@ -37,6 +38,11 @@ const App = () => {
     });
     return unsubscribe;
   }, [verificarRol]);
+
+  useEffect(() => {
+    if (role !== 'admin') return;
+    return AdminService.startDirectorioChoferesSync();
+  }, [role]);
 
   const handleReintentar = () => {
     if (user) void verificarRol(user);

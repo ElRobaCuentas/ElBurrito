@@ -58,6 +58,31 @@ const BUSES_PATH = '/buses';
 const ASIGNACIONES_PATH = '/asignaciones';
 const CHOFERES_UIDS_PATH = '/choferes_uids';
 const ADMINISTRADORES_PATH = '/administradores';
+const DIRECTORIO_CHOFERES_PATH = '/directorio_choferes';
+
+type EntradaDirectorio = { nombre: string; apellidos: string };
+type DirectorioChoferes = Record<string, Record<string, EntradaDirectorio>>;
+
+const buildDirectorioChoferes = (
+  asignaciones: Record<string, Asignacion>,
+  choferes: Record<string, Chofer>,
+  desde: string,
+): DirectorioChoferes => {
+  const directorio: DirectorioChoferes = {};
+  Object.values(asignaciones).forEach(asignacion => {
+    if (!asignacion || asignacion.activo !== true) return;
+    if (typeof asignacion.fecha !== 'string' || !isDateOnOrAfter(asignacion.fecha, desde)) return;
+    if (typeof asignacion.choferId !== 'string') return;
+    const chofer = choferes[asignacion.choferId];
+    if (!chofer || typeof chofer.nombre !== 'string' || typeof chofer.apellidos !== 'string') return;
+    if (!directorio[asignacion.fecha]) directorio[asignacion.fecha] = {};
+    directorio[asignacion.fecha][asignacion.choferId] = {
+      nombre: chofer.nombre,
+      apellidos: chofer.apellidos,
+    };
+  });
+  return directorio;
+};
 
 export const AdminService = {
   // ============================
@@ -265,6 +290,54 @@ export const AdminService = {
       },
     );
     return unsubscribe;
+  },
+
+  startDirectorioChoferesSync: () => {
+    let asignaciones: Record<string, Asignacion> | null = null;
+    let choferes: Record<string, Chofer> | null = null;
+    const fechasPublicadas = new Set<string>();
+
+    const publicar = () => {
+      if (!asignaciones || !choferes) return;
+      const directorio = buildDirectorioChoferes(
+        asignaciones, choferes, AdminService.getTodayDateString(),
+      );
+      const fechas = new Set([...fechasPublicadas, ...Object.keys(directorio)]);
+      fechas.forEach(fecha => {
+        void set(
+          ref(firebaseDatabase, `${DIRECTORIO_CHOFERES_PATH}/${fecha}`),
+          directorio[fecha] ?? {},
+        ).catch(error => console.error('[Directorio de choferes] No se pudo publicar:', error));
+      });
+      fechasPublicadas.clear();
+      Object.keys(directorio).forEach(fecha => fechasPublicadas.add(fecha));
+    };
+
+    const unsubscribeAsignaciones = onValue(
+      ref(firebaseDatabase, ASIGNACIONES_PATH),
+      snapshot => {
+        asignaciones = snapshot.exists()
+          ? snapshot.val() as Record<string, Asignacion>
+          : {};
+        publicar();
+      },
+      error => console.error('[Firebase Error - Directorio de choferes]:', error),
+    );
+    const unsubscribeChoferes = onValue(
+      ref(firebaseDatabase, CHOFERES_PATH),
+      snapshot => {
+        choferes = snapshot.exists()
+          ? snapshot.val() as Record<string, Chofer>
+          : {};
+        publicar();
+      },
+      error => console.error('[Firebase Error - Directorio de choferes]:', error),
+    );
+
+    return () => {
+      unsubscribeAsignaciones();
+      unsubscribeChoferes();
+    };
   },
 
   // 3. Crear Asignación

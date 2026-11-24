@@ -337,3 +337,24 @@ test('T23 - La consulta filtrada no habilita lecturas individuales directas', as
   await assertFails(db.ref('/asignaciones/asig-carlos-hoy').once('value'));
   await assertFails(db.ref('/asignaciones/asig-luis-hoy').once('value'));
 });
+
+test('T24 - Administrador publica el directorio de choferes del día', async () => {
+  const db = database(environment.authenticatedContext(ADMIN_UID));
+  const entrada = { nombre: 'Carlos', apellidos: 'Ficticio' };
+  await assertSucceeds(db.ref(`/directorio_choferes/${TODAY}/${CARLOS_DNI}`).set(entrada));
+  const snapshot = await assertSucceeds(db.ref(`/directorio_choferes/${TODAY}`).once('value'));
+  assert.deepEqual(snapshot.val(), { [CARLOS_DNI]: entrada });
+});
+
+test('T25 - Conductor lee el directorio del día pero no puede modificarlo', async () => {
+  const db = database(environment.authenticatedContext(CARLOS_UID));
+  await assertSucceeds(db.ref(`/directorio_choferes/${TODAY}`).once('value'));
+  await assertFails(db.ref(`/directorio_choferes/${TODAY}/${LUIS_DNI}`).set({
+    nombre: 'Luis', apellidos: 'Ficticio',
+  }));
+});
+
+test('T26 - Usuario no autenticado no lee el directorio del día', async () => {
+  const db = database(environment.unauthenticatedContext());
+  await assertFails(db.ref(`/directorio_choferes/${TODAY}`).once('value'));
+});
