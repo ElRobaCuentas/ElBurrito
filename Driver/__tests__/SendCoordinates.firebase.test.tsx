@@ -44,6 +44,7 @@ type PositionCallback = (position: {
 const position = {
   coords: {latitude: -12.058, longitude: -77.084, heading: null, speed: null},
 };
+const rosterData = {'12345678': {nombre: 'Chofer', apellidos: 'De Prueba'}};
 const epoch = new Date(2026, 9, 30, 9).getTime();
 
 describe('I01: tarea real GPS → servicio Firebase → diagnóstico', () => {
@@ -59,6 +60,14 @@ describe('I01: tarea real GPS → servicio Firebase → diagnóstico', () => {
       .map(([, payload]) => payload.t as string);
   const successes = () => messages().filter(text => text.includes('Publicación de ubicación confirmada'));
   const failures = () => messages().filter(text => text.includes('FALLO FIREBASE'));
+  const selectChofer = async () => {
+    const opcion = renderer.root.findAll(node =>
+      typeof node.props?.accessibilityLabel === 'string' &&
+      node.props.accessibilityLabel.startsWith('Seleccionar a '),
+    )[0];
+    if (!opcion) throw new Error('No hay chofer seleccionable');
+    await act(async () => { opcion.props.onPress(); });
+  };
 
   beforeEach(async () => {
     jest.useFakeTimers();
@@ -79,11 +88,19 @@ describe('I01: tarea real GPS → servicio Firebase → diagnóstico', () => {
         }),
       }),
     );
-    mockRef.mockReset().mockImplementation(() => ({
-      once: mockOnce,
-      update: mockUpdate,
-      orderByChild: () => ({equalTo: () => ({once: mockOnce})}),
-    }));
+    mockRef.mockReset().mockImplementation((path: string) => {
+      if (path.startsWith('/directorio_choferes/')) {
+        return {
+          on: (_event: string, callback: (snapshot: unknown) => void) => callback({val: () => rosterData}),
+          off: () => {},
+        };
+      }
+      return {
+        once: mockOnce,
+        update: mockUpdate,
+        orderByChild: () => ({equalTo: () => ({once: mockOnce})}),
+      };
+    });
     jest.mocked(BackgroundJob.isRunning).mockReturnValue(false);
     jest.mocked(BackgroundJob.start).mockReset().mockImplementation(async () => {});
     jest.mocked(Geolocation.watchPosition).mockReset().mockReturnValue(7);
@@ -99,6 +116,7 @@ describe('I01: tarea real GPS → servicio Firebase → diagnóstico', () => {
     await act(async () => {
       renderer = TestRenderer.create(<SendCoordinates driverDni="12345678" />);
     });
+    await selectChofer();
     let start = renderer.root.findByProps({children: 'INICIAR RECORRIDO'});
     while (typeof start.props.onPress !== 'function') {
       if (!start.parent) throw new Error('Botón INICIAR RECORRIDO no encontrado');

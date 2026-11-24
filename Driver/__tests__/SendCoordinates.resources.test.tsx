@@ -37,6 +37,7 @@ type HeadlessTask = () => Promise<void>;
 const position = {
   coords: {latitude: -12.058, longitude: -77.084, heading: null, speed: null},
 };
+const rosterData = {'12345678': {nombre: 'Chofer', apellidos: 'De Prueba'}};
 type Watch = {
   position: (value: typeof position) => Promise<void>;
   error: (value: {message: string}) => void;
@@ -79,6 +80,17 @@ describe('I07 Paso 2: recursos reales de locationTask con wrapper JS real', () =
     }
     return node.props.onPress;
   };
+  const selectChofer = async (required = true) => {
+    const opcion = renderer.root.findAll(node =>
+      typeof node.props?.accessibilityLabel === 'string' &&
+      node.props.accessibilityLabel.startsWith('Seleccionar a '),
+    )[0];
+    if (!opcion) {
+      if (required) throw new Error('No hay chofer seleccionable');
+      return;
+    }
+    await act(async () => { opcion.props.onPress(); });
+  };
   const invoke = async (callback: Action) => {
     let operation!: Promise<void>;
     await act(async () => {
@@ -89,6 +101,7 @@ describe('I07 Paso 2: recursos reales de locationTask con wrapper JS real', () =
     return {operation};
   };
   const start = async () => {
+    await selectChofer(false);
     const result = await invoke(action('INICIAR RECORRIDO'));
     lastStop = action('DETENER RECORRIDO');
     return result;
@@ -158,8 +171,17 @@ describe('I07 Paso 2: recursos reales de locationTask con wrapper JS real', () =
         val: () => ({fecha: '2026-10-30', activo: true, busId: 'AHK-459'}),
       }),
     });
-    mockRef.mockReset().mockReturnValue({
-      once, orderByChild: () => ({equalTo: () => ({once})}),
+    mockRef.mockReset().mockImplementation((path: string) => {
+      if (path.startsWith('/directorio_choferes/')) {
+        return {
+          on: (_event: string, callback: (snapshot: unknown) => void) => callback({val: () => rosterData}),
+          off: () => {},
+        };
+      }
+      return {
+        once,
+        orderByChild: () => ({equalTo: () => ({once})}),
+      };
     });
     jest.spyOn(PermissionsAndroid, 'request').mockResolvedValue(PermissionsAndroid.RESULTS.GRANTED);
     jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -178,6 +200,7 @@ describe('I07 Paso 2: recursos reales de locationTask con wrapper JS real', () =
     await act(async () => {
       renderer = TestRenderer.create(<SendCoordinates driverDni="12345678" />);
     });
+    await selectChofer();
   }, 15000); // Presupuesto del arranque en frío de React Native, no espera del motor.
 
   afterEach(async () => {

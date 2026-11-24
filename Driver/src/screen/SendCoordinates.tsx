@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     AppState, PermissionsAndroid, Platform,
     Pressable, StyleSheet, Text, View, ScrollView,
-    DeviceEventEmitter, Alert, Linking, ActivityIndicator, useWindowDimensions
+    DeviceEventEmitter, Alert, Linking, ActivityIndicator
 } from 'react-native';
 // T11: Importamos las nuevas funciones dinámicas y la base de datos
 import { updateBusLocation, stopBusService } from '../services/firebase_service';
@@ -40,7 +40,6 @@ const WATCHDOG_INTERVAL_MS = 10000;
 const HEARTBEAT_INTERVAL_MS = 8000;
 
 // C4.3: Timeout y reintentos al cargar la asignación.
-// El timeout cubre el intento COMPLETO (lectura de chofer + lectura de asignación).
 const ASSIGNMENT_TIMEOUT_MS = 10000;
 const ASSIGNMENT_RETRIES = 2;
 const ASSIGNMENT_RETRY_PAUSE_MS = 1500;
@@ -59,6 +58,12 @@ interface DailyAssignment {
     date: string;
     busId: string;
     assignmentId: string;
+}
+
+interface ChoferDelDia {
+    dni: string;
+    nombre: string;
+    apellidos: string;
 }
 
 const queryDailyAssignment = async (driverDni: string) => {
@@ -323,8 +328,6 @@ export const SendCoordinates = ({ driverDni }: Props) => {
     const [isStarting, setIsStarting] = useState(trackingIntent.starting !== null || trackingIntent.restarting !== null);
     const [isStopping, setIsStopping] = useState(trackingIntent.stopping !== null);
     const [stopFailed, setStopFailed] = useState(trackingIntent.stopFailed);
-    const [logs, setLogs] = useState<any[]>([]);
-    const [pausedLogs, setPausedLogs] = useState<any[] | null>(null);
     
     // C3: Estado del watchdog de reinicio automático
     const lastPulseRef = useRef(0);
@@ -332,9 +335,9 @@ export const SendCoordinates = ({ driverDni }: Props) => {
     
     // T11: Nuevos estados para la auto-asignación
     const [busId, setBusId] = useState<string | null>(null);
-    const [asignacionId, setAsignacionId] = useState<string | null>(null);
     const [loadingAssignment, setLoadingAssignment] = useState(true);
-    const [driverName, setDriverName] = useState<string | null>(null);
+    const [choferesDelDia, setChoferesDelDia] = useState<ChoferDelDia[]>([]);
+    const [selectedDriverDni, setSelectedDriverDni] = useState<string | null>(null);
 
     // C4.3: Estados y guards de la carga de asignación
     const [assignmentError, setAssignmentError] = useState(false);
@@ -346,15 +349,9 @@ export const SendCoordinates = ({ driverDni }: Props) => {
     const assignmentDriverRef = useRef(driverDni);
     assignmentDriverRef.current = driverDni;
 
-    const [showDebug, setShowDebug] = useState(false);
-    const { width: viewportWidth, fontScale } = useWindowDimensions();
-    const stackInfoRows = viewportWidth < 360 || fontScale > 1.25;
-
     // C4.3: Carga de la asignación con timeout por intento completo y reintento acotado.
-    // Cada i ntento corre dentro de ASSIGNMENT_TIMEOUT_MS y cubre ambas lecturas de Firebase
-    // (chofer + asignación) con un solo reloj. El guard de generación (fetchGenRef) ignora
-    // respuestas tardías de un intento vencido para que no sobrescriban un ciclo más nuevo
-    // (Promise.race no cancela la consulta, solo deja de esperarla).
+    // El guard de generación (fetchGenRef) ignora respuestas tardías de un intento vencido
+    // para que no sobrescriban un ciclo más nuevo.
     const loadAssignment = useCallback(async () => {
         if (isLoadingAssignmentRef.current) return;
         isLoadingAssignmentRef.current = true;
@@ -372,37 +369,11 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                     if (gen !== fetchGenRef.current) return;
                 }
                 try {
-                    const r = await withTimeout((async () => {
-                        let name: string | null = null;
-                        try {
-                            const choferSnapshot = await database().ref(`/choferes/${driverDni}`).once('value');
-                            if (choferSnapshot.exists()) {
-                                const chofer = choferSnapshot.val();
-                                name = `${chofer.nombre} ${chofer.apellidos}`.trim();
-                            }
-                        } catch (e: any) {
-                            // El nombre es opcional: su fallo no debe tumbar el intento.
-                            // Se loguea solo si este intento sigue siendo el actual.
-                            if (gen === fetchGenRef.current) {
-                                sendLog(`❌ Error consultando nombre del conductor: ${e.message}`, "error");
-                            }
-                        }
-
-                        const result = await queryDailyAssignment(driverDni);
-                        return { name, ...result };
-                    })(), ASSIGNMENT_TIMEOUT_MS);
+                    const r = await withTimeout(queryDailyAssignment(driverDni), ASSIGNMENT_TIMEOUT_MS);
 
                     if (gen !== fetchGenRef.current || assignmentDriverRef.current !== driverDni) return;
-                    // Resultado aplicado solo si seguimos siendo la generación actual
-                    setDriverName(r.name);
-                    if (r.name) {
-                        sendLog("Conductor identificado", "success");
-                    } else {
-                        sendLog("Perfil del conductor no disponible", "error");
-                    }
                     validatedAssignmentRef.current = r.assignment;
                     setBusId(r.assignment?.busId ?? null);
-                    setAsignacionId(r.assignment?.assignmentId ?? null);
                     if (r.assignment) {
                         sendLog(`Bus asignado: ${r.assignment.busId} (datos disponibles del SDK; no certifica actualización remota)`, "success");
                     } else {
@@ -428,10 +399,6 @@ export const SendCoordinates = ({ driverDni }: Props) => {
     }, [driverDni]);
 
     useEffect(() => {
-        const logSubscription = DeviceEventEmitter.addListener('PRO_DEBUG_LOG', (newLog) => {
-            setLogs(prev => [...prev, newLog].slice(-30));
-        });
-
         // C3: La UI escucha el pulso del motor para conocer la última posición enviada
         const pulseSubscription = DeviceEventEmitter.addListener('PRO_LOCATION_PULSE', (payload: { ts: number }) => {
             lastPulseRef.current = payload.ts;
@@ -462,7 +429,6 @@ export const SendCoordinates = ({ driverDni }: Props) => {
         // proceso y el singleton JS sobrevivieron al cierre de la app.
         if (trackingIntent.shouldRun && trackingIntent.sending &&
             trackingIntent.starting === null && trackingIntent.restarting === null && BackgroundJob.isRunning()) {
-            setLogs([]);
             lastPulseRef.current = Date.now();
             sendLog("Recorrido restaurado: el servicio seguía activo en segundo plano", "success");
         }
@@ -471,12 +437,34 @@ export const SendCoordinates = ({ driverDni }: Props) => {
         loadAssignment();
 
         return () => {
-            logSubscription.remove();
             pulseSubscription.remove();
             trackingSubscription.remove();
             appStateSub.remove();
         };
     }, [driverDni, loadAssignment]);
+
+    useEffect(() => {
+        const fecha = getLimaDate();
+        const rosterRef = database().ref(`/directorio_choferes/${fecha}`);
+        const onChoferes = (snapshot: any) => {
+            const data = (snapshot.val() ?? {}) as Record<string, { nombre?: string; apellidos?: string }>;
+            const lista: ChoferDelDia[] = Object.entries(data)
+                .filter(([, chofer]) => typeof chofer?.nombre === 'string' && typeof chofer?.apellidos === 'string')
+                .map(([dni, chofer]) => ({
+                    dni,
+                    nombre: chofer.nombre!.trim(),
+                    apellidos: chofer.apellidos!.trim(),
+                }))
+                .sort((a, b) => `${a.nombre} ${a.apellidos}`.localeCompare(`${b.nombre} ${b.apellidos}`, 'es'));
+            setChoferesDelDia(lista);
+            setSelectedDriverDni(anterior => {
+                if (anterior && lista.some(chofer => chofer.dni === anterior)) return anterior;
+                return null;
+            });
+        };
+        rosterRef.on('value', onChoferes, () => setChoferesDelDia([]));
+        return () => rosterRef.off('value', onChoferes);
+    }, []);
 
     // C3: Arranca el BackgroundJob (usado por INICIAR y por el reinicio automático)
     const startBackgroundJob = useCallback(async (generation: number) => {
@@ -571,6 +559,10 @@ export const SendCoordinates = ({ driverDni }: Props) => {
     }, [isSending, restartBackgroundJob]);
 
     const startProcess = async () => {
+        if (!selectedDriverDni) {
+            Alert.alert('Selecciona tu nombre', 'Toca tu nombre en la lista antes de iniciar el recorrido.');
+            return;
+        }
         if (trackingIntent.starting !== null || trackingIntent.restarting !== null ||
             trackingIntent.stopping !== null || trackingIntent.stopFailed || BackgroundJob.isRunning()) return;
 
@@ -579,7 +571,6 @@ export const SendCoordinates = ({ driverDni }: Props) => {
         trackingIntent.starting = generation;
         publishTrackingState();
 
-        setLogs([]);
         sendLog("Inicio solicitado", "info");
 
         try {
@@ -598,7 +589,6 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                 validatedAssignmentRef.current = result.assignment;
                 assignment = result.assignment;
                 setBusId(assignment?.busId ?? null);
-                setAsignacionId(assignment?.assignmentId ?? null);
                 if (!assignment) {
                     trackingIntent.shouldRun = false;
                     Alert.alert('Bloqueo', result.problem!);
@@ -766,135 +756,89 @@ export const SendCoordinates = ({ driverDni }: Props) => {
                     </View>
                 ) : (
                     <>
-                        <View style={[styles.statusSection, showStopFailure && styles.statusSectionError]}>
-                            <View style={[styles.statusDot, showStopFailure ? styles.statusDotError : trackingActive ? styles.statusDotActive : styles.statusDotInactive]} />
-                            <Text style={[styles.statusText, showStopFailure ? styles.statusTextError : trackingActive ? styles.statusTextActive : styles.statusTextInactive]}>
-                                {isStopping ? 'Deteniendo…' : stopFailed ? 'No se pudo completar la detención' : isStarting ? 'Iniciando…' : isSending ? 'Servicio de ubicación activo' : 'Detenido'}
-                            </Text>
-                        </View>
-
-                        <View style={styles.infoCard}>
-                            <View style={styles.cardHeader}>
-                                <Text style={styles.cardTitle}>Información del viaje</Text>
-                            </View>
-                            <View style={[styles.infoRow, stackInfoRows && styles.infoRowStacked]}>
-                                <Text style={[styles.infoLabel, stackInfoRows && styles.infoLabelStacked]}>Conductor asignado</Text>
-                                <Text style={[styles.infoValue, stackInfoRows && styles.infoValueStacked]}>{driverName || driverDni}</Text>
-                            </View>
-                            <View style={styles.divider} />
-                            <View style={[styles.infoRow, stackInfoRows && styles.infoRowStacked]}>
-                                <Text style={[styles.infoLabel, stackInfoRows && styles.infoLabelStacked]}>Vehículo asignado</Text>
-                                <Text style={[styles.infoValue, stackInfoRows && styles.infoValueStacked, !displayedBusId && styles.infoValueMuted]}>
-                                    {displayedBusId || 'Sin asignación'}
+                        <View style={styles.mainCard}>
+                            <View style={[styles.statusSection, showStopFailure && styles.statusSectionError]}>
+                                <View style={[styles.statusDot, showStopFailure ? styles.statusDotError : trackingActive ? styles.statusDotActive : styles.statusDotInactive]} />
+                                <Text style={[styles.statusText, showStopFailure ? styles.statusTextError : trackingActive ? styles.statusTextActive : styles.statusTextInactive]}>
+                                    {isStopping ? 'Deteniendo…' : stopFailed ? 'No se pudo completar la detención' : isStarting ? 'Iniciando…' : isSending ? 'Servicio de ubicación activo' : 'Detenido'}
                                 </Text>
                             </View>
-                        </View>
 
-                        {!displayedBusId && !isSending && (
-                            <Text style={styles.errorText}>
-                                No tienes un bus asignado para hoy. Contacta a la oficina.
-                            </Text>
-                        )}
+                            {!displayedBusId && !isSending && (
+                                <Text style={styles.errorText}>
+                                    No tienes un bus asignado para hoy. Contacta a la oficina.
+                                </Text>
+                            )}
 
-                        {recoveryFailed && (
-                            <Text style={styles.errorText}>
-                                El envío de ubicación se detuvo y no pudo recuperarse automáticamente. Presiona INICIAR para reintentar.
-                            </Text>
-                        )}
+                            {recoveryFailed && (
+                                <Text style={styles.errorText}>
+                                    El envío de ubicación se detuvo y no pudo recuperarse automáticamente. Presiona INICIAR para reintentar.
+                                </Text>
+                            )}
 
-                        {hasTrackingControls ? (
-                            <Pressable
-                                onPress={stopProcess}
-                                style={styles.btnStop}
-                                accessibilityLabel="DETENER RECORRIDO"
-                            >
-                                <MaterialCommunityIcons name="stop" size={20} color={COLORS.white} style={styles.btnIcon} accessible={false} />
-                                <Text style={styles.btnText}>DETENER RECORRIDO</Text>
-                            </Pressable>
-                        ) : (
-                            <>
+                            {hasTrackingControls ? (
                                 <Pressable
-                                    onPress={startProcess}
-                                    style={styles.btnStart}
-                                    accessibilityLabel="INICIAR RECORRIDO"
+                                    onPress={stopProcess}
+                                    style={styles.btnStop}
+                                    accessibilityLabel="DETENER RECORRIDO"
                                 >
-                                    <MaterialCommunityIcons name="play" size={20} color="#06283D" style={styles.btnIcon} accessible={false} />
-                                    <Text style={[styles.btnText, styles.btnTextStart]}>INICIAR RECORRIDO</Text>
+                                    <MaterialCommunityIcons name="stop" size={26} color={COLORS.white} style={styles.btnIcon} accessible={false} />
+                                    <Text style={styles.btnText}>DETENER RECORRIDO</Text>
                                 </Pressable>
-
-                                <Pressable
-                                    onPress={handleLogout}
-                                    style={styles.btnLogout}
-                                    accessibilityLabel="CERRAR SESIÓN"
-                                >
-                                    <MaterialCommunityIcons name="logout" size={20} color={COLORS.textMuted} style={styles.btnIcon} accessible={false} />
-                                    <Text style={styles.btnLogoutText}>CERRAR SESIÓN</Text>
-                                </Pressable>
-                            </>
-                        )}
-
-                        <View style={styles.debugSection}>
-                            <View style={styles.debugCard}>
-                                <Pressable
-                                    accessibilityRole="button"
-                                    accessibilityLabel={showDebug ? 'Ocultar registros' : 'Mostrar registros'}
-                                    accessibilityState={{expanded: showDebug}}
-                                    onPress={() => {
-                                        if (showDebug) setPausedLogs(null);
-                                        setShowDebug(!showDebug);
-                                    }}
-                                    style={styles.debugToggle}
-                                >
-                                    <Text style={styles.debugToggleText}>
-                                        {showDebug ? 'Ocultar registros' : 'Mostrar registros'}
-                                    </Text>
-                                    <MaterialCommunityIcons name={showDebug ? 'chevron-up' : 'chevron-down'} size={20} color={COLORS.textMuted} style={styles.debugChevron} accessible={false} />
-                                </Pressable>
-
-                                {showDebug && (
-                                    <View style={styles.debugContainer}>
-                                        <Pressable
-                                            accessibilityRole="button"
-                                            onPress={() => setPausedLogs(pausedLogs === null ? [...logs] : null)}
-                                            style={styles.debugReadingToggle}
-                                        >
-                                            <Text style={styles.debugToggleText}>
-                                                {pausedLogs === null ? 'Pausar para leer' : 'Ver mensajes recientes'}
-                                            </Text>
-                                        </Pressable>
-                                        {pausedLogs !== null && (
-                                            <Text style={styles.debugHistoryNote}>
-                                                Vista pausada; los eventos siguen llegando.
-                                            </Text>
-                                        )}
-                                        {(pausedLogs ?? logs).length === 0 ? (
-                                            <Text style={styles.debugEmptyText}>
-                                                Todavía no hay eventos registrados.
-                                            </Text>
-                                        ) : (
-                                            [...(pausedLogs ?? logs)].reverse().map(log => (
-                                                <View key={log.id} style={[
-                                                    styles.logEntry,
-                                                    log.type === 'error'   ? styles.logEntryError :
-                                                    log.type === 'warning' ? styles.logEntryWarning :
-                                                    log.type === 'success' ? styles.logEntrySuccess :
-                                                                             styles.logEntryInfo
-                                                ]}>
-                                                    <Text style={[
-                                                        styles.logText,
-                                                        log.type === 'error'   ? styles.logTextError :
-                                                        log.type === 'warning' ? styles.logTextWarning :
-                                                        log.type === 'success' ? styles.logTextSuccess :
-                                                                                 styles.logTextInfo
-                                                    ]}>
-                                                        {log.t}
+                            ) : (
+                                <>
+                                    <View style={styles.rosterCard}>
+                                        <Text style={styles.rosterTitle}>Selecciona tu nombre</Text>
+                                        <Text style={styles.rosterHint}>Toca tu nombre y luego presiona INICIAR RECORRIDO.</Text>
+                                        {choferesDelDia.length === 0 ? (
+                                            <Text style={styles.rosterEmpty}>No hay conductores asignados para hoy.</Text>
+                                        ) : choferesDelDia.map(chofer => {
+                                            const seleccionado = chofer.dni === selectedDriverDni;
+                                            return (
+                                                <Pressable
+                                                    key={chofer.dni}
+                                                    accessibilityRole="button"
+                                                    accessibilityLabel={`Seleccionar a ${chofer.nombre} ${chofer.apellidos}`}
+                                                    accessibilityState={{ selected: seleccionado }}
+                                                    onPress={() => setSelectedDriverDni(chofer.dni)}
+                                                    style={[styles.rosterRow, seleccionado && styles.rosterRowSelected]}
+                                                >
+                                                    <Text style={[styles.rosterName, seleccionado && styles.rosterNameSelected]}>
+                                                        {`${chofer.nombre} ${chofer.apellidos}`}
                                                     </Text>
-                                                </View>
-                                            ))
-                                        )}
+                                                    {seleccionado && (
+                                                        <MaterialCommunityIcons name="check-circle" size={30} color={COLORS.primary} accessible={false} />
+                                                    )}
+                                                </Pressable>
+                                            );
+                                        })}
                                     </View>
-                                )}
-                            </View>
+
+                                    {!selectedDriverDni && (
+                                        <Text style={styles.helperText}>Primero selecciona tu nombre.</Text>
+                                    )}
+
+                                    <Pressable
+                                        onPress={startProcess}
+                                        disabled={!selectedDriverDni}
+                                        style={[styles.btnStart, !selectedDriverDni && styles.btnDisabled]}
+                                        accessibilityLabel="INICIAR RECORRIDO"
+                                        accessibilityState={{ disabled: !selectedDriverDni }}
+                                    >
+                                        <MaterialCommunityIcons name="play" size={26} color="#06283D" style={styles.btnIcon} accessible={false} />
+                                        <Text style={[styles.btnText, styles.btnTextStart]}>INICIAR RECORRIDO</Text>
+                                    </Pressable>
+
+                                    <Pressable
+                                        onPress={handleLogout}
+                                        style={styles.btnLogout}
+                                        accessibilityLabel="CERRAR SESIÓN"
+                                    >
+                                        <MaterialCommunityIcons name="logout" size={24} color={COLORS.textMuted} style={styles.btnIcon} accessible={false} />
+                                        <Text style={styles.btnLogoutText}>CERRAR SESIÓN</Text>
+                                    </Pressable>
+                                </>
+                            )}
                         </View>
                     </>
                 )}
@@ -910,11 +854,19 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         flexGrow: 1,
-        paddingHorizontal: 24,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 20,
         paddingVertical: 24,
+    },
+    mainCard: {
+        width: '100%',
+        maxWidth: 560,
     },
     loadingContainer: {
         flex: 1,
+        width: '100%',
+        maxWidth: 560,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -959,8 +911,8 @@ const styles = StyleSheet.create({
     },
     statusText: {
         fontFamily: TYPOGRAPHY.primary.semiBold,
-        fontSize: 18,
-        lineHeight: 24,
+        fontSize: 22,
+        lineHeight: 28,
         textAlign: 'center',
         flexShrink: 1,
     },
@@ -973,86 +925,22 @@ const styles = StyleSheet.create({
     statusTextError: {
         color: COLORS.danger,
     },
-    infoCard: {
-        backgroundColor: COLORS.white,
-        borderRadius: 14,
-        padding: 18,
-        marginBottom: 16,
-        borderWidth: 1,
-        borderColor: COLORS.border,
-        elevation: 1,
-        shadowColor: COLORS.shadow,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.06,
-        shadowRadius: 3,
-    },
-    cardHeader: {
-        marginBottom: 12,
-        paddingBottom: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: COLORS.border,
-    },
-    cardTitle: {
-        fontFamily: TYPOGRAPHY.primary.semiBold,
-        fontSize: 15,
-        color: COLORS.brandDeep,
-    },
-    infoRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        paddingVertical: 10,
-    },
-    infoRowStacked: {
-        flexDirection: 'column',
-        alignItems: 'stretch',
-    },
-    infoLabel: {
-        flexShrink: 0,
-        marginRight: 12,
-        fontFamily: TYPOGRAPHY.primary.medium,
-        fontSize: 13,
-        lineHeight: 18,
-        color: COLORS.textMuted,
-    },
-    infoLabelStacked: {
-        marginRight: 0,
-        marginBottom: 4,
-    },
-    infoValue: {
-        flexShrink: 1,
-        textAlign: 'right',
-        fontFamily: TYPOGRAPHY.primary.semiBold,
-        fontSize: 15,
-        lineHeight: 21,
-        color: COLORS.textTitle,
-    },
-    infoValueStacked: {
-        textAlign: 'left',
-    },
-    infoValueMuted: {
-        color: COLORS.textMuted,
-        fontFamily: TYPOGRAPHY.primary.regular,
-    },
-    divider: {
-        height: 1,
-        backgroundColor: COLORS.surface,
-        marginVertical: 2,
-    },
     errorText: {
         color: COLORS.danger,
         textAlign: 'center',
         marginBottom: 16,
         fontFamily: TYPOGRAPHY.primary.medium,
-        fontSize: 13,
-        lineHeight: 18,
+        fontSize: 16,
+        lineHeight: 22,
     },
     // C4.3: Tarjeta visible cuando se agotan los reintentos de carga de asignación
     errorCard: {
         alignItems: 'center',
+        width: '100%',
+        maxWidth: 560,
         marginVertical: 24,
-        padding: 20,
-        borderRadius: 12,
+        padding: 24,
+        borderRadius: 16,
         backgroundColor: COLORS.dangerSoft,
         borderWidth: 1,
         borderColor: COLORS.danger,
@@ -1060,26 +948,27 @@ const styles = StyleSheet.create({
     errorTitle: {
         color: COLORS.danger,
         fontFamily: TYPOGRAPHY.primary.bold,
-        fontSize: 16,
+        fontSize: 20,
         textAlign: 'center',
-        marginBottom: 8,
+        marginBottom: 10,
     },
     errorSubtitle: {
         color: COLORS.textMuted,
         fontFamily: TYPOGRAPHY.primary.medium,
-        fontSize: 13,
+        fontSize: 16,
         textAlign: 'center',
-        lineHeight: 18,
-        marginBottom: 16,
+        lineHeight: 22,
+        marginBottom: 20,
     },
     btnStart: {
         backgroundColor: COLORS.primary,
         flexDirection: 'row',
         justifyContent: 'center',
-        borderRadius: 12,
-        paddingVertical: 16,
+        borderRadius: 16,
+        minHeight: 64,
+        paddingVertical: 18,
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: 16,
         elevation: 2,
         shadowColor: COLORS.shadow,
         shadowOffset: { width: 0, height: 2 },
@@ -1090,10 +979,11 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.danger,
         flexDirection: 'row',
         justifyContent: 'center',
-        borderRadius: 12,
-        paddingVertical: 16,
+        borderRadius: 16,
+        minHeight: 64,
+        paddingVertical: 18,
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: 16,
         elevation: 2,
         shadowColor: COLORS.shadow,
         shadowOffset: { width: 0, height: 2 },
@@ -1106,18 +996,19 @@ const styles = StyleSheet.create({
         borderColor: COLORS.border,
         flexDirection: 'row',
         justifyContent: 'center',
-        borderRadius: 12,
-        paddingVertical: 14,
+        borderRadius: 16,
+        minHeight: 60,
+        paddingVertical: 16,
         alignItems: 'center',
         marginBottom: 12,
     },
     btnDisabled: {
-        opacity: 0.5,
+        opacity: 0.45,
     },
     btnText: {
         color: COLORS.white,
         fontFamily: TYPOGRAPHY.primary.bold,
-        fontSize: 16,
+        fontSize: 20,
     },
     btnTextStart: {
         color: '#06283D',
@@ -1128,97 +1019,78 @@ const styles = StyleSheet.create({
     btnLogoutText: {
         color: COLORS.textMuted,
         fontFamily: TYPOGRAPHY.primary.bold,
-        fontSize: 16,
+        fontSize: 18,
     },
-    debugSection: {
-        marginTop: 16,
-    },
-    debugCard: {
+    rosterCard: {
         backgroundColor: COLORS.white,
-        borderRadius: 14,
+        borderRadius: 18,
+        padding: 22,
+        marginBottom: 16,
         borderWidth: 1,
         borderColor: COLORS.border,
-        overflow: 'hidden',
         elevation: 1,
         shadowColor: COLORS.shadow,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.06,
         shadowRadius: 3,
     },
-    debugToggle: {
-        minHeight: 48,
-        justifyContent: 'center',
-        flexDirection: 'row',
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        alignItems: 'center',
-    },
-    debugToggleText: {
-        fontFamily: TYPOGRAPHY.primary.medium,
-        fontSize: 14,
+    rosterTitle: {
+        fontFamily: TYPOGRAPHY.primary.bold,
+        fontSize: 22,
+        lineHeight: 28,
         color: COLORS.brandDeep,
-    },
-    debugChevron: {
-        marginLeft: 6,
-    },
-    debugContainer: {
-        paddingHorizontal: 12,
-        paddingBottom: 12,
-    },
-    debugHistoryNote: {
-        fontFamily: TYPOGRAPHY.primary.regular,
-        fontSize: 12,
-        lineHeight: 18,
-        color: COLORS.textMuted,
-        marginBottom: 8,
-    },
-    debugReadingToggle: {
-        minHeight: 48,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    debugEmptyText: {
-        paddingVertical: 8,
-        fontFamily: TYPOGRAPHY.primary.medium,
-        fontSize: 13,
-        lineHeight: 18,
-        color: COLORS.textMuted,
         textAlign: 'center',
-    },
-    logEntry: {
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        borderRadius: 6,
         marginBottom: 6,
     },
-    logEntryInfo: {
-        backgroundColor: COLORS.surface,
-    },
-    logEntrySuccess: {
-        backgroundColor: COLORS.successSoft,
-    },
-    logEntryError: {
-        backgroundColor: COLORS.dangerSoft,
-    },
-    logEntryWarning: {
-        backgroundColor: COLORS.warningSoft,
-    },
-    logText: {
-        flexShrink: 1,
-        fontFamily: 'monospace',
-        fontSize: 13,
-        lineHeight: 18,
-    },
-    logTextInfo: {
+    rosterHint: {
+        fontFamily: TYPOGRAPHY.primary.medium,
+        fontSize: 16,
+        lineHeight: 22,
         color: COLORS.textMuted,
+        textAlign: 'center',
+        marginBottom: 16,
     },
-    logTextSuccess: {
-        color: COLORS.success,
+    rosterEmpty: {
+        fontFamily: TYPOGRAPHY.primary.medium,
+        fontSize: 18,
+        lineHeight: 24,
+        color: COLORS.textMuted,
+        textAlign: 'center',
+        paddingVertical: 20,
     },
-    logTextError: {
-        color: '#C62828',
+    rosterRow: {
+        minHeight: 68,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 16,
+        paddingHorizontal: 18,
+        borderRadius: 14,
+        borderWidth: 2,
+        borderColor: COLORS.border,
+        marginBottom: 12,
     },
-    logTextWarning: {
-        color: '#795400',
+    rosterRowSelected: {
+        backgroundColor: COLORS.secondary,
+        borderColor: COLORS.primary,
+    },
+    rosterName: {
+        flexShrink: 1,
+        fontFamily: TYPOGRAPHY.primary.medium,
+        fontSize: 20,
+        lineHeight: 26,
+        color: COLORS.textTitle,
+    },
+    rosterNameSelected: {
+        fontFamily: TYPOGRAPHY.primary.bold,
+        color: COLORS.brandDeep,
+    },
+    helperText: {
+        fontFamily: TYPOGRAPHY.primary.medium,
+        fontSize: 16,
+        lineHeight: 22,
+        color: COLORS.textMuted,
+        textAlign: 'center',
+        marginBottom: 12,
     },
 });

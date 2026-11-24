@@ -40,6 +40,7 @@ jest.mock('../src/services/firebase_service', () => ({
 }));
 
 type Action = () => Promise<void>;
+const rosterData = {'12345678': {nombre: 'Chofer', apellidos: 'De Prueba'}};
 const deferred = () => {
   let resolve!: () => void;
   let reject!: (error: Error) => void;
@@ -71,6 +72,17 @@ describe('I07 Paso 1: intención compartida y vigencia de operaciones', () => {
     }
     return node.props.onPress;
   };
+  const selectChofer = async (required = true) => {
+    const opcion = renderer.root.findAll(node =>
+      typeof node.props?.accessibilityLabel === 'string' &&
+      node.props.accessibilityLabel.startsWith('Seleccionar a '),
+    )[0];
+    if (!opcion) {
+      if (required) throw new Error('No hay chofer seleccionable');
+      return;
+    }
+    await act(async () => { opcion.props.onPress(); });
+  };
   const invoke = async (callback: Action) => {
     let operation!: Promise<void>;
     await act(async () => {
@@ -81,6 +93,7 @@ describe('I07 Paso 1: intención compartida y vigencia de operaciones', () => {
     return {operation};
   };
   const start = async () => {
+    await selectChofer(false);
     const result = await invoke(action('INICIAR RECORRIDO'));
     lastStop = action('DETENER RECORRIDO');
     return result;
@@ -109,9 +122,17 @@ describe('I07 Paso 1: intención compartida y vigencia de operaciones', () => {
         val: () => ({fecha: '2026-10-30', activo: true, busId: 'AHK-459'}),
       }),
     });
-    mockRef.mockReset().mockReturnValue({
-      once,
-      orderByChild: () => ({equalTo: () => ({once})}),
+    mockRef.mockReset().mockImplementation((path: string) => {
+      if (path.startsWith('/directorio_choferes/')) {
+        return {
+          on: (_event: string, callback: (snapshot: unknown) => void) => callback({val: () => rosterData}),
+          off: () => {},
+        };
+      }
+      return {
+        once,
+        orderByChild: () => ({equalTo: () => ({once})}),
+      };
     });
     permission = jest.spyOn(PermissionsAndroid, 'request')
       .mockResolvedValue(PermissionsAndroid.RESULTS.GRANTED);
@@ -120,6 +141,7 @@ describe('I07 Paso 1: intención compartida y vigencia de operaciones', () => {
     await act(async () => {
       renderer = TestRenderer.create(<SendCoordinates driverDni="12345678" />);
     });
+    await selectChofer();
   });
 
   afterEach(async () => {

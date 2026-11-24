@@ -32,13 +32,13 @@ jest.mock('@react-native-community/geolocation', () => ({
 
 const driverDni = '11112222';
 const name = {nombre: 'Persona Ficticia', apellidos: 'Apellido Inventado'};
+const rosterData = {[driverDni]: {nombre: 'Chofer', apellidos: 'De Prueba'}};
 const position = {coords: {latitude: -12.058, longitude: -77.084, heading: null, speed: null}};
 type PositionCallback = (value: typeof position) => Promise<void>;
 
 describe('I11: privacidad del panel sin alterar los diagnósticos operativos', () => {
   let renderer: ReturnType<typeof TestRenderer.create>;
   let emit: jest.SpyInstance;
-  let profileExists: boolean;
   let assignmentExists: boolean;
 
   const messages = () => emit.mock.calls
@@ -58,12 +58,25 @@ describe('I11: privacidad del panel sin alterar los diagnósticos operativos', (
     }
     return node.props.onPress;
   };
+  const selectChofer = async (required = true) => {
+    const opcion = renderer.root.findAll(node =>
+      typeof node.props?.accessibilityLabel === 'string' &&
+      node.props.accessibilityLabel.startsWith('Seleccionar a '),
+    )[0];
+    if (!opcion) {
+      if (required) throw new Error('No hay chofer seleccionable');
+      return;
+    }
+    await act(async () => { opcion.props.onPress(); });
+  };
   const mount = async () => {
     await act(async () => {
       renderer = TestRenderer.create(<SendCoordinates driverDni={driverDni} />);
     });
+    await selectChofer();
   };
   const start = async () => {
+    await selectChofer(false);
     await act(async () => { await action('INICIAR RECORRIDO')(); });
     const [task, options] = jest.mocked(BackgroundJob.start).mock.calls[0];
     jest.mocked(BackgroundJob.isRunning).mockReturnValue(true);
@@ -74,13 +87,15 @@ describe('I11: privacidad del panel sin alterar los diagnósticos operativos', (
   beforeEach(() => {
     jest.useFakeTimers();
     jest.setSystemTime(new Date('2026-10-30T09:00:00-05:00'));
-    profileExists = true;
     assignmentExists = true;
     mockUpdate.mockReset().mockResolvedValue(undefined);
     mockRecordError.mockReset();
     mockRef.mockReset().mockImplementation((path: string) => {
-      if (path === `/choferes/${driverDni}`) {
-        return {once: async () => ({exists: () => profileExists, val: () => name})};
+      if (path.startsWith('/directorio_choferes/')) {
+        return {
+          on: (_event: string, callback: (snapshot: unknown) => void) => callback({val: () => rosterData}),
+          off: () => {},
+        };
       }
       if (path === '/asignaciones') {
         return {orderByChild: () => ({equalTo: () => ({once: async () => ({
@@ -117,19 +132,16 @@ describe('I11: privacidad del panel sin alterar los diagnósticos operativos', (
     jest.restoreAllMocks();
   });
 
-  it('identifica al conductor sin imprimir su nombre y conserva el bus asignado', async () => {
+  it('conserva el bus asignado sin imprimir datos personales', async () => {
     await mount();
-    expect(messages()).toContainEqual(expect.stringMatching(/\] Conductor identificado$/));
     expect(messages()).toContainEqual(expect.stringContaining('Bus asignado: AHK-459'));
     assertNoPersonalData();
   });
 
-  it('registra perfil no disponible sin imprimir DNI y conserva la consulta de asignación', async () => {
-    profileExists = false;
+  it('no consulta el perfil del chofer para el diagnóstico', async () => {
     await mount();
-    expect(messages()).toContainEqual(expect.stringMatching(/\] Perfil del conductor no disponible$/));
+    expect(mockRef).not.toHaveBeenCalledWith(`/choferes/${driverDni}`);
     expect(messages()).toContainEqual(expect.stringContaining('Bus asignado: AHK-459'));
-    expect(mockRef).toHaveBeenCalledWith(`/choferes/${driverDni}`);
     assertNoPersonalData();
   });
 

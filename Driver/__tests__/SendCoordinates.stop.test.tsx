@@ -35,6 +35,7 @@ type Action = () => Promise<void>;
 const position = {
   coords: {latitude: -12.058, longitude: -77.084, heading: null, speed: null},
 };
+const rosterData = {'12345678': {nombre: 'Chofer', apellidos: 'De Prueba'}};
 type PositionCallback = (value: typeof position) => Promise<void>;
 const deferred = () => {
   let resolve!: () => void;
@@ -70,6 +71,17 @@ describe('I07 Paso 3: cierre local, servicio Firebase real y orden de escrituras
     }
     return node.props.onPress;
   };
+  const selectChofer = async (required = true) => {
+    const opcion = renderer.root.findAll(node =>
+      typeof node.props?.accessibilityLabel === 'string' &&
+      node.props.accessibilityLabel.startsWith('Seleccionar a '),
+    )[0];
+    if (!opcion) {
+      if (required) throw new Error('No hay chofer seleccionable');
+      return;
+    }
+    await act(async () => { opcion.props.onPress(); });
+  };
   const invoke = async (callback: Action) => {
     let operation!: Promise<void>;
     await act(async () => {
@@ -80,6 +92,7 @@ describe('I07 Paso 3: cierre local, servicio Firebase real y orden de escrituras
     return {operation};
   };
   const start = async () => {
+    await selectChofer(false);
     const result = await invoke(action('INICIAR RECORRIDO'));
     lastStop = action('DETENER RECORRIDO');
     return result;
@@ -98,6 +111,7 @@ describe('I07 Paso 3: cierre local, servicio Firebase real y orden de escrituras
     await act(async () => {
       renderer = TestRenderer.create(<SendCoordinates driverDni="12345678" />);
     });
+    if (hasText('INICIAR RECORRIDO')) await selectChofer();
     if (hasText('DETENER RECORRIDO')) { lastStop = action('DETENER RECORRIDO'); }
   };
 
@@ -134,11 +148,20 @@ describe('I07 Paso 3: cierre local, servicio Firebase real y orden de escrituras
         val: () => ({fecha: '2026-10-30', activo: true, busId: 'AHK-459'}),
       }),
     });
-    mockRef.mockReset().mockImplementation((path: string) => ({
-      once,
-      update: (values: Record<string, unknown>) => mockUpdate(path, values),
-      orderByChild: () => ({equalTo: () => ({once})}),
-    }));
+    mockRef.mockReset().mockImplementation((path: string) => {
+        if (path.startsWith('/directorio_choferes/')) {
+          return {
+            on: (_event: string, callback: (snapshot: unknown) => void) => callback({val: () => rosterData}),
+            off: () => {},
+          };
+        }
+
+      return {
+        once,
+        update: (values: Record<string, unknown>) => mockUpdate(path, values),
+        orderByChild: () => ({equalTo: () => ({once})}),
+      };
+    });
     permission = jest.spyOn(PermissionsAndroid, 'request').mockResolvedValue(PermissionsAndroid.RESULTS.GRANTED);
     appState = jest.spyOn(AppState, 'addEventListener');
     jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -146,6 +169,7 @@ describe('I07 Paso 3: cierre local, servicio Firebase real y orden de escrituras
     await act(async () => {
       renderer = TestRenderer.create(<SendCoordinates driverDni="12345678" />);
     });
+    await selectChofer();
   }, 15000);
 
   afterEach(async () => {

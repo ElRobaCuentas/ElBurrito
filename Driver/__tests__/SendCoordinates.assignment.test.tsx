@@ -61,6 +61,7 @@ interface Gate {
 const position = {
   coords: {latitude: -12.058, longitude: -77.084, heading: null, speed: null},
 };
+const rosterData = {'12345678': {nombre: 'Chofer', apellidos: 'De Prueba'}};
 type PositionCallback = (value: typeof position) => Promise<void>;
 
 const snapshotOf = (rows: AssignmentRow[]): AssignmentSnapshot => ({
@@ -137,6 +138,7 @@ describe('I08 Pasos 1 y 2: asignación diaria, respaldo B e identidad del recorr
       gate.resolve(snapshotOf(rows));
       await flushMicrotasks();
     });
+    await selectChofer(false);
   };
 
   const remount = async () => {
@@ -160,6 +162,18 @@ describe('I08 Pasos 1 y 2: asignación diaria, respaldo B e identidad del recorr
     return node.props.onPress;
   };
 
+  const selectChofer = async (required = true) => {
+    const opcion = renderer.root.findAll(node =>
+      typeof node.props?.accessibilityLabel === 'string' &&
+      node.props.accessibilityLabel.startsWith('Seleccionar a '),
+    )[0];
+    if (!opcion) {
+      if (required) throw new Error('No hay chofer seleccionable');
+      return;
+    }
+    await act(async () => { opcion.props.onPress(); });
+  };
+
   const invoke = async (callback: Action) => {
     let operation!: Promise<void>;
     await act(async () => {
@@ -171,6 +185,7 @@ describe('I08 Pasos 1 y 2: asignación diaria, respaldo B e identidad del recorr
   };
 
   const start = async () => {
+    await selectChofer(false);
     const result = await invoke(action('INICIAR RECORRIDO'));
     if (hasText('DETENER RECORRIDO')) lastStop = action('DETENER RECORRIDO');
     return result;
@@ -237,6 +252,12 @@ describe('I08 Pasos 1 y 2: asignación diaria, respaldo B e identidad del recorr
       // Contrato real del SDK: las rutas especiales .info no admiten barra inicial.
       if (path.startsWith('/.info/')) {
         throw new Error('firebase.database() Paths can\'t contain "."');
+      }
+      if (path.startsWith('/directorio_choferes/')) {
+        return {
+          on: (_event: string, callback: (snapshot: unknown) => void) => callback({val: () => rosterData}),
+          off: () => {},
+        };
       }
       if (path.startsWith('/choferes/')) {
         return {once: () => Promise.resolve(chofer)};
@@ -326,8 +347,8 @@ describe('I08 Pasos 1 y 2: asignación diaria, respaldo B e identidad del recorr
       {key: 'asignacion-b', fecha: '2026-10-26', activo: true, busId: 'EAP-439'},
     ]);
     expect(messages().some(text => text.includes('Bus asignado: EAP-439'))).toBe(true);
-    expect(hasText('AHK-459')).toBe(true);
-    expect(hasText('EAP-439')).toBe(false);
+    expect(startedTitles()).toEqual(['El Bus AHK-459 está en ruta']);
+    expect(gpsPaths()).toEqual(['/ubicacion_buses/AHK-459']);
     expect(backgroundRunning()).toBe(true);
     expect(mockNative.start).toHaveBeenCalledTimes(1);
 
@@ -397,7 +418,7 @@ describe('I08 Pasos 1 y 2: asignación diaria, respaldo B e identidad del recorr
 
     currentRows = scenario === 'ausente' ? [] : [today({busId: 'EAP-439', activo: scenario === 'B'})];
     await remount();
-    expect(hasText('AHK-459')).toBe(true);
+    expect(startedTitles()).toEqual(['El Bus AHK-459 está en ruta']);
     await (await stop()).operation;
     expect(mockUpdate).toHaveBeenCalledTimes(1);
     expect(mockUpdate).toHaveBeenLastCalledWith('/ubicacion_buses/AHK-459', {isActive: false});
@@ -461,7 +482,6 @@ describe('I08 Pasos 1 y 2: asignación diaria, respaldo B e identidad del recorr
     currentRows = [today({busId: 'EAP-439'})];
     await remount();
     await act(async () => { nativeStart.resolve(); await starting.operation; });
-    expect(hasText('AHK-459')).toBe(true);
     expect(startedTitles()).toEqual(['El Bus AHK-459 está en ruta']);
     await act(async () => { await positions[0](position); });
     expect(gpsPaths()).toEqual(['/ubicacion_buses/AHK-459']);
@@ -502,7 +522,7 @@ describe('I08 Pasos 1 y 2: asignación diaria, respaldo B e identidad del recorr
     await remount();
     await act(async () => { await positions[positions.length - 1](position); });
     expect(gpsPaths()).toEqual(['/ubicacion_buses/EAP-439']);
-    expect(hasText('EAP-439')).toBe(true);
+    expect(startedTitles()).toContain('El Bus EAP-439 está en ruta');
     await (await stop()).operation;
     expect(mockUpdate.mock.calls.map(([path, values]) => [path, values.isActive])).toEqual([
       ['/ubicacion_buses/AHK-459', false],
